@@ -1,12 +1,13 @@
 // Firebase 설정
 // TODO: Firebase Console에서 실제 프로젝트 설정값으로 교체하세요
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "AIzaSyCFqJnQsfSug8B5--Ilq8wuDnTNOvy8gqE",
   authDomain: "elcanto-scm.firebaseapp.com",
   projectId: "elcanto-scm",
-  storageBucket: "elcanto-scm.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  storageBucket: "elcanto-scm.firebasestorage.app",
+  messagingSenderId: "408396102729",
+  appId: "1:408396102729:web:c80b150f1ff9046dac9398",
+  measurementId: "G-LLCK1MV0DK"
 };
 
 // Firebase 초기화
