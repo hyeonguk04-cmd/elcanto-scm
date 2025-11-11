@@ -1,0 +1,174 @@
+// 인증 관련 로직
+import { UIUtils } from './utils.js';
+
+// 현재 로그인한 사용자 정보
+let currentUser = null;
+let currentUserData = null;
+
+// 로그인
+export async function login(username, password) {
+  try {
+    UIUtils.showLoading();
+    
+    // Firestore에서 사용자 찾기
+    const usersSnapshot = await window.db.collection('users')
+      .where('username', '==', username)
+      .limit(1)
+      .get();
+    
+    if (usersSnapshot.empty) {
+      throw new Error('사용자를 찾을 수 없습니다.');
+    }
+    
+    const userDoc = usersSnapshot.docs[0];
+    const userData = userDoc.data();
+    
+    // 비밀번호 확인
+    if (userData.password !== password) {
+      throw new Error('비밀번호가 일치하지 않습니다.');
+    }
+    
+    // 익명 로그인 (실제 환경에서는 Custom Token 사용)
+    const authResult = await window.auth.signInAnonymously();
+    
+    // 사용자 정보 저장
+    currentUser = authResult.user;
+    currentUserData = {
+      uid: userDoc.id,
+      ...userData
+    };
+    
+    // 로그인 시간 업데이트
+    await window.db.collection('users').doc(userDoc.id).update({
+      lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // 로컬 스토리지에 저장
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUserData));
+    
+    UIUtils.hideLoading();
+    return currentUserData;
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('Login error:', error);
+    throw error;
+  }
+}
+
+// 로그아웃
+export async function logout() {
+  try {
+    await window.auth.signOut();
+    currentUser = null;
+    currentUserData = null;
+    sessionStorage.removeItem('currentUser');
+  } catch (error) {
+    console.error('Logout error:', error);
+    throw error;
+  }
+}
+
+// 현재 사용자 정보 가져오기
+export function getCurrentUser() {
+  // 메모리에 있으면 반환
+  if (currentUserData) return currentUserData;
+  
+  // 세션 스토리지에서 복원
+  const stored = sessionStorage.getItem('currentUser');
+  if (stored) {
+    currentUserData = JSON.parse(stored);
+    return currentUserData;
+  }
+  
+  return null;
+}
+
+// 관리자 권한 확인
+export function isAdmin() {
+  const user = getCurrentUser();
+  return user && user.role === 'admin';
+}
+
+// 생산업체 권한 확인
+export function isSupplier() {
+  const user = getCurrentUser();
+  return user && user.role === 'supplier';
+}
+
+// 인증 상태 확인
+export function isAuthenticated() {
+  return getCurrentUser() !== null;
+}
+
+// 인증 상태 변경 리스너
+export function onAuthStateChanged(callback) {
+  return window.auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      callback(getCurrentUser());
+    } else {
+      currentUser = null;
+      currentUserData = null;
+      sessionStorage.removeItem('currentUser');
+      callback(null);
+    }
+  });
+}
+
+// 사용자 초기화 (테스트용 - 실제 환경에서는 제거)
+export async function initializeTestUsers() {
+  try {
+    // 관리자 사용자 확인
+    const adminSnapshot = await window.db.collection('users')
+      .where('username', '==', 'admin')
+      .limit(1)
+      .get();
+    
+    if (adminSnapshot.empty) {
+      // 관리자 생성
+      await window.db.collection('users').add({
+        username: 'admin',
+        password: 'admin123',
+        name: '관리자',
+        email: 'admin@elcanto.com',
+        role: 'admin',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('✅ 관리자 계정 생성됨');
+    }
+    
+    // 생산업체 사용자 확인
+    const supplierSnapshot = await window.db.collection('users')
+      .where('username', '==', 'shengan')
+      .limit(1)
+      .get();
+    
+    if (supplierSnapshot.empty) {
+      // 생산업체 사용자 생성
+      await window.db.collection('users').add({
+        username: 'shengan',
+        password: 'user123',
+        name: '성안',
+        email: 'shengan@example.com',
+        role: 'supplier',
+        supplierName: '성안',
+        country: '중국',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('✅ 생산업체 계정 생성됨');
+    }
+  } catch (error) {
+    console.error('Test user initialization error:', error);
+  }
+}
+
+export default {
+  login,
+  logout,
+  getCurrentUser,
+  isAdmin,
+  isSupplier,
+  isAuthenticated,
+  onAuthStateChanged,
+  initializeTestUsers
+};

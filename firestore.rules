@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 사용자 인증 확인 함수
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // 관리자 권한 확인 함수
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // 생산업체 권한 확인 함수
+    function isSupplier() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supplier';
+    }
+    
+    // 본인 또는 관리자 확인 함수
+    function isOwnerOrAdmin(userId) {
+      return isAuthenticated() && 
+             (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Users 컬렉션
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isOwnerOrAdmin(userId);
+      allow delete: if isAdmin();
+    }
+    
+    // Suppliers 컬렉션
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Orders 컬렉션
+    match /orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || 
+                      (isSupplier() && 
+                       get(/databases/$(database)/documents/orders/$(orderId)).data.supplierId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // Processes 컬렉션
+    match /processes/{processId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin();
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+    
+    // Evidences 컬렉션 (증빙자료 메타데이터)
+    match /evidences/{evidenceId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isOwnerOrAdmin(resource.data.uploadedBy);
+      allow delete: if isOwnerOrAdmin(resource.data.uploadedBy);
+    }
+  }
+}

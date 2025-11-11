@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELCANTO SCM PORTAL</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- SheetJS for Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <!-- Login View -->
+    <div id="login-view" class="w-full max-w-md">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="text-center mb-8">
+                <div class="bg-blue-900 px-6 py-4 rounded-lg mb-4">
+                    <h1 class="text-2xl font-bold text-white text-center">
+                        <i class="fa-solid fa-shoe-prints text-white mr-3"></i>
+                        <span>ELCANTO SCM PORTAL</span>
+                    </h1>
+                </div>
+                <p class="text-gray-500 mt-2">로그인하여 생산 현황을 관리하세요.</p>
+            </div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700">아이디</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="ID" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700">비밀번호</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Password" required>
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center mb-4 hidden"></p>
+                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                    로그인
+                </button>
+            </form>
+            <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p class="text-xs text-gray-600 text-center mb-2">📋 테스트 계정 정보</p>
+                <div class="space-y-1 text-xs text-gray-600">
+                    <div class="text-center">🔐 관리자: <span class="font-bold text-blue-600">admin</span> / <span class="font-bold text-blue-600">admin123</span></div>
+                    <div class="text-center">🏭 생산업체: <span class="font-bold text-green-600">shengan</span> / <span class="font-bold text-green-600">user123</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App View (Initially Hidden) -->
+    <div id="app-view" class="hidden w-full h-screen flex flex-col">
+        <!-- Header -->
+        <div class="bg-blue-900 px-6 py-3 shadow-lg flex justify-between items-center flex-wrap gap-4 shrink-0 z-20">
+            <h1 class="text-xl font-bold text-white">
+                <i class="fa-solid fa-shoe-prints text-white mr-2"></i>
+                <span>엘칸토 SCM 포털</span>
+            </h1>
+            <div class="flex items-center">
+                <span id="status-message" class="text-green-300 font-bold text-xs mr-3"></span>
+                <span id="user-display" class="text-gray-200 mr-3 text-xs"></span>
+                <button id="logout-btn" class="bg-white hover:bg-gray-100 text-blue-900 font-bold py-1 px-3 rounded-md text-xs">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i>로그아웃
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar -->
+            <aside id="sidebar-container" class="w-56 bg-gray-100 shadow-lg p-4 overflow-y-auto shrink-0">
+                <!-- Sidebar will be injected here by JS -->
+            </aside>
+
+            <!-- Main Content -->
+            <main id="main-content" class="flex-1 p-4 md:p-6 overflow-y-auto">
+                <!-- Content will be injected here -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    
+    <!-- Process Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-lg">
+            <h3 class="text-xl font-bold mb-6">공정 상세 정보</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">목표일</span>
+                    <span id="detail-target-date" class="font-bold text-gray-800"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">실제 완료일</span>
+                    <span id="detail-actual-date" class="font-bold text-blue-600"></span>
+                </div>
+                <div>
+                    <p class="text-gray-500 mb-2">증빙 사진</p>
+                    <img id="detail-photo" src="" alt="Proof Photo" class="w-full h-auto rounded-lg bg-gray-100">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                <button type="button" class="modal-cancel-btn bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Upload Modal -->
+    <div id="photo-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-lg">
+            <h3 class="text-xl font-bold mb-6">증빙 사진 업로드</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">파일 선택</label>
+                    <input type="file" id="photo-input" accept="image/*" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                </div>
+                <div id="photo-preview" class="hidden">
+                    <p class="text-sm text-gray-500 mb-2">미리보기</p>
+                    <img id="photo-preview-img" src="" alt="Preview" class="w-full h-auto rounded-lg">
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end space-x-3">
+                <button type="button" id="photo-cancel-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                    취소
+                </button>
+                <button type="button" id="photo-upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    업로드
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 flex flex-col items-center">
+            <i class="fas fa-spinner fa-spin fa-3x text-blue-600 mb-4"></i>
+            <p class="text-gray-700 font-medium">처리 중...</p>
+        </div>
+    </div>
+
+    <!-- Hidden File Inputs -->
+    <input type="file" id="excel-uploader" class="hidden" accept=".xlsx, .xls, .csv">
+
+    <!-- Scripts -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/utils.js"></script>
+    <script type="module" src="js/process-config.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/firestore-service.js"></script>
+    <script type="module" src="js/ui-components.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+    <script type="module" src="js/order-management.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/supplier-view.js"></script>
+    <script type="module" src="js/supplier-management.js"></script>
+    <script type="module" src="js/weekly-report.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
