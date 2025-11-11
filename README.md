@@ -216,22 +216,142 @@ firebase serve
 
 ## 배포
 
-### Firebase Hosting 배포
+### 🚀 빠른 배포 (권장)
+
 ```bash
-firebase deploy
+# 1. 저장소 클론
+git clone https://github.com/hyeonguk04-cmd/elcanto-scm.git
+cd elcanto-scm
+
+# 2. 의존성 설치
+npm install
+
+# 3. Firebase 로그인
+npx firebase login
+
+# 4. 전체 배포 (한 번에!)
+npm run deploy:all
 ```
 
-### 특정 서비스만 배포
+또는 자동화 스크립트 사용:
 ```bash
+./deploy.sh all
+```
+
+**배포 완료!** 🎉
+- 웹사이트: https://elcanto-scm.web.app
+- Firebase Console: https://console.firebase.google.com/project/elcanto-scm
+
+### 📚 배포 가이드
+
+- **[QUICKSTART.md](QUICKSTART.md)**: 5분 빠른 배포 가이드
+- **[DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)**: 상세한 터미널 배포 가이드
+- **[FIREBASE_SETUP.md](FIREBASE_SETUP.md)**: Firebase 초기 설정 가이드
+
+### NPM 배포 스크립트
+
+```bash
+# 전체 배포 (Firestore 규칙 + Storage 규칙 + Hosting)
+npm run deploy:all
+
 # Hosting만 배포
-firebase deploy --only hosting
+npm run deploy:hosting
 
 # Firestore 규칙만 배포
-firebase deploy --only firestore:rules
+npm run deploy:firestore
 
 # Storage 규칙만 배포
+npm run deploy:storage
+```
+
+### 자동화 배포 스크립트
+
+```bash
+# 전체 배포
+./deploy.sh all
+
+# Hosting만 배포
+./deploy.sh hosting
+
+# Firestore 규칙만 배포
+./deploy.sh firestore
+
+# Storage 규칙만 배포
+./deploy.sh storage
+```
+
+### 기존 Firebase CLI 명령어
+
+```bash
+# 전체 배포
+firebase deploy
+
+# 특정 서비스만 배포
+firebase deploy --only hosting
+firebase deploy --only firestore:rules
 firebase deploy --only storage
 ```
+
+## 🗄️ 배포 후 초기 설정
+
+배포가 완료되면 Firebase Console에서 초기 데이터를 설정해야 합니다.
+
+### 1. users 컬렉션 생성
+
+[Firebase Console > Firestore Database](https://console.firebase.google.com/project/elcanto-scm/firestore)
+
+#### 관리자 계정
+```javascript
+// 문서 ID: admin@elcanto.com
+{
+  email: "admin@elcanto.com",
+  password: "admin123",  // ⚠️ 배포 후 변경 필요
+  role: "admin",
+  name: "엘칸토 관리자",
+  createdAt: [Timestamp]
+}
+```
+
+#### 공급업체 계정
+```javascript
+// 문서 ID: supplier@aau.com
+{
+  email: "supplier@aau.com",
+  password: "supplier123",  // ⚠️ 배포 후 변경 필요
+  role: "supplier",
+  name: "AAU Vietnam",
+  supplierId: "aau",
+  createdAt: [Timestamp]
+}
+```
+
+### 2. suppliers 문서에 leadTimes 추가
+
+기존 `suppliers/aau` 문서에 `leadTimes` 맵 필드 추가:
+
+```javascript
+leadTimes: {
+  material_upper: 7,
+  material_sole: 7,
+  hando_cfm: 2,
+  cutting: 3,
+  upper_making: 10,
+  assembly: 7,
+  self_inspection: 2,
+  final_inspection: 2,
+  factory_shipment: 3,
+  shipping: 2,
+  arrival: 0,
+  logistics_arrival: 2
+}
+```
+
+### 3. 로그인 테스트
+
+1. 웹사이트 접속: https://elcanto-scm.web.app
+2. 관리자로 로그인 (admin@elcanto.com / admin123)
+3. 대시보드 확인
+4. 로그아웃 후 공급업체 계정 테스트
 
 ## 프로젝트 구조
 
