@@ -18,12 +18,13 @@ ELCANTO SCM Portal의 Firebase 설정 방법입니다.
 
 ```javascript
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",  // 실제 API 키로 교체
+  apiKey: "AIzaSyCFqJnQsfSug8B5--Ilq8wuDnTNOvy8gqE",
   authDomain: "elcanto-scm.firebaseapp.com",
   projectId: "elcanto-scm",
-  storageBucket: "elcanto-scm.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",  // 실제 값으로 교체
-  appId: "YOUR_APP_ID"  // 실제 App ID로 교체
+  storageBucket: "elcanto-scm.firebasestorage.app",
+  messagingSenderId: "408396102729",
+  appId: "1:408396102729:web:c80b150f1ff9046dac9398",
+  measurementId: "G-LLCK1MV0DK"
 };
 ```
 

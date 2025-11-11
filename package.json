@@ -1,0 +1,21 @@
+{
+  "name": "webapp",
+  "version": "1.0.0",
+  "description": "엘칸토 패션 제화 업체의 SCM(Supply Chain Management) 포털 사이트입니다.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "firebase": "firebase",
+    "deploy": "firebase deploy",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "deploy:firestore": "firebase deploy --only firestore:rules",
+    "deploy:storage": "firebase deploy --only storage",
+    "deploy:all": "firebase deploy --only firestore:rules,storage,hosting"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "firebase-tools": "^14.24.2"
+  }
+}
