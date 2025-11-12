@@ -41,3 +41,7 @@ build/
 # Original files (backup)
 original.html
 update_processes.py
+
+# Firebase Admin SDK service account key
+service-account-key.json
+*-firebase-adminsdk-*.json
