@@ -27,7 +27,7 @@ service cloud.firestore {
     // Users 컬렉션
     match /users/{userId} {
       // 로그인을 위해 users 컬렉션은 누구나 읽을 수 있어야 함
-      allow read: if true;
+      allow read, list: if true;
       allow create: if isAdmin();
       allow update: if isOwnerOrAdmin(userId);
       allow delete: if isAdmin();
