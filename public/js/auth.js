@@ -10,7 +10,7 @@ export async function login(username, password) {
   try {
     UIUtils.showLoading();
     
-    // Firestore에서 사용자 찾기
+    // Firestore에서 사용자 정보 찾기 (이메일 확인용)
     const usersSnapshot = await window.db.collection('users')
       .where('username', '==', username)
       .limit(1)
@@ -23,27 +23,25 @@ export async function login(username, password) {
     const userDoc = usersSnapshot.docs[0];
     const userData = userDoc.data();
     
-    // 비밀번호 확인
-    if (userData.password !== password) {
-      throw new Error('비밀번호가 일치하지 않습니다.');
-    }
-    
-    // 익명 로그인 (실제 환경에서는 Custom Token 사용)
-    const authResult = await window.auth.signInAnonymously();
+    // Firebase Authentication으로 이메일/비밀번호 로그인
+    const authResult = await window.auth.signInWithEmailAndPassword(
+      userData.email,
+      password
+    );
     
     // 사용자 정보 저장
     currentUser = authResult.user;
     currentUserData = {
-      uid: userDoc.id,
+      uid: authResult.user.uid, // Firebase Auth UID 사용 (Custom UID와 일치!)
       ...userData
     };
     
-    // 로그인 시간 업데이트
-    await window.db.collection('users').doc(userDoc.id).update({
+    // 로그인 시간 업데이트 (이제 UID가 일치해서 권한 문제 해결!)
+    await window.db.collection('users').doc(authResult.user.uid).update({
       lastLogin: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    // 로컬 스토리지에 저장
+    // 세션 스토리지에 저장
     sessionStorage.setItem('currentUser', JSON.stringify(currentUserData));
     
     UIUtils.hideLoading();
@@ -51,7 +49,24 @@ export async function login(username, password) {
   } catch (error) {
     UIUtils.hideLoading();
     console.error('Login error:', error);
-    throw error;
+    
+    // Firebase Auth 에러 메시지를 사용자 친화적으로 변환
+    let errorMessage = '로그인에 실패했습니다.';
+    if (error.code === 'auth/wrong-password') {
+      errorMessage = '비밀번호가 일치하지 않습니다.';
+    } else if (error.code === 'auth/user-not-found') {
+      errorMessage = '사용자를 찾을 수 없습니다.';
+    } else if (error.code === 'auth/invalid-email') {
+      errorMessage = '잘못된 이메일 형식입니다.';
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = '비활성화된 계정입니다.';
+    } else if (error.code === 'auth/too-many-requests') {
+      errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
   }
 }
 
