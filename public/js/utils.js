@@ -49,6 +49,24 @@ export const DateUtils = {
     const yearStart = new Date(d.getFullYear(), 0, 1);
     const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     return weekNo;
+  },
+
+  // 엑셀 날짜를 문자열로 변환
+  excelDateToString(excelDate) {
+    if (!excelDate) return null;
+    
+    // 이미 문자열 형식(YYYY-MM-DD)이면 그대로 반환
+    if (typeof excelDate === 'string') {
+      return excelDate;
+    }
+    
+    // 엑셀 날짜 시리얼 번호를 JavaScript Date로 변환
+    // 엑셀은 1900-01-01을 1로 시작 (단, 1900년을 윤년으로 잘못 계산하는 버그 있음)
+    const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+    const msPerDay = 86400000;
+    const date = new Date(excelEpoch.getTime() + excelDate * msPerDay);
+    
+    return this.formatDate(date);
   }
 };
 

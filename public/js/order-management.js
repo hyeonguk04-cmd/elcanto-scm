@@ -2,7 +2,7 @@
 import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
-import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY } from './process-config.js';
+import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule } from './process-config.js';
 
 let orders = [];
 let selectedOrderIds = new Set();
@@ -23,6 +23,7 @@ export async function renderOrderManagement(container) {
             <button id="upload-btn" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">
               <i class="fas fa-file-excel mr-2"></i>엑셀 업로드
             </button>
+            <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
             <button id="add-row-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
               <i class="fas fa-plus mr-2"></i>행 추가
             </button>
@@ -158,12 +159,26 @@ function updateDeleteButton() {
 }
 
 function downloadTemplate() {
-  const columns = {
-    '채널': '', '스타일': '', '색상코드': '', '수량': '',
-    '국가': '', '생산업체': '', '발주일': '', '입고요구일': '', '선적경로': ''
-  };
-  ExcelUtils.downloadTemplate(Object.keys(columns), 'elcanto_order_template.xlsx');
-  UIUtils.showAlert('템플릿 다운로드 완료', 'success');
+  // 공정 헤더 가져오기
+  const headers = createProcessTableHeaders();
+  
+  // 기본 정보 컬럼
+  const basicColumns = [
+    '채널', '스타일', '색상코드', '수량',
+    '국가', '생산업체', '발주일', '입고요구일', '선적경로'
+  ];
+  
+  // 생산 공정 컬럼
+  const productionColumns = headers.production.map(h => h.name);
+  
+  // 운송 공정 컬럼
+  const shippingColumns = headers.shipping.map(h => h.name);
+  
+  // 전체 컬럼 결합
+  const allColumns = [...basicColumns, ...productionColumns, ...shippingColumns];
+  
+  ExcelUtils.downloadTemplate(allColumns, 'elcanto_order_template.xlsx');
+  UIUtils.showAlert('템플릿 다운로드 완료! 발주일을 입력하면 공정별 목표일자가 자동 계산됩니다.', 'success');
 }
 
 async function handleExcelUpload(e) {
@@ -175,16 +190,78 @@ async function handleExcelUpload(e) {
     const data = await ExcelUtils.readExcel(file);
     console.log('Excel data:', data);
     
-    // TODO: 엑셀 데이터를 Firestore에 저장
-    // 각 행을 addOrder로 추가
+    if (!data || data.length === 0) {
+      throw new Error('엑셀 파일이 비어있습니다.');
+    }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    // 각 행을 발주 데이터로 변환 및 저장
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      try {
+        // 필수 필드 검증
+        if (!row['발주일'] || !row['입고요구일']) {
+          throw new Error('발주일과 입고요구일은 필수입니다.');
+        }
+        
+        // 선적 경로 가져오기
+        const route = row['선적경로'] || null;
+        
+        // 공정 일정 자동 계산
+        const schedule = calculateProcessSchedule(
+          DateUtils.excelDateToString(row['발주일']),
+          null, // 표준 리드타임 사용
+          route
+        );
+        
+        // 발주 데이터 생성
+        const orderData = {
+          channel: row['채널'] || '',
+          style: row['스타일'] || '',
+          color: row['색상코드'] || '',
+          qty: row['수량'] || 0,
+          country: row['국가'] || '',
+          supplier: row['생산업체'] || '',
+          orderDate: DateUtils.excelDateToString(row['발주일']),
+          requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
+          route: route,
+          schedule: schedule,
+          createdAt: new Date().toISOString()
+        };
+        
+        // Firestore에 저장
+        await addOrder(orderData);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        errors.push(`행 ${i + 2}: ${error.message}`);
+        console.error(`Row ${i + 2} error:`, error);
+      }
+    }
+    
+    // 결과 표시
+    if (errorCount === 0) {
+      UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!`, 'success');
+    } else {
+      const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+      UIUtils.showAlert(message, 'warning');
+    }
+    
+    // 테이블 새로고침
+    orders = await getOrdersWithProcesses();
+    renderOrdersTable();
+    setupEventListeners();
     
     UIUtils.hideLoading();
-    UIUtils.showAlert('엑셀 업로드 완료', 'success');
     e.target.value = ''; // Reset input
   } catch (error) {
     UIUtils.hideLoading();
     console.error('Excel upload error:', error);
-    UIUtils.showAlert('엑셀 업로드 실패', 'error');
+    UIUtils.showAlert(`엑셀 업로드 실패: ${error.message}`, 'error');
+    e.target.value = '';
   }
 }
 

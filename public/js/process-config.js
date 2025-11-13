@@ -109,13 +109,14 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     const leadTime = (supplierLeadTimes && supplierLeadTimes[process.key]) || process.defaultLeadTime;
     currentDate = addDays(currentDate, leadTime);
     schedule.production.push({
+      processKey: process.key,
       name: process.name,
       name_en: process.name_en,
-      key: process.key,
-      target: currentDate,
-      actual: null,
+      targetDate: currentDate,
+      actualDate: null,
       photo: null,
-      delayReason: null
+      delayReason: null,
+      leadTime: leadTime
     });
   });
   
@@ -131,13 +132,14 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     currentDate = addDays(currentDate, leadTime);
     
     const processData = {
+      processKey: process.key,
       name: process.name,
       name_en: process.name_en,
-      key: process.key,
-      target: currentDate,
-      actual: null,
+      targetDate: currentDate,
+      actualDate: null,
       photo: null,
-      delayReason: null
+      delayReason: null,
+      leadTime: leadTime
     };
     
     if (process.hasRoute) {
