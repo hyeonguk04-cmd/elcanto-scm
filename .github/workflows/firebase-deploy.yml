@@ -1,0 +1,44 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Firebase
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Deploy to Firebase Hosting
+        run: |
+          npx firebase-tools deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+      
+      - name: Deployment success notification
+        if: success()
+        run: |
+          echo "✅ Firebase 배포 성공!"
+          echo "🌐 URL: https://elcanto-scm.web.app"
+      
+      - name: Deployment failure notification
+        if: failure()
+        run: |
+          echo "❌ Firebase 배포 실패!"
+          echo "로그를 확인하세요."
+ci: GitHub Actions 자동 배포 설정
