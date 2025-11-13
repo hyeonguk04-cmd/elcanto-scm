@@ -41,4 +41,3 @@ jobs:
         run: |
           echo "❌ Firebase 배포 실패!"
           echo "로그를 확인하세요."
-ci: GitHub Actions 자동 배포 설정
