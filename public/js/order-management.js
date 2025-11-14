@@ -83,8 +83,8 @@ function renderOrdersTable() {
             <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
-            <th rowspan="2" class="px-2 py-2 border">물류입고</th>
-            <th rowspan="2" class="px-2 py-2 border">입고기준<br>예상차이</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 110px;">물류입고</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">입고기준<br>예상차이</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 150px;">비고</th>
           </tr>
           <tr>
