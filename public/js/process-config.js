@@ -9,11 +9,11 @@ const PROCESS_CONFIG = {
     { name: '제갑', name_en: 'Upper Making', key: 'upper_making', defaultLeadTime: 10 },
     { name: '조립', name_en: 'Assembly (Lasting)', key: 'assembly', defaultLeadTime: 7 },
     { name: '자체검사', name_en: 'Self Inspection', key: 'self_inspection', defaultLeadTime: 2 },
-    { name: '완성검사', name_en: 'Final Inspection', key: 'final_inspection', defaultLeadTime: 2 },
     { name: '공장출고', name_en: 'Factory Shipment', key: 'factory_shipment', defaultLeadTime: 3 }
   ],
   shipping: [
-    { name: '선적', name_en: 'Shipping', key: 'shipping', defaultLeadTime: 2, hasRoute: true }
+    { name: '선적', name_en: 'Shipping', key: 'shipping', defaultLeadTime: 2, hasRoute: true },
+    { name: '입항', name_en: 'Arrival', key: 'arrival', defaultLeadTime: 2 }
   ]
 };
 

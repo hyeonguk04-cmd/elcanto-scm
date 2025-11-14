@@ -83,6 +83,7 @@ function renderOrdersTable() {
             <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="${headers.shipping.length}" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th rowspan="2" class="px-2 py-2 border">물류입고<br>예정일</th>
             <th rowspan="2" class="px-2 py-2 border">입고기준<br>예상차이</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 150px;">비고</th>
           </tr>
@@ -97,8 +98,8 @@ function renderOrdersTable() {
             <th class="px-2 py-2 border">발주일</th>
             <th class="px-2 py-2 border">입고요구일</th>
             ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
-            <th class="px-2 py-2 border">선적-도착항</th>
             ${headers.shipping.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
+            <th class="px-2 py-2 border">선적-도착항</th>
           </tr>
         </thead>
         <tbody id="orders-tbody">
@@ -208,16 +209,6 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       }).join('')}
       
-      <!-- 선적-도착항 (드롭다운) -->
-      <td class="px-2 py-2 border" style="min-width: 120px;">
-        <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
-                data-order-id="${order.id}" data-field="route" data-country="${order.country}">
-          ${(ROUTES_BY_COUNTRY[order.country] || []).map(route => 
-            `<option value="${route}" ${order.route === route ? 'selected' : ''}>${route}</option>`
-          ).join('')}
-        </select>
-      </td>
-      
       <!-- 운송 공정 목표일 (날짜 편집 가능) -->
       ${headers.shipping.map(h => {
         const process = order.schedule.shipping.find(p => p.processKey === h.key);
@@ -230,6 +221,19 @@ function renderOrderRow(order, rowNum, headers) {
                  value="${processDate}">
         </td>`;
       }).join('')}
+      
+      <!-- 선적-도착항 (드롭다운) -->
+      <td class="px-2 py-2 border" style="min-width: 120px;">
+        <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                data-order-id="${order.id}" data-field="route" data-country="${order.country}">
+          ${(ROUTES_BY_COUNTRY[order.country] || []).map(route => 
+            `<option value="${route}" ${order.route === route ? 'selected' : ''}>${route}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 물류입고 예정일 (자동 계산) -->
+      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 110px;">${logisticsArrival}</td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
