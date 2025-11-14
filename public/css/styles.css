@@ -48,7 +48,6 @@ body {
 td input,
 td select {
     background-color: transparent;
-    min-width: 60px;
     border: none;
     outline: none;
     padding: 4px;
@@ -66,23 +65,22 @@ td select {
     -webkit-appearance: none;
     -moz-appearance: none;
     background-image: none;
-    min-width: 80px;
 }
 
-/* 날짜 입력 필드 */
-td input[type="text"].date-input,
-td input[type="text"].process-date-input {
-    min-width: 90px;
-}
-
-/* 텍스트 입력 필드 최소 너비 */
-td input[type="text"]:not(.date-input):not(.process-date-input) {
-    min-width: 70px;
+/* 체크박스 */
+td input[type="checkbox"] {
+    min-width: 20px;
 }
 
 /* 숫자 입력 필드 */
 td input[type="number"] {
     min-width: 60px;
+}
+
+/* 날짜 입력 필드 (기본) */
+td input[type="text"].date-input,
+td input[type="text"].process-date-input {
+    min-width: 80px;
 }
 
 /* Photo Icon */
