@@ -4,15 +4,27 @@ import { renderEmptyState, createProcessTableHeaders } from './ui-components.js'
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
 
+// 드롭다운 기준 데이터 (향후 Firestore로 이관 가능)
+const MASTER_DATA = {
+  channels: ['온라인몰', '백화점', '면세점', '할인점', '전문점', '기타'],
+  colors: ['BLACK', 'WHITE', 'NAVY', 'BROWN', 'BEIGE', 'GRAY', 'RED', 'BLUE', 'GREEN'],
+  sizes: ['220', '225', '230', '235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
+};
+
 let orders = [];
 let selectedOrderIds = new Set();
-let editingOrderId = null;
+let originalOrders = {}; // 원본 데이터 저장 (변경 감지용)
 let hasUnsavedChanges = false;
 
 export async function renderOrderManagement(container) {
   try {
     UIUtils.showLoading();
     orders = await getOrdersWithProcesses();
+    
+    // 원본 데이터 저장
+    orders.forEach(order => {
+      originalOrders[order.id] = JSON.stringify(order);
+    });
     
     container.innerHTML = `
       <div class="space-y-6">
@@ -29,10 +41,10 @@ export async function renderOrderManagement(container) {
             <button id="add-row-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
               <i class="fas fa-plus mr-2"></i>행 추가
             </button>
-            <button id="save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50" disabled>
+            <button id="save-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
               <i class="fas fa-save mr-2"></i>저장
             </button>
-            <button id="delete-btn" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50" disabled>
+            <button id="delete-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
               <i class="fas fa-trash mr-2"></i>삭제
             </button>
           </div>
@@ -40,77 +52,6 @@ export async function renderOrderManagement(container) {
         
         <div class="bg-white rounded-xl shadow-lg p-6">
           <div id="orders-table"></div>
-        </div>
-      </div>
-
-      <!-- 행 추가 모달 -->
-      <div id="add-order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-        <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold">발주 정보 입력</h3>
-            <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700">
-              <i class="fas fa-times text-xl"></i>
-            </button>
-          </div>
-          
-          <form id="add-order-form" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">채널 *</label>
-                <input type="text" name="channel" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">스타일 *</label>
-                <input type="text" name="style" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">색상코드 *</label>
-                <input type="text" name="color" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">수량 *</label>
-                <input type="number" name="qty" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">국가 *</label>
-                <select name="country" required class="w-full px-3 py-2 border border-gray-300 rounded-md" id="country-select">
-                  <option value="">선택하세요</option>
-                  <option value="중국">중국</option>
-                  <option value="베트남">베트남</option>
-                  <option value="인도">인도</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">생산업체 *</label>
-                <select name="supplier" required class="w-full px-3 py-2 border border-gray-300 rounded-md" id="supplier-select">
-                  <option value="">선택하세요</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">발주일 *</label>
-                <input type="date" name="orderDate" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">입고요구일 *</label>
-                <input type="date" name="requiredDelivery" required class="w-full px-3 py-2 border border-gray-300 rounded-md">
-              </div>
-              <div class="col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-1">선적경로 *</label>
-                <select name="route" required class="w-full px-3 py-2 border border-gray-300 rounded-md" id="route-select">
-                  <option value="">선택하세요</option>
-                </select>
-              </div>
-            </div>
-            
-            <div class="flex justify-end space-x-2 mt-6">
-              <button type="button" id="cancel-modal-btn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">
-                취소
-              </button>
-              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                저장
-              </button>
-            </div>
-          </form>
         </div>
       </div>
     `;
@@ -139,20 +80,19 @@ function renderOrdersTable() {
       <table class="w-full text-xs border-collapse">
         <thead class="bg-gray-50 text-xs uppercase sticky top-0">
           <tr>
-            <th rowspan="3" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
-            <th rowspan="3" class="px-2 py-2 border">번호</th>
-            <th colspan="8" class="px-2 py-2 border bg-blue-100">발주 정보</th>
-            <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정 일정</th>
-            <th colspan="${headers.shipping.length + 2}" class="px-2 py-2 border bg-yellow-100">운송 목표일정 일정</th>
-            <th rowspan="3" class="px-2 py-2 border">입고기준<br>예상차이</th>
-            <th rowspan="3" class="px-2 py-2 border">비고</th>
-            <th rowspan="3" class="px-2 py-2 border">수정</th>
-            <th rowspan="3" class="px-2 py-2 border">삭제</th>
+            <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
+            <th rowspan="2" class="px-2 py-2 border">번호</th>
+            <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
+            <th colspan="${headers.shipping.length + 2}" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th rowspan="2" class="px-2 py-2 border">입고기준<br>예상차이</th>
+            <th rowspan="2" class="px-2 py-2 border">비고</th>
           </tr>
           <tr>
             <th class="px-2 py-2 border">채널</th>
             <th class="px-2 py-2 border">스타일</th>
             <th class="px-2 py-2 border">색상</th>
+            <th class="px-2 py-2 border">사이즈</th>
             <th class="px-2 py-2 border">수량</th>
             <th class="px-2 py-2 border">국가</th>
             <th class="px-2 py-2 border">생산업체</th>
@@ -163,22 +103,8 @@ function renderOrdersTable() {
             ${headers.shipping.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
             <th class="px-2 py-2 border">물류입고<br>예정일</th>
           </tr>
-          <tr>
-            <th class="px-1 py-1 border text-[10px]">Channel</th>
-            <th class="px-1 py-1 border text-[10px]">Style</th>
-            <th class="px-1 py-1 border text-[10px]">Color</th>
-            <th class="px-1 py-1 border text-[10px]">Qty</th>
-            <th class="px-1 py-1 border text-[10px]">Country</th>
-            <th class="px-1 py-1 border text-[10px]">Supplier</th>
-            <th class="px-1 py-1 border text-[10px]">Order Date</th>
-            <th class="px-1 py-1 border text-[10px]">Required Delivery</th>
-            ${headers.production.map(h => `<th class="px-1 py-1 border text-[10px]">${h.name_en}</th>`).join('')}
-            <th class="px-1 py-1 border text-[10px]">Route</th>
-            ${headers.shipping.map(h => `<th class="px-1 py-1 border text-[10px]">${h.name_en}</th>`).join('')}
-            <th class="px-1 py-1 border text-[10px]">Logistics Arrival</th>
-          </tr>
         </thead>
-        <tbody>
+        <tbody id="orders-tbody">
           ${orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
         </tbody>
       </table>
@@ -190,50 +116,119 @@ function renderOrderRow(order, rowNum, headers) {
   // 물류입고 예정일 (마지막 공정의 목표일)
   const logisticsArrival = order.schedule.shipping[order.schedule.shipping.length - 1]?.targetDate || '-';
   
-  // 입고기준 예상차이 계산
+  // 입고기준 예상차이 계산 (양수면 빨강 - 지연)
   const delayDays = logisticsArrival !== '-' ? DateUtils.diffInDays(order.requiredDelivery, logisticsArrival) : null;
-  const delayClass = delayDays < 0 ? 'bg-red-600 text-white font-bold' : '';
+  const delayClass = delayDays > 0 ? 'bg-red-600 text-white font-bold' : '';
   const delayText = delayDays !== null ? (delayDays > 0 ? `+${delayDays}` : delayDays) : '-';
   
   return `
     <tr class="border-b hover:bg-gray-50" data-order-id="${order.id}">
-      <td class="px-2 py-2 border text-center"><input type="checkbox" class="order-checkbox" value="${order.id}"></td>
+      <td class="px-2 py-2 border text-center">
+        <input type="checkbox" class="order-checkbox" value="${order.id}">
+      </td>
       <td class="px-2 py-2 border text-center">${rowNum}</td>
-      <td class="px-2 py-2 border">${order.channel}</td>
-      <td class="px-2 py-2 border">${order.style}</td>
-      <td class="px-2 py-2 border">${order.color}</td>
-      <td class="px-2 py-2 border text-right">${order.qty?.toLocaleString()}</td>
-      <td class="px-2 py-2 border">${order.country}</td>
-      <td class="px-2 py-2 border">${order.supplier}</td>
+      
+      <!-- 채널 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="channel">
+          ${MASTER_DATA.channels.map(ch => 
+            `<option value="${ch}" ${order.channel === ch ? 'selected' : ''}>${ch}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 스타일 (직접입력) -->
+      <td class="px-2 py-2 border">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
+               data-order-id="${order.id}" data-field="style" value="${order.style || ''}">
+      </td>
+      
+      <!-- 색상 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="color">
+          ${MASTER_DATA.colors.map(col => 
+            `<option value="${col}" ${order.color === col ? 'selected' : ''}>${col}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 사이즈 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="size">
+          ${MASTER_DATA.sizes.map(sz => 
+            `<option value="${sz}" ${order.size === sz ? 'selected' : ''}>${sz}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 수량 (직접입력) -->
+      <td class="px-2 py-2 border">
+        <input type="number" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-right" 
+               data-order-id="${order.id}" data-field="qty" value="${order.qty || 0}">
+      </td>
+      
+      <!-- 국가 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field country-select w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="country">
+          ${Object.keys(SUPPLIERS_BY_COUNTRY).map(country => 
+            `<option value="${country}" ${order.country === country ? 'selected' : ''}>${country}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 생산업체 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="supplier" data-country="${order.country}">
+          ${(SUPPLIERS_BY_COUNTRY[order.country] || []).map(sup => 
+            `<option value="${sup}" ${order.supplier === sup ? 'selected' : ''}>${sup}</option>`
+          ).join('')}
+        </select>
+      </td>
+      
+      <!-- 발주일 -->
       <td class="px-2 py-2 border">${order.orderDate}</td>
+      
+      <!-- 입고요구일 -->
       <td class="px-2 py-2 border">${order.requiredDelivery}</td>
+      
+      <!-- 생산 공정 목표일 -->
       ${headers.production.map(h => {
         const process = order.schedule.production.find(p => p.processKey === h.key);
         return `<td class="px-2 py-2 border">${process?.targetDate || '-'}</td>`;
       }).join('')}
+      
+      <!-- 선적-도착항 (드롭다운) -->
       <td class="px-2 py-2 border">
-        <select class="route-select w-full px-1 py-1 border-0 bg-transparent" data-order-id="${order.id}">
+        <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded" 
+                data-order-id="${order.id}" data-field="route" data-country="${order.country}">
           ${(ROUTES_BY_COUNTRY[order.country] || []).map(route => 
             `<option value="${route}" ${order.route === route ? 'selected' : ''}>${route}</option>`
           ).join('')}
         </select>
       </td>
+      
+      <!-- 운송 공정 목표일 -->
       ${headers.shipping.map(h => {
         const process = order.schedule.shipping.find(p => p.processKey === h.key);
         return `<td class="px-2 py-2 border">${process?.targetDate || '-'}</td>`;
       }).join('')}
+      
+      <!-- 물류입고 예정일 -->
       <td class="px-2 py-2 border">${logisticsArrival}</td>
+      
+      <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
-      <td class="px-2 py-2 border"></td>
-      <td class="px-2 py-2 border text-center">
-        <button class="edit-order-btn text-blue-600 hover:text-blue-800" data-order-id="${order.id}">
-          <i class="fas fa-edit"></i>
-        </button>
-      </td>
-      <td class="px-2 py-2 border text-center">
-        <button class="delete-order-btn text-red-600 hover:text-red-800" data-order-id="${order.id}">
-          <i class="fas fa-trash"></i>
-        </button>
+      
+      <!-- 비고 -->
+      <td class="px-2 py-2 border">
+        <input type="text" class="editable-field w-full px-1 py-1 border-0 bg-transparent" 
+               data-order-id="${order.id}" data-field="notes" value="${order.notes || ''}" 
+               placeholder="비고 입력">
       </td>
     </tr>
   `;
@@ -265,29 +260,27 @@ function setupEventListeners() {
     });
   });
   
-  // Route dropdowns
-  document.querySelectorAll('.route-select').forEach(select => {
-    select.addEventListener('change', async (e) => {
-      const orderId = e.target.dataset.orderId;
-      const newRoute = e.target.value;
-      await handleRouteChange(orderId, newRoute);
-    });
-  });
-  
-  // Edit buttons
-  document.querySelectorAll('.edit-order-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const orderId = e.currentTarget.dataset.orderId;
-      editOrder(orderId);
-    });
-  });
-  
-  // Delete buttons (individual)
-  document.querySelectorAll('.delete-order-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const orderId = e.currentTarget.dataset.orderId;
-      await deleteSingleOrder(orderId);
-    });
+  // Editable fields - 변경 감지 및 자동 저장 준비
+  document.querySelectorAll('.editable-field').forEach(field => {
+    // Country 변경 시 Supplier와 Route 업데이트
+    if (field.classList.contains('country-select')) {
+      field.addEventListener('change', (e) => {
+        handleCountryChange(e.target);
+        markAsChanged(e.target.dataset.orderId);
+      });
+    } 
+    // Route 변경 시 일정 재계산
+    else if (field.classList.contains('route-select')) {
+      field.addEventListener('change', (e) => {
+        handleRouteChangeInline(e.target);
+      });
+    }
+    // 일반 필드 변경
+    else {
+      field.addEventListener('change', (e) => {
+        markAsChanged(e.target.dataset.orderId);
+      });
+    }
   });
   
   // Buttons
@@ -295,41 +288,44 @@ function setupEventListeners() {
   document.getElementById('upload-btn')?.addEventListener('click', () => {
     document.getElementById('excel-uploader').click();
   });
-  document.getElementById('add-row-btn')?.addEventListener('click', showAddOrderModal);
+  document.getElementById('add-row-btn')?.addEventListener('click', addNewRow);
   document.getElementById('save-btn')?.addEventListener('click', saveAllChanges);
   document.getElementById('delete-btn')?.addEventListener('click', deleteSelectedOrders);
-  
-  // Modal buttons
-  document.getElementById('close-modal-btn')?.addEventListener('click', hideAddOrderModal);
-  document.getElementById('cancel-modal-btn')?.addEventListener('click', hideAddOrderModal);
-  document.getElementById('add-order-form')?.addEventListener('submit', handleAddOrderSubmit);
-  
-  // Country change -> update suppliers and routes
-  document.getElementById('country-select')?.addEventListener('change', (e) => {
-    updateSupplierOptions(e.target.value);
-    updateRouteOptions(e.target.value);
-  });
   
   // Excel uploader
   document.getElementById('excel-uploader')?.addEventListener('change', handleExcelUpload);
 }
 
-function updateDeleteButton() {
-  const deleteBtn = document.getElementById('delete-btn');
-  if (deleteBtn) {
-    deleteBtn.disabled = selectedOrderIds.size === 0;
+function handleCountryChange(countrySelect) {
+  const orderId = countrySelect.dataset.orderId;
+  const newCountry = countrySelect.value;
+  const row = countrySelect.closest('tr');
+  
+  // 해당 행의 supplier select 업데이트
+  const supplierSelect = row.querySelector('.supplier-select');
+  if (supplierSelect) {
+    const suppliers = SUPPLIERS_BY_COUNTRY[newCountry] || [];
+    supplierSelect.innerHTML = suppliers.map(sup => 
+      `<option value="${sup}">${sup}</option>`
+    ).join('');
+    supplierSelect.dataset.country = newCountry;
+  }
+  
+  // 해당 행의 route select 업데이트
+  const routeSelect = row.querySelector('.route-select');
+  if (routeSelect) {
+    const routes = ROUTES_BY_COUNTRY[newCountry] || [];
+    routeSelect.innerHTML = routes.map(route => 
+      `<option value="${route}">${route}</option>`
+    ).join('');
+    routeSelect.dataset.country = newCountry;
   }
 }
 
-function updateSaveButton(enabled) {
-  const saveBtn = document.getElementById('save-btn');
-  if (saveBtn) {
-    saveBtn.disabled = !enabled;
-    hasUnsavedChanges = enabled;
-  }
-}
-
-async function handleRouteChange(orderId, newRoute) {
+async function handleRouteChangeInline(routeSelect) {
+  const orderId = routeSelect.dataset.orderId;
+  const newRoute = routeSelect.value;
+  
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
@@ -348,120 +344,182 @@ async function handleRouteChange(orderId, newRoute) {
     renderOrdersTable();
     setupEventListeners();
     
-    UIUtils.showAlert('선적경로가 변경되었습니다.', 'success');
+    UIUtils.showAlert('선적경로가 변경되고 일정이 재계산되었습니다.', 'success');
   } catch (error) {
     console.error('Route change error:', error);
     UIUtils.showAlert('선적경로 변경 실패', 'error');
   }
 }
 
-function showAddOrderModal() {
-  document.getElementById('add-order-modal').classList.remove('hidden');
-  document.getElementById('add-order-form').reset();
+function markAsChanged(orderId) {
+  hasUnsavedChanges = true;
+  updateSaveButton(true);
 }
 
-function hideAddOrderModal() {
-  document.getElementById('add-order-modal').classList.add('hidden');
-  document.getElementById('add-order-form').reset();
+function updateDeleteButton() {
+  const deleteBtn = document.getElementById('delete-btn');
+  if (deleteBtn) {
+    const hasSelected = selectedOrderIds.size > 0;
+    deleteBtn.disabled = !hasSelected;
+    
+    // 색상 변경: 체크 있으면 빨강, 없으면 회색
+    if (hasSelected) {
+      deleteBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+      deleteBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+    } else {
+      deleteBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+      deleteBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
+    }
+  }
 }
 
-function updateSupplierOptions(country) {
-  const supplierSelect = document.getElementById('supplier-select');
-  if (!supplierSelect || !country) return;
+function updateSaveButton(hasChanges) {
+  const saveBtn = document.getElementById('save-btn');
+  if (saveBtn) {
+    saveBtn.disabled = !hasChanges;
+    
+    // 색상 변경: 변경사항 있으면 파랑, 없으면 회색
+    if (hasChanges) {
+      saveBtn.classList.remove('bg-gray-400', 'hover:bg-gray-500');
+      saveBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+    } else {
+      saveBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      saveBtn.classList.add('bg-gray-400', 'hover:bg-gray-500');
+    }
+  }
+  hasUnsavedChanges = hasChanges;
+}
+
+function addNewRow() {
+  const tbody = document.getElementById('orders-tbody');
+  if (!tbody) return;
   
-  const suppliers = SUPPLIERS_BY_COUNTRY[country] || [];
-  supplierSelect.innerHTML = '<option value="">선택하세요</option>' + 
-    suppliers.map(s => `<option value="${s}">${s}</option>`).join('');
-}
-
-function updateRouteOptions(country) {
-  const routeSelect = document.getElementById('route-select');
-  if (!routeSelect || !country) return;
+  const headers = createProcessTableHeaders();
+  const newRowNum = orders.length + 1;
   
-  const routes = ROUTES_BY_COUNTRY[country] || [];
-  routeSelect.innerHTML = '<option value="">선택하세요</option>' + 
-    routes.map(r => `<option value="${r}">${r}</option>`).join('');
+  // 임시 ID 생성
+  const tempId = 'new_' + Date.now();
+  
+  // 빈 주문 객체 생성
+  const newOrder = {
+    id: tempId,
+    channel: MASTER_DATA.channels[0],
+    style: '',
+    color: MASTER_DATA.colors[0],
+    size: MASTER_DATA.sizes[0],
+    qty: 0,
+    country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
+    supplier: SUPPLIERS_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
+    orderDate: DateUtils.formatDate(new Date()),
+    requiredDelivery: DateUtils.formatDate(new Date()),
+    route: ROUTES_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
+    schedule: { production: [], shipping: [] },
+    notes: ''
+  };
+  
+  // 기본 일정 계산
+  newOrder.schedule = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);
+  
+  // 테이블에 새 행 추가
+  const newRowHtml = renderOrderRow(newOrder, newRowNum, headers);
+  tbody.insertAdjacentHTML('beforeend', newRowHtml);
+  
+  // 로컬 orders 배열에도 추가
+  orders.push(newOrder);
+  
+  // 이벤트 리스너 재설정
+  setupEventListeners();
+  
+  // 저장 버튼 활성화
+  markAsChanged(tempId);
+  
+  // 새로 추가된 행으로 스크롤
+  const newRow = tbody.querySelector(`tr[data-order-id="${tempId}"]`);
+  if (newRow) {
+    newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    newRow.classList.add('bg-yellow-50');
+    setTimeout(() => newRow.classList.remove('bg-yellow-50'), 2000);
+  }
+  
+  UIUtils.showAlert('새 행이 추가되었습니다. 정보를 입력하고 저장 버튼을 누르세요.', 'info');
 }
 
-async function handleAddOrderSubmit(e) {
-  e.preventDefault();
+async function saveAllChanges() {
+  if (!hasUnsavedChanges) return;
   
   try {
     UIUtils.showLoading();
     
-    const formData = new FormData(e.target);
-    const orderDate = formData.get('orderDate');
-    const route = formData.get('route');
+    let savedCount = 0;
+    let errorCount = 0;
     
-    // 공정 일정 자동 계산
-    const schedule = calculateProcessSchedule(orderDate, null, route);
+    for (const order of orders) {
+      try {
+        // 페이지의 입력값 수집
+        const row = document.querySelector(`tr[data-order-id="${order.id}"]`);
+        if (!row) continue;
+        
+        const updatedData = {
+          channel: row.querySelector('[data-field="channel"]')?.value || order.channel,
+          style: row.querySelector('[data-field="style"]')?.value || order.style,
+          color: row.querySelector('[data-field="color"]')?.value || order.color,
+          size: row.querySelector('[data-field="size"]')?.value || order.size,
+          qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty,
+          country: row.querySelector('[data-field="country"]')?.value || order.country,
+          supplier: row.querySelector('[data-field="supplier"]')?.value || order.supplier,
+          route: row.querySelector('[data-field="route"]')?.value || order.route,
+          notes: row.querySelector('[data-field="notes"]')?.value || '',
+          orderDate: order.orderDate,
+          requiredDelivery: order.requiredDelivery,
+          schedule: order.schedule
+        };
+        
+        // 새로운 행인 경우 (ID가 new_로 시작)
+        if (order.id.startsWith('new_')) {
+          await addOrder(updatedData);
+        } else {
+          // 기존 데이터와 비교하여 변경된 경우에만 업데이트
+          const originalData = originalOrders[order.id];
+          if (originalData !== JSON.stringify(updatedData)) {
+            await updateOrder(order.id, updatedData);
+          }
+        }
+        
+        savedCount++;
+      } catch (error) {
+        console.error(`Save error for order ${order.id}:`, error);
+        errorCount++;
+      }
+    }
     
-    const orderData = {
-      channel: formData.get('channel'),
-      style: formData.get('style'),
-      color: formData.get('color'),
-      qty: parseInt(formData.get('qty')),
-      country: formData.get('country'),
-      supplier: formData.get('supplier'),
-      orderDate: orderDate,
-      requiredDelivery: formData.get('requiredDelivery'),
-      route: route,
-      schedule: schedule,
-      createdAt: new Date().toISOString()
-    };
-    
-    await addOrder(orderData);
-    
-    // 테이블 새로고침
+    // 데이터 새로고침
     orders = await getOrdersWithProcesses();
+    orders.forEach(order => {
+      originalOrders[order.id] = JSON.stringify(order);
+    });
+    
     renderOrdersTable();
     setupEventListeners();
     
-    hideAddOrderModal();
+    updateSaveButton(false);
     UIUtils.hideLoading();
-    UIUtils.showAlert('발주가 추가되었습니다.', 'success');
+    
+    if (errorCount === 0) {
+      UIUtils.showAlert(`${savedCount}건의 변경사항이 저장되었습니다.`, 'success');
+    } else {
+      UIUtils.showAlert(`저장 완료: ${savedCount}건, 실패: ${errorCount}건`, 'warning');
+    }
   } catch (error) {
     UIUtils.hideLoading();
-    console.error('Add order error:', error);
-    UIUtils.showAlert('발주 추가 실패: ' + error.message, 'error');
+    console.error('Save all changes error:', error);
+    UIUtils.showAlert('저장 중 오류가 발생했습니다.', 'error');
   }
-}
-
-function editOrder(orderId) {
-  // TODO: 편집 모달 표시
-  UIUtils.showAlert('편집 기능은 개발 중입니다. 선적경로는 드롭다운으로 변경 가능합니다.', 'info');
-}
-
-async function deleteSingleOrder(orderId) {
-  const confirmed = await UIUtils.confirm('이 발주를 삭제하시겠습니까?');
-  if (!confirmed) return;
-  
-  try {
-    UIUtils.showLoading();
-    await deleteOrder(orderId);
-    
-    orders = await getOrdersWithProcesses();
-    renderOrdersTable();
-    setupEventListeners();
-    
-    UIUtils.hideLoading();
-    UIUtils.showAlert('삭제 완료', 'success');
-  } catch (error) {
-    UIUtils.hideLoading();
-    console.error('Delete error:', error);
-    UIUtils.showAlert('삭제 실패', 'error');
-  }
-}
-
-function saveAllChanges() {
-  UIUtils.showAlert('모든 변경사항이 자동으로 저장되었습니다.', 'success');
-  updateSaveButton(false);
 }
 
 function downloadTemplate() {
   const headers = createProcessTableHeaders();
   const basicColumns = [
-    '채널', '스타일', '색상코드', '수량',
+    '채널', '스타일', '색상코드', '사이즈', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
   const productionColumns = headers.production.map(h => h.name);
@@ -506,6 +564,7 @@ async function handleExcelUpload(e) {
           channel: row['채널'] || '',
           style: row['스타일'] || '',
           color: row['색상코드'] || '',
+          size: row['사이즈'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
           supplier: row['생산업체'] || '',
@@ -513,6 +572,7 @@ async function handleExcelUpload(e) {
           requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
           route: route,
           schedule: schedule,
+          notes: '',
           createdAt: new Date().toISOString()
         };
         
@@ -533,6 +593,9 @@ async function handleExcelUpload(e) {
     }
     
     orders = await getOrdersWithProcesses();
+    orders.forEach(order => {
+      originalOrders[order.id] = JSON.stringify(order);
+    });
     renderOrdersTable();
     setupEventListeners();
     
@@ -556,11 +619,19 @@ async function deleteSelectedOrders() {
     UIUtils.showLoading();
     
     for (const orderId of selectedOrderIds) {
-      await deleteOrder(orderId);
+      // 새로 추가된 행(아직 저장 안 됨)은 로컬에서만 삭제
+      if (orderId.startsWith('new_')) {
+        orders = orders.filter(o => o.id !== orderId);
+      } else {
+        await deleteOrder(orderId);
+      }
     }
     
     selectedOrderIds.clear();
     orders = await getOrdersWithProcesses();
+    orders.forEach(order => {
+      originalOrders[order.id] = JSON.stringify(order);
+    });
     renderOrdersTable();
     setupEventListeners();
     
