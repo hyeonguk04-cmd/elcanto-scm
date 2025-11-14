@@ -6,7 +6,7 @@ import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIP
 
 // 드롭다운 기준 데이터 (향후 Firestore로 이관 가능)
 const MASTER_DATA = {
-  channels: ['온라인몰', '백화점', '면세점', '할인점', '전문점', '기타'],
+  channels: ['IM', 'ELCANTO'],
   colors: ['BLACK', 'WHITE', 'NAVY', 'BROWN', 'BEIGE', 'GRAY', 'RED', 'BLUE', 'GREEN'],
   sizes: ['220', '225', '230', '235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
 };
