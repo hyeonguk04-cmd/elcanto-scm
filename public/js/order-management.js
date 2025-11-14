@@ -75,7 +75,7 @@ function renderOrdersTable() {
   
   tableContainer.innerHTML = `
     <div class="overflow-x-auto">
-      <table class="w-full text-xs border-collapse">
+      <table class="w-full text-xs border-collapse table-auto">
         <thead class="bg-gray-50 text-xs uppercase sticky top-0">
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
@@ -83,9 +83,9 @@ function renderOrdersTable() {
             <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
-            <th rowspan="2" class="px-2 py-2 border" style="min-width: 110px;">물류입고</th>
+            <th rowspan="2" class="px-2 py-2 border">물류입고</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">입고기준<br>예상차이</th>
-            <th rowspan="2" class="px-2 py-2 border" style="min-width: 150px;">비고</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 120px;">비고</th>
           </tr>
           <tr>
             <th class="px-2 py-2 border">채널</th>
@@ -128,7 +128,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border text-center">${rowNum}</td>
       
       <!-- 채널 (드롭다운) -->
-      <td class="px-2 py-2 border" style="min-width: 100px;">
+      <td class="px-2 py-2 border">
         <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="channel">
           ${MASTER_DATA.channels.map(ch => 
@@ -138,7 +138,7 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 스타일 (직접입력 - 정확히 10자리) -->
-      <td class="px-2 py-2 border" style="min-width: 120px;">
+      <td class="px-2 py-2 border">
         <input type="text" class="editable-field style-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="style" value="${order.style || ''}" 
                maxlength="10" minlength="10" pattern=".{10}" 
@@ -146,27 +146,27 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 색상 (직접입력) -->
-      <td class="px-2 py-2 border" style="min-width: 80px;">
+      <td class="px-2 py-2 border">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="color" value="${order.color || ''}" 
                placeholder="색상">
       </td>
       
       <!-- 사이즈 (직접입력) -->
-      <td class="px-2 py-2 border" style="min-width: 70px;">
+      <td class="px-2 py-2 border">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="size" value="${order.size || ''}" 
                placeholder="사이즈">
       </td>
       
       <!-- 수량 (직접입력) -->
-      <td class="px-2 py-2 border" style="min-width: 80px;">
+      <td class="px-2 py-2 border">
         <input type="number" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-right text-xs" 
                data-order-id="${order.id}" data-field="qty" value="${order.qty || 0}">
       </td>
       
       <!-- 국가 (드롭다운) -->
-      <td class="px-2 py-2 border" style="min-width: 80px;">
+      <td class="px-2 py-2 border">
         <select class="editable-field country-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="country">
           ${Object.keys(SUPPLIERS_BY_COUNTRY).map(country => 
@@ -176,7 +176,7 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 생산업체 (드롭다운) -->
-      <td class="px-2 py-2 border" style="min-width: 100px;">
+      <td class="px-2 py-2 border">
         <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="supplier" data-country="${order.country}">
           ${(SUPPLIERS_BY_COUNTRY[order.country] || []).map(sup => 
@@ -186,13 +186,13 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 발주일 (날짜 편집 가능) -->
-      <td class="px-2 py-2 border" style="min-width: 110px;">
+      <td class="px-2 py-2 border">
         <input type="date" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="orderDate" value="${order.orderDate}">
       </td>
       
       <!-- 입고요구일 (날짜 편집 가능) -->
-      <td class="px-2 py-2 border" style="min-width: 110px;">
+      <td class="px-2 py-2 border">
         <input type="date" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="requiredDelivery" value="${order.requiredDelivery}">
       </td>
@@ -201,7 +201,7 @@ function renderOrderRow(order, rowNum, headers) {
       ${headers.production.map(h => {
         const process = order.schedule.production.find(p => p.processKey === h.key);
         const processDate = process?.targetDate || '';
-        return `<td class="px-2 py-2 border" style="min-width: 110px;">
+        return `<td class="px-2 py-2 border">
           <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  data-order-id="${order.id}" 
                  data-process-category="production" 
@@ -214,7 +214,7 @@ function renderOrderRow(order, rowNum, headers) {
       ${(() => {
         const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
-        return `<td class="px-2 py-2 border" style="min-width: 110px;">
+        return `<td class="px-2 py-2 border">
           <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  data-order-id="${order.id}" 
                  data-process-category="shipping" 
@@ -224,7 +224,7 @@ function renderOrderRow(order, rowNum, headers) {
       })()}
       
       <!-- 운송 목표일정: 선적항-도착항 (드롭다운) -->
-      <td class="px-2 py-2 border" style="min-width: 120px;">
+      <td class="px-2 py-2 border">
         <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="route" data-country="${order.country}">
           ${(ROUTES_BY_COUNTRY[order.country] || []).map(route => 
@@ -237,7 +237,7 @@ function renderOrderRow(order, rowNum, headers) {
       ${(() => {
         const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
-        return `<td class="px-2 py-2 border" style="min-width: 110px;">
+        return `<td class="px-2 py-2 border">
           <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  data-order-id="${order.id}" 
                  data-process-category="shipping" 
@@ -247,13 +247,13 @@ function renderOrderRow(order, rowNum, headers) {
       })()}
       
       <!-- 물류입고 (자동 계산 또는 수동 입력) -->
-      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 110px;">${logisticsArrival}</td>
+      <td class="px-2 py-2 border text-center text-xs font-bold">${logisticsArrival}</td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
       
       <!-- 비고 -->
-      <td class="px-2 py-2 border" style="min-width: 150px;">
+      <td class="px-2 py-2 border" style="min-width: 120px;">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="notes" value="${order.notes || ''}" 
                placeholder="비고 입력">

@@ -60,6 +60,26 @@ td select:focus {
     border-radius: 4px;
 }
 
+/* 드롭다운 화살표 숨기기 */
+td select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: none;
+}
+
+/* 날짜 입력 달력 아이콘 숨기기 */
+td input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
+
+td input[type="date"]::-webkit-inner-spin-button,
+td input[type="date"]::-webkit-clear-button {
+    display: none;
+    -webkit-appearance: none;
+}
+
 /* Photo Icon */
 .photo-icon {
     cursor: pointer;
