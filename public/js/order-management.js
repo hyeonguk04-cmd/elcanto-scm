@@ -82,7 +82,8 @@ function renderOrdersTable() {
             <th rowspan="2" class="px-2 py-2 border">번호</th>
             <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
-            <th colspan="${headers.shipping.length + 1}" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th rowspan="2" class="px-2 py-2 border">물류입고</th>
             <th rowspan="2" class="px-2 py-2 border">입고기준<br>예상차이</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 150px;">비고</th>
           </tr>
@@ -97,8 +98,9 @@ function renderOrdersTable() {
             <th class="px-2 py-2 border">발주일</th>
             <th class="px-2 py-2 border">입고요구일</th>
             ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
-            ${headers.shipping.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
+            <th class="px-2 py-2 border">선적</th>
             <th class="px-2 py-2 border">선적항-도착항</th>
+            <th class="px-2 py-2 border">입항</th>
           </tr>
         </thead>
         <tbody id="orders-tbody">
@@ -208,7 +210,7 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       }).join('')}
       
-      <!-- 운송 공정 목표일: 선적 (날짜 편집 가능) -->
+      <!-- 운송 목표일정: 선적 (날짜 편집 가능) -->
       ${(() => {
         const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
@@ -221,7 +223,7 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       })()}
       
-      <!-- 선적항-도착항 (드롭다운) -->
+      <!-- 운송 목표일정: 선적항-도착항 (드롭다운) -->
       <td class="px-2 py-2 border" style="min-width: 120px;">
         <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="route" data-country="${order.country}">
@@ -231,7 +233,7 @@ function renderOrderRow(order, rowNum, headers) {
         </select>
       </td>
       
-      <!-- 운송 공정 목표일: 입항 (날짜 편집 가능) -->
+      <!-- 운송 목표일정: 입항 (날짜 편집 가능) -->
       ${(() => {
         const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
@@ -244,18 +246,8 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       })()}
       
-      <!-- 운송 공정 목표일: 물류입고 (날짜 편집 가능) -->
-      ${(() => {
-        const logisticsProcess = order.schedule.shipping.find(p => p.processKey === 'logistics_arrival');
-        const logisticsDate = logisticsProcess?.targetDate || '';
-        return `<td class="px-2 py-2 border" style="min-width: 110px;">
-          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
-                 data-order-id="${order.id}" 
-                 data-process-category="shipping" 
-                 data-process-key="logistics_arrival" 
-                 value="${logisticsDate}">
-        </td>`;
-      })()}
+      <!-- 물류입고 (자동 계산 또는 수동 입력) -->
+      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 110px;">${logisticsArrival}</td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
