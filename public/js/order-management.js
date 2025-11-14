@@ -555,18 +555,18 @@ async function saveAllChanges() {
         if (!row) continue;
         
         const updatedData = {
-          channel: row.querySelector('[data-field="channel"]')?.value || order.channel,
-          style: row.querySelector('[data-field="style"]')?.value || order.style,
-          color: row.querySelector('[data-field="color"]')?.value || order.color,
-          size: row.querySelector('[data-field="size"]')?.value || order.size,
-          qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty,
-          country: row.querySelector('[data-field="country"]')?.value || order.country,
-          supplier: row.querySelector('[data-field="supplier"]')?.value || order.supplier,
-          route: row.querySelector('[data-field="route"]')?.value || order.route,
-          notes: row.querySelector('[data-field="notes"]')?.value || '',
-          orderDate: order.orderDate,
-          requiredDelivery: order.requiredDelivery,
-          schedule: order.schedule
+          channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
+          style: row.querySelector('[data-field="style"]')?.value || order.style || '',
+          color: row.querySelector('[data-field="color"]')?.value || order.color || '',
+          size: row.querySelector('[data-field="size"]')?.value || order.size || '',
+          qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty || 0,
+          country: row.querySelector('[data-field="country"]')?.value || order.country || '',
+          supplier: row.querySelector('[data-field="supplier"]')?.value || order.supplier || '',
+          route: row.querySelector('[data-field="route"]')?.value || order.route || '',
+          notes: row.querySelector('[data-field="notes"]')?.value || order.notes || '',
+          orderDate: order.orderDate || '',
+          requiredDelivery: order.requiredDelivery || '',
+          schedule: order.schedule || { production: [], shipping: [] }
         };
         
         // 새로운 행인 경우 (ID가 new_로 시작)
