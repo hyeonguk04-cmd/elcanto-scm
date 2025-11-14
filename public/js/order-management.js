@@ -6,9 +6,7 @@ import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIP
 
 // 드롭다운 기준 데이터 (향후 Firestore로 이관 가능)
 const MASTER_DATA = {
-  channels: ['IM', 'ELCANTO'],
-  colors: ['BLACK', 'WHITE', 'NAVY', 'BROWN', 'BEIGE', 'GRAY', 'RED', 'BLUE', 'GREEN'],
-  sizes: ['220', '225', '230', '235', '240', '245', '250', '255', '260', '265', '270', '275', '280']
+  channels: ['온라인몰', '백화점', '면세점', '할인점', '전문점', '기타']
 };
 
 let orders = [];
@@ -138,41 +136,37 @@ function renderOrderRow(order, rowNum, headers) {
         </select>
       </td>
       
-      <!-- 스타일 (직접입력) -->
-      <td class="px-2 py-2 border">
-        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
-               data-order-id="${order.id}" data-field="style" value="${order.style || ''}">
+      <!-- 스타일 (직접입력 - 정확히 10자리) -->
+      <td class="px-2 py-2 border" style="min-width: 120px;">
+        <input type="text" class="editable-field style-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="style" value="${order.style || ''}" 
+               maxlength="10" minlength="10" pattern=".{10}" 
+               placeholder="10자리">
       </td>
       
-      <!-- 색상 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
-                data-order-id="${order.id}" data-field="color">
-          ${MASTER_DATA.colors.map(col => 
-            `<option value="${col}" ${order.color === col ? 'selected' : ''}>${col}</option>`
-          ).join('')}
-        </select>
+      <!-- 색상 (직접입력) -->
+      <td class="px-2 py-2 border" style="min-width: 80px;">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="color" value="${order.color || ''}" 
+               placeholder="색상">
       </td>
       
-      <!-- 사이즈 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
-                data-order-id="${order.id}" data-field="size">
-          ${MASTER_DATA.sizes.map(sz => 
-            `<option value="${sz}" ${order.size === sz ? 'selected' : ''}>${sz}</option>`
-          ).join('')}
-        </select>
+      <!-- 사이즈 (직접입력) -->
+      <td class="px-2 py-2 border" style="min-width: 70px;">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="size" value="${order.size || ''}" 
+               placeholder="사이즈">
       </td>
       
       <!-- 수량 (직접입력) -->
-      <td class="px-2 py-2 border">
-        <input type="number" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-right" 
+      <td class="px-2 py-2 border" style="min-width: 80px;">
+        <input type="number" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-right text-xs" 
                data-order-id="${order.id}" data-field="qty" value="${order.qty || 0}">
       </td>
       
       <!-- 국가 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field country-select w-full px-1 py-1 border border-gray-300 rounded" 
+      <td class="px-2 py-2 border" style="min-width: 80px;">
+        <select class="editable-field country-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="country">
           ${Object.keys(SUPPLIERS_BY_COUNTRY).map(country => 
             `<option value="${country}" ${order.country === country ? 'selected' : ''}>${country}</option>`
@@ -181,8 +175,8 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 생산업체 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded" 
+      <td class="px-2 py-2 border" style="min-width: 100px;">
+        <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="supplier" data-country="${order.country}">
           ${(SUPPLIERS_BY_COUNTRY[order.country] || []).map(sup => 
             `<option value="${sup}" ${order.supplier === sup ? 'selected' : ''}>${sup}</option>`
@@ -190,21 +184,34 @@ function renderOrderRow(order, rowNum, headers) {
         </select>
       </td>
       
-      <!-- 발주일 -->
-      <td class="px-2 py-2 border">${order.orderDate}</td>
+      <!-- 발주일 (날짜 편집 가능) -->
+      <td class="px-2 py-2 border" style="min-width: 110px;">
+        <input type="date" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="orderDate" value="${order.orderDate}">
+      </td>
       
-      <!-- 입고요구일 -->
-      <td class="px-2 py-2 border">${order.requiredDelivery}</td>
+      <!-- 입고요구일 (날짜 편집 가능) -->
+      <td class="px-2 py-2 border" style="min-width: 110px;">
+        <input type="date" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="requiredDelivery" value="${order.requiredDelivery}">
+      </td>
       
-      <!-- 생산 공정 목표일 -->
+      <!-- 생산 공정 목표일 (날짜 편집 가능) -->
       ${headers.production.map(h => {
         const process = order.schedule.production.find(p => p.processKey === h.key);
-        return `<td class="px-2 py-2 border">${process?.targetDate || '-'}</td>`;
+        const processDate = process?.targetDate || '';
+        return `<td class="px-2 py-2 border" style="min-width: 110px;">
+          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                 data-order-id="${order.id}" 
+                 data-process-category="production" 
+                 data-process-key="${h.key}" 
+                 value="${processDate}">
+        </td>`;
       }).join('')}
       
       <!-- 선적-도착항 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded" 
+      <td class="px-2 py-2 border" style="min-width: 120px;">
+        <select class="editable-field route-select w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="route" data-country="${order.country}">
           ${(ROUTES_BY_COUNTRY[order.country] || []).map(route => 
             `<option value="${route}" ${order.route === route ? 'selected' : ''}>${route}</option>`
@@ -212,14 +219,21 @@ function renderOrderRow(order, rowNum, headers) {
         </select>
       </td>
       
-      <!-- 운송 공정 목표일 -->
+      <!-- 운송 공정 목표일 (날짜 편집 가능) -->
       ${headers.shipping.map(h => {
         const process = order.schedule.shipping.find(p => p.processKey === h.key);
-        return `<td class="px-2 py-2 border">${process?.targetDate || '-'}</td>`;
+        const processDate = process?.targetDate || '';
+        return `<td class="px-2 py-2 border" style="min-width: 110px;">
+          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                 data-order-id="${order.id}" 
+                 data-process-category="shipping" 
+                 data-process-key="${h.key}" 
+                 value="${processDate}">
+        </td>`;
       }).join('')}
       
-      <!-- 물류입고 예정일 -->
-      <td class="px-2 py-2 border">${logisticsArrival}</td>
+      <!-- 물류입고 예정일 (자동 계산) -->
+      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 110px;">${logisticsArrival}</td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
@@ -273,6 +287,47 @@ function setupEventListeners() {
     else if (field.classList.contains('route-select')) {
       field.addEventListener('change', (e) => {
         handleRouteChangeInline(e.target);
+      });
+    }
+    // 스타일 필드 - 10자리 검증
+    else if (field.classList.contains('style-input')) {
+      field.addEventListener('input', (e) => {
+        const value = e.target.value;
+        if (value.length > 10) {
+          e.target.value = value.substring(0, 10);
+        }
+      });
+      
+      field.addEventListener('blur', (e) => {
+        const value = e.target.value;
+        if (value.length > 0 && value.length !== 10) {
+          e.target.classList.add('border-red-500', 'bg-red-50');
+          UIUtils.showAlert('스타일은 정확히 10자리여야 합니다.', 'error');
+          e.target.focus();
+        } else {
+          e.target.classList.remove('border-red-500', 'bg-red-50');
+          if (value.length === 10) {
+            markAsChanged(e.target.dataset.orderId);
+          }
+        }
+      });
+    }
+    // 발주일 변경 시 공정 일정 재계산
+    else if (field.classList.contains('date-input')) {
+      field.addEventListener('change', async (e) => {
+        const orderId = e.target.dataset.orderId;
+        const newOrderDate = e.target.value;
+        await handleOrderDateChange(orderId, newOrderDate);
+      });
+    }
+    // 공정별 날짜 직접 수정
+    else if (field.classList.contains('process-date-input')) {
+      field.addEventListener('change', (e) => {
+        const orderId = e.target.dataset.orderId;
+        const category = e.target.dataset.processCategory;
+        const processKey = e.target.dataset.processKey;
+        const newDate = e.target.value;
+        handleProcessDateChange(orderId, category, processKey, newDate);
       });
     }
     // 일반 필드 변경
@@ -351,6 +406,46 @@ async function handleRouteChangeInline(routeSelect) {
   }
 }
 
+async function handleOrderDateChange(orderId, newOrderDate) {
+  try {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    
+    // 발주일 변경 시 전체 공정 일정 재계산
+    const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
+    
+    // 주문 업데이트
+    await updateOrder(orderId, {
+      orderDate: newOrderDate,
+      schedule: newSchedule
+    });
+    
+    // 테이블 새로고침
+    orders = await getOrdersWithProcesses();
+    renderOrdersTable();
+    setupEventListeners();
+    
+    UIUtils.showAlert('발주일이 변경되고 전체 일정이 재계산되었습니다.', 'success');
+  } catch (error) {
+    console.error('Order date change error:', error);
+    UIUtils.showAlert('발주일 변경 실패', 'error');
+  }
+}
+
+function handleProcessDateChange(orderId, category, processKey, newDate) {
+  const order = orders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  // 해당 공정의 날짜만 수정
+  const processArray = category === 'production' ? order.schedule.production : order.schedule.shipping;
+  const process = processArray.find(p => p.processKey === processKey);
+  
+  if (process) {
+    process.targetDate = newDate;
+    markAsChanged(orderId);
+  }
+}
+
 function markAsChanged(orderId) {
   hasUnsavedChanges = true;
   updateSaveButton(true);
@@ -405,8 +500,8 @@ function addNewRow() {
     id: tempId,
     channel: MASTER_DATA.channels[0],
     style: '',
-    color: MASTER_DATA.colors[0],
-    size: MASTER_DATA.sizes[0],
+    color: '',
+    size: '',
     qty: 0,
     country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
     supplier: SUPPLIERS_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
