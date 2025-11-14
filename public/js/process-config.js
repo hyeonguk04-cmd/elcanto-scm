@@ -13,9 +13,7 @@ const PROCESS_CONFIG = {
     { name: '공장출고', name_en: 'Factory Shipment', key: 'factory_shipment', defaultLeadTime: 3 }
   ],
   shipping: [
-    { name: '선적', name_en: 'Shipping', key: 'shipping', defaultLeadTime: 2, hasRoute: true },
-    { name: '입항', name_en: 'Arrival', key: 'arrival', defaultLeadTime: 0 }, // 선적-도착항에 따라 자동 계산
-    { name: '물류입고', name_en: 'Logistics Arrival', key: 'logistics_arrival', defaultLeadTime: 2 }
+    { name: '선적', name_en: 'Shipping', key: 'shipping', defaultLeadTime: 2, hasRoute: true }
   ]
 };
 

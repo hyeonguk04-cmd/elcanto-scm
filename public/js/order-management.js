@@ -6,7 +6,7 @@ import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIP
 
 // 드롭다운 기준 데이터 (향후 Firestore로 이관 가능)
 const MASTER_DATA = {
-  channels: ['온라인몰', '백화점', '면세점', '할인점', '전문점', '기타']
+  channels: ['IM', 'ELCANTO']
 };
 
 let orders = [];
@@ -82,9 +82,9 @@ function renderOrdersTable() {
             <th rowspan="2" class="px-2 py-2 border">번호</th>
             <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
-            <th colspan="${headers.shipping.length + 2}" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th colspan="${headers.shipping.length}" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border">입고기준<br>예상차이</th>
-            <th rowspan="2" class="px-2 py-2 border">비고</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 150px;">비고</th>
           </tr>
           <tr>
             <th class="px-2 py-2 border">채널</th>
@@ -99,7 +99,6 @@ function renderOrdersTable() {
             ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
             <th class="px-2 py-2 border">선적-도착항</th>
             ${headers.shipping.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
-            <th class="px-2 py-2 border">물류입고<br>예정일</th>
           </tr>
         </thead>
         <tbody id="orders-tbody">
@@ -127,8 +126,8 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border text-center">${rowNum}</td>
       
       <!-- 채널 (드롭다운) -->
-      <td class="px-2 py-2 border">
-        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded" 
+      <td class="px-2 py-2 border" style="min-width: 100px;">
+        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                 data-order-id="${order.id}" data-field="channel">
           ${MASTER_DATA.channels.map(ch => 
             `<option value="${ch}" ${order.channel === ch ? 'selected' : ''}>${ch}</option>`
@@ -232,15 +231,12 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       }).join('')}
       
-      <!-- 물류입고 예정일 (자동 계산) -->
-      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 110px;">${logisticsArrival}</td>
-      
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
       
       <!-- 비고 -->
-      <td class="px-2 py-2 border">
-        <input type="text" class="editable-field w-full px-1 py-1 border-0 bg-transparent" 
+      <td class="px-2 py-2 border" style="min-width: 150px;">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="notes" value="${order.notes || ''}" 
                placeholder="비고 입력">
       </td>
