@@ -530,14 +530,19 @@ function updateSaveButton(hasChanges) {
 }
 
 function addNewRow() {
+  console.log('🔵 행 추가 시작');
   const tbody = document.getElementById('orders-tbody');
-  if (!tbody) return;
+  if (!tbody) {
+    console.error('❌ tbody 요소를 찾을 수 없습니다.');
+    return;
+  }
   
   const headers = createProcessTableHeaders();
   const newRowNum = orders.length + 1;
   
   // 임시 ID 생성
   const tempId = 'new_' + Date.now();
+  console.log('🆔 새 행 ID:', tempId);
   
   // 빈 주문 객체 생성
   const newOrder = {
@@ -556,15 +561,20 @@ function addNewRow() {
     notes: ''
   };
   
+  console.log('📝 새 주문 객체:', newOrder);
+  
   // 기본 일정 계산
   newOrder.schedule = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);
+  console.log('📅 계산된 일정:', newOrder.schedule);
   
   // 테이블에 새 행 추가
   const newRowHtml = renderOrderRow(newOrder, newRowNum, headers);
   tbody.insertAdjacentHTML('beforeend', newRowHtml);
+  console.log('✅ 테이블에 행 추가 완료');
   
   // 로컬 orders 배열에도 추가
   orders.push(newOrder);
+  console.log('✅ orders 배열에 추가 완료. 총 개수:', orders.length);
   
   // 이벤트 리스너 재설정
   setupEventListeners();
@@ -581,6 +591,7 @@ function addNewRow() {
   }
   
   UIUtils.showAlert('새 행이 추가되었습니다. 정보를 입력하고 저장 버튼을 누르세요.', 'info');
+  console.log('🟢 행 추가 완료');
 }
 
 async function saveAllChanges() {
@@ -656,26 +667,28 @@ async function saveAllChanges() {
 }
 
 function downloadTemplate() {
-  const headers = createProcessTableHeaders();
+  // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
   const basicColumns = [
-    '채널', '스타일', '색상코드', '사이즈', '수량',
+    '채널', '스타일', '색상', '사이즈', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
-  const productionColumns = headers.production.map(h => h.name);
-  const shippingColumns = headers.shipping.map(h => h.name);
-  const allColumns = [...basicColumns, ...productionColumns, ...shippingColumns];
   
-  ExcelUtils.downloadTemplate(allColumns, 'elcanto_order_template.xlsx');
-  UIUtils.showAlert('템플릿 다운로드 완료! 발주일을 입력하면 공정별 목표일자가 자동 계산됩니다.', 'success');
+  ExcelUtils.downloadTemplate(basicColumns, 'elcanto_order_template.xlsx');
+  UIUtils.showAlert('템플릿 다운로드 완료! 필수 항목만 입력하면 공정 날짜가 자동 계산됩니다.', 'success');
 }
 
 async function handleExcelUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
   
+  console.log('📤 엑셀 업로드 시작:', file.name);
+  
   try {
     UIUtils.showLoading();
     const data = await ExcelUtils.readExcel(file);
+    
+    console.log('📊 읽어온 데이터:', data);
+    console.log('📊 데이터 행 수:', data?.length);
     
     if (!data || data.length === 0) {
       throw new Error('엑셀 파일이 비어있습니다.');
@@ -687,6 +700,8 @@ async function handleExcelUpload(e) {
     
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
+      console.log(`🔍 처리 중 행 ${i + 2}:`, row);
+      
       try {
         if (!row['발주일'] || !row['입고요구일']) {
           throw new Error('발주일과 입고요구일은 필수입니다.');
@@ -702,7 +717,7 @@ async function handleExcelUpload(e) {
         const orderData = {
           channel: row['채널'] || '',
           style: row['스타일'] || '',
-          color: row['색상코드'] || '',
+          color: row['색상'] || '',
           size: row['사이즈'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
