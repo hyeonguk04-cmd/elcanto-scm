@@ -75,7 +75,7 @@ function renderOrdersTable() {
   
   tableContainer.innerHTML = `
     <div class="overflow-x-auto">
-      <table class="w-full text-xs border-collapse table-auto">
+      <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
         <thead class="bg-gray-50 text-xs uppercase sticky top-0">
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
@@ -187,14 +187,16 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 발주일 (날짜 편집 가능) -->
       <td class="px-2 py-2 border">
-        <input type="date" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
-               data-order-id="${order.id}" data-field="orderDate" value="${order.orderDate}">
+        <input type="text" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="orderDate" value="${order.orderDate}" 
+               placeholder="YYYY-MM-DD">
       </td>
       
       <!-- 입고요구일 (날짜 편집 가능) -->
       <td class="px-2 py-2 border">
-        <input type="date" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
-               data-order-id="${order.id}" data-field="requiredDelivery" value="${order.requiredDelivery}">
+        <input type="text" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+               data-order-id="${order.id}" data-field="requiredDelivery" value="${order.requiredDelivery}" 
+               placeholder="YYYY-MM-DD">
       </td>
       
       <!-- 생산 공정 목표일 (날짜 편집 가능) -->
@@ -202,7 +204,8 @@ function renderOrderRow(order, rowNum, headers) {
         const process = order.schedule.production.find(p => p.processKey === h.key);
         const processDate = process?.targetDate || '';
         return `<td class="px-2 py-2 border">
-          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+          <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                 placeholder="YYYY-MM-DD" 
                  data-order-id="${order.id}" 
                  data-process-category="production" 
                  data-process-key="${h.key}" 
@@ -215,7 +218,8 @@ function renderOrderRow(order, rowNum, headers) {
         const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
         return `<td class="px-2 py-2 border">
-          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+          <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                 placeholder="YYYY-MM-DD" 
                  data-order-id="${order.id}" 
                  data-process-category="shipping" 
                  data-process-key="shipping" 
@@ -238,7 +242,8 @@ function renderOrderRow(order, rowNum, headers) {
         const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
         return `<td class="px-2 py-2 border">
-          <input type="date" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+          <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+                 placeholder="YYYY-MM-DD" 
                  data-order-id="${order.id}" 
                  data-process-category="shipping" 
                  data-process-key="arrival" 
@@ -328,20 +333,45 @@ function setupEventListeners() {
     }
     // 발주일 변경 시 공정 일정 재계산
     else if (field.classList.contains('date-input')) {
+      // 날짜 형식 유효성 검사
+      field.addEventListener('blur', (e) => {
+        const value = e.target.value;
+        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          e.target.classList.add('border-red-500', 'bg-red-50');
+          UIUtils.showAlert('날짜 형식은 YYYY-MM-DD 이어야 합니다.', 'error');
+        } else {
+          e.target.classList.remove('border-red-500', 'bg-red-50');
+        }
+      });
+      
       field.addEventListener('change', async (e) => {
         const orderId = e.target.dataset.orderId;
         const newOrderDate = e.target.value;
-        await handleOrderDateChange(orderId, newOrderDate);
+        if (newOrderDate && /^\d{4}-\d{2}-\d{2}$/.test(newOrderDate)) {
+          await handleOrderDateChange(orderId, newOrderDate);
+        }
       });
     }
     // 공정별 날짜 직접 수정
     else if (field.classList.contains('process-date-input')) {
+      // 날짜 형식 유효성 검사
+      field.addEventListener('blur', (e) => {
+        const value = e.target.value;
+        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          e.target.classList.add('border-red-500', 'bg-red-50');
+        } else {
+          e.target.classList.remove('border-red-500', 'bg-red-50');
+        }
+      });
+      
       field.addEventListener('change', (e) => {
         const orderId = e.target.dataset.orderId;
         const category = e.target.dataset.processCategory;
         const processKey = e.target.dataset.processKey;
         const newDate = e.target.value;
-        handleProcessDateChange(orderId, category, processKey, newDate);
+        if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+          handleProcessDateChange(orderId, category, processKey, newDate);
+        }
       });
     }
     // 일반 필드 변경

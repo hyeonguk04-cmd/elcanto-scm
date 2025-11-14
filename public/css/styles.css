@@ -48,7 +48,7 @@ body {
 td input,
 td select {
     background-color: transparent;
-    width: 100%;
+    min-width: 60px;
     border: none;
     outline: none;
     padding: 4px;
@@ -66,18 +66,23 @@ td select {
     -webkit-appearance: none;
     -moz-appearance: none;
     background-image: none;
+    min-width: 80px;
 }
 
-/* 날짜 입력 달력 아이콘 숨기기 */
-td input[type="date"]::-webkit-calendar-picker-indicator {
-    display: none;
-    -webkit-appearance: none;
+/* 날짜 입력 필드 */
+td input[type="text"].date-input,
+td input[type="text"].process-date-input {
+    min-width: 90px;
 }
 
-td input[type="date"]::-webkit-inner-spin-button,
-td input[type="date"]::-webkit-clear-button {
-    display: none;
-    -webkit-appearance: none;
+/* 텍스트 입력 필드 최소 너비 */
+td input[type="text"]:not(.date-input):not(.process-date-input) {
+    min-width: 70px;
+}
+
+/* 숫자 입력 필드 */
+td input[type="number"] {
+    min-width: 60px;
 }
 
 /* Photo Icon */
