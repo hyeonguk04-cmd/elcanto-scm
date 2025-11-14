@@ -68,11 +68,6 @@ function renderOrdersTable() {
   const tableContainer = document.getElementById('orders-table');
   const headers = createProcessTableHeaders();
   
-  if (orders.length === 0) {
-    tableContainer.innerHTML = renderEmptyState('발주 데이터가 없습니다. 엑셀 파일을 업로드하거나 직접 추가하세요.', 'fa-clipboard-list');
-    return;
-  }
-  
   tableContainer.innerHTML = `
     <div class="overflow-x-auto">
       <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
@@ -104,7 +99,14 @@ function renderOrdersTable() {
           </tr>
         </thead>
         <tbody id="orders-tbody">
-          ${orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
+          ${orders.length === 0 ? `
+            <tr>
+              <td colspan="100" class="px-4 py-8 text-center text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-2"></i>
+                <p>발주 데이터가 없습니다. 엑셀 파일을 업로드하거나 "행 추가" 버튼을 클릭하세요.</p>
+              </td>
+            </tr>
+          ` : orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
         </tbody>
       </table>
     </div>
@@ -187,14 +189,14 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 발주일 (날짜 편집 가능) -->
       <td class="px-2 py-2 border">
-        <input type="text" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+        <input type="text" class="editable-field order-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="orderDate" value="${order.orderDate}" 
                placeholder="YYYY-MM-DD">
       </td>
       
       <!-- 입고요구일 (날짜 편집 가능) -->
       <td class="px-2 py-2 border">
-        <input type="text" class="editable-field date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
+        <input type="text" class="editable-field required-delivery-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="requiredDelivery" value="${order.requiredDelivery}" 
                placeholder="YYYY-MM-DD">
       </td>
@@ -332,7 +334,7 @@ function setupEventListeners() {
       });
     }
     // 발주일 변경 시 공정 일정 재계산
-    else if (field.classList.contains('date-input')) {
+    else if (field.classList.contains('order-date-input')) {
       // 날짜 형식 유효성 검사
       field.addEventListener('blur', (e) => {
         const value = e.target.value;
@@ -349,6 +351,31 @@ function setupEventListeners() {
         const newOrderDate = e.target.value;
         if (newOrderDate && /^\d{4}-\d{2}-\d{2}$/.test(newOrderDate)) {
           await handleOrderDateChange(orderId, newOrderDate);
+        }
+      });
+    }
+    // 입고요구일 변경 (일정 재계산 안함)
+    else if (field.classList.contains('required-delivery-input')) {
+      // 날짜 형식 유효성 검사
+      field.addEventListener('blur', (e) => {
+        const value = e.target.value;
+        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          e.target.classList.add('border-red-500', 'bg-red-50');
+          UIUtils.showAlert('날짜 형식은 YYYY-MM-DD 이어야 합니다.', 'error');
+        } else {
+          e.target.classList.remove('border-red-500', 'bg-red-50');
+        }
+      });
+      
+      field.addEventListener('change', (e) => {
+        const orderId = e.target.dataset.orderId;
+        const newDate = e.target.value;
+        if (newDate && /^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+          const order = orders.find(o => o.id === orderId);
+          if (order) {
+            order.requiredDelivery = newDate;
+            markAsChanged(orderId);
+          }
         }
       });
     }

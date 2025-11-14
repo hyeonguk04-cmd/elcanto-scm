@@ -78,7 +78,8 @@ td input[type="number"] {
 }
 
 /* 날짜 입력 필드 (기본) */
-td input[type="text"].date-input,
+td input[type="text"].order-date-input,
+td input[type="text"].required-delivery-input,
 td input[type="text"].process-date-input {
     min-width: 80px;
 }
