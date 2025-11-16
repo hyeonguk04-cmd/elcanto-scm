@@ -13,7 +13,7 @@ const PROCESS_CONFIG = {
   ],
   shipping: [
     { name: '선적', name_en: 'Shipping', key: 'shipping', defaultLeadTime: 2 },
-    { name: '입항', name_en: 'Arrival', key: 'arrival', defaultLeadTime: 2 }
+    { name: '입항', name_en: 'Arrival', key: 'arrival', defaultLeadTime: 2, hasRoute: true }
   ]
 };
 

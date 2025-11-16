@@ -473,28 +473,76 @@ async function handleRouteChangeInline(routeSelect) {
   const orderId = routeSelect.dataset.orderId;
   const newRoute = routeSelect.value;
   
+  console.log('🚢 선적경로 변경 시작:', { orderId, newRoute });
+  
   try {
     const order = orders.find(o => o.id === orderId);
-    if (!order) return;
+    if (!order) {
+      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      return;
+    }
     
-    // 새로운 일정 재계산
+    console.log('📦 기존 주문:', order);
+    
+    // 새로운 일정 재계산 (선적경로에 따라 입항 리드타임 변경)
     const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
+    console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 주문 업데이트
     await updateOrder(orderId, {
       route: newRoute,
       schedule: newSchedule
     });
+    console.log('✅ orders 컬렉션 업데이트 완료');
+    
+    // 🔥 핵심 수정: processes 컬렉션의 개별 문서들도 업데이트
+    console.log('🔄 processes 컬렉션 업데이트 시작...');
+    const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
+    
+    // 생산 공정 업데이트 (날짜는 변경 없지만 일관성 유지)
+    for (const newProcess of newSchedule.production) {
+      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+      if (existingProcess && existingProcess.id) {
+        await updateProcess(existingProcess.id, {
+          targetDate: newProcess.targetDate,
+          leadTime: newProcess.leadTime
+        });
+        console.log(`✅ 생산공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
+      }
+    }
+    
+    // 운송 공정 업데이트 (특히 입항 리드타임이 경로에 따라 변경됨)
+    for (const newProcess of newSchedule.shipping) {
+      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+      if (existingProcess && existingProcess.id) {
+        const updateData = {
+          targetDate: newProcess.targetDate,
+          leadTime: newProcess.leadTime
+        };
+        
+        // 입항 프로세스의 경우 route도 업데이트
+        if (newProcess.processKey === 'arrival' && newProcess.route) {
+          updateData.route = newProcess.route;
+        }
+        
+        await updateProcess(existingProcess.id, updateData);
+        console.log(`✅ 운송공정 업데이트: ${newProcess.name} → ${newProcess.targetDate} (리드타임: ${newProcess.leadTime}일)`);
+      }
+    }
+    console.log('✅ processes 컬렉션 업데이트 완료');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
+    console.log('🔄 주문 목록 새로고침 완료');
+    
     renderOrdersTable();
     setupEventListeners();
+    console.log('🎨 테이블 렌더링 완료');
     
     UIUtils.showAlert('선적경로가 변경되고 일정이 재계산되었습니다.', 'success');
   } catch (error) {
-    console.error('Route change error:', error);
-    UIUtils.showAlert('선적경로 변경 실패', 'error');
+    console.error('❌ Route change error:', error);
+    UIUtils.showAlert('선적경로 변경 실패: ' + error.message, 'error');
   }
 }
 
