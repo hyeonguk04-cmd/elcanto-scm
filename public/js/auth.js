@@ -199,37 +199,48 @@ export async function initializeTestUsers() {
       }
     }
     
-    // 생산업체 사용자 확인
-    const supplierSnapshot = await window.db.collection('users')
-      .where('username', '==', 'shengan')
-      .limit(1)
-      .get();
+    // 생산업체 사용자들 초기화
+    const suppliers = [
+      { username: 'shengan', name: '성안', email: 'shengan@example.com', supplierName: '성안', country: '중국' },
+      { username: 'pungdo', name: '풍도', email: 'pungdo@example.com', supplierName: '풍도', country: '중국' },
+      { username: 'sungwoo', name: '성우', email: 'sungwoo@example.com', supplierName: '성우', country: '중국' },
+      { username: 'jeil', name: '제일', email: 'jeil@example.com', supplierName: '제일', country: '중국' },
+      { username: 'hanil', name: '한일', email: 'hanil@example.com', supplierName: '한일', country: '베트남' },
+      { username: 'kumho', name: '금호', email: 'kumho@example.com', supplierName: '금호', country: '인도' }
+    ];
     
-    if (supplierSnapshot.empty) {
-      try {
-        // Firebase Auth에 계정 생성
-        const userCredential = await window.auth.createUserWithEmailAndPassword(
-          'shengan@example.com',
-          'user123'
-        );
-        
-        // Firestore에 사용자 정보 저장
-        await window.db.collection('users').doc(userCredential.user.uid).set({
-          username: 'shengan',
-          name: '성안',
-          email: 'shengan@example.com',
-          role: 'supplier',
-          supplierName: '성안',
-          country: '중국',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          lastLogin: null
-        });
-        console.log('✅ shengan 생산업체 계정 생성됨');
-      } catch (authError) {
-        if (authError.code === 'auth/email-already-in-use') {
-          console.log('⚠️ shengan 계정이 이미 Firebase Auth에 존재합니다.');
-        } else {
-          console.error('❌ shengan 계정 생성 실패:', authError);
+    for (const supplier of suppliers) {
+      const snapshot = await window.db.collection('users')
+        .where('username', '==', supplier.username)
+        .limit(1)
+        .get();
+      
+      if (snapshot.empty) {
+        try {
+          // Firebase Auth에 계정 생성
+          const userCredential = await window.auth.createUserWithEmailAndPassword(
+            supplier.email,
+            'supplier123'
+          );
+          
+          // Firestore에 사용자 정보 저장
+          await window.db.collection('users').doc(userCredential.user.uid).set({
+            username: supplier.username,
+            name: supplier.name,
+            email: supplier.email,
+            role: 'supplier',
+            supplierName: supplier.supplierName,
+            country: supplier.country,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLogin: null
+          });
+          console.log(`✅ ${supplier.name} 생산업체 계정 생성됨`);
+        } catch (authError) {
+          if (authError.code === 'auth/email-already-in-use') {
+            console.log(`⚠️ ${supplier.username} 계정이 이미 Firebase Auth에 존재합니다.`);
+          } else {
+            console.error(`❌ ${supplier.username} 계정 생성 실패:`, authError);
+          }
         }
       }
     }

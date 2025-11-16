@@ -442,14 +442,24 @@ async function handleDeleteUser(userId) {
 // Firestore 함수들
 async function getUsers() {
   try {
-    const snapshot = await window.db.collection('users')
-      .orderBy('createdAt', 'desc')
-      .get();
+    // createdAt 필드가 없는 문서도 포함하기 위해 정렬 제거하고 클라이언트에서 정렬
+    const snapshot = await window.db.collection('users').get();
     
-    return snapshot.docs.map(doc => ({
+    const users = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    
+    // 클라이언트에서 정렬 (createdAt이 없는 경우 최신으로 간주)
+    users.sort((a, b) => {
+      const timeA = a.createdAt ? a.createdAt.toMillis() : Date.now();
+      const timeB = b.createdAt ? b.createdAt.toMillis() : Date.now();
+      return timeB - timeA; // 최신순
+    });
+    
+    console.log('📋 가져온 사용자 목록:', users);
+    
+    return users;
   } catch (error) {
     console.error('Get users error:', error);
     throw error;
