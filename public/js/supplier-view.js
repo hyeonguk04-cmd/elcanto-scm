@@ -186,6 +186,7 @@ function renderOrderCard(order, index) {
   let statusText = '';
   let statusColor = '';
   let statusIcon = '';
+  let statusDetail = '';
   
   if (completedProcesses === 0) {
     statusText = '미등록';
@@ -196,9 +197,31 @@ function renderOrderCard(order, index) {
     statusColor = 'text-green-600';
     statusIcon = '🟢'; // 녹색 신호등
   } else {
+    // 등록중 - 마지막으로 완료된 공정 찾기
     statusText = '등록중';
     statusColor = 'text-yellow-600';
     statusIcon = '🟡'; // 노란색 신호등
+    
+    // 마지막으로 완료된 공정 찾기
+    let lastCompletedProcess = null;
+    for (let i = allProcesses.length - 1; i >= 0; i--) {
+      if (allProcesses[i].actualDate) {
+        lastCompletedProcess = allProcesses[i];
+        break;
+      }
+    }
+    
+    if (lastCompletedProcess) {
+      // 공정명 가져오기
+      let processName = lastCompletedProcess.name;
+      if (!processName && lastCompletedProcess.processKey) {
+        const category = productionProcesses.includes(lastCompletedProcess) ? 'production' : 'shipping';
+        const allConfigProcesses = PROCESS_CONFIG[category] || [];
+        const foundProcess = allConfigProcesses.find(p => p.key === lastCompletedProcess.processKey);
+        processName = foundProcess ? foundProcess.name : lastCompletedProcess.processKey;
+      }
+      statusDetail = ` ('${processName}' 단계 완료)`;
+    }
   }
   
   return `
@@ -224,7 +247,7 @@ function renderOrderCard(order, index) {
             <div class="flex items-center space-x-2">
               <span class="text-2xl">${statusIcon}</span>
               <div class="text-right">
-                <p class="${statusColor} font-bold text-sm">${statusText}</p>
+                <p class="${statusColor} font-bold text-sm">${statusText}${statusDetail}</p>
                 <p class="text-xs text-gray-500">${completedProcesses}/${totalProcesses} 완료</p>
               </div>
             </div>
@@ -337,20 +360,26 @@ function renderProcessRow(order, process, category) {
       <td class="px-3 py-3 text-sm text-center ${diffClass}">
         ${diffDays}
       </td>
-      <td class="px-3 py-3 text-center">
+      <td class="px-3 py-3">
         ${hasPhoto ? `
-          <button class="text-green-600 hover:text-green-800 view-photo-btn"
-                  data-photo-url="${process.photo}">
-            <i class="fas fa-image text-lg"></i>
-          </button>
+          <div class="flex items-center justify-center space-x-1">
+            <button class="text-green-600 hover:text-green-800 view-photo-btn"
+                    data-photo-url="${process.photo}">
+              <i class="fas fa-camera text-lg"></i>
+            </button>
+            <span class="text-xs text-green-600 font-medium">등록</span>
+          </div>
         ` : `
-          <button class="text-gray-400 hover:text-blue-600 upload-photo-btn"
-                  data-order-id="${order.id}"
-                  data-process-id="${process.id}"
-                  data-process-name="${processName}"
-                  ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
-            <i class="fas fa-camera text-lg"></i>
-          </button>
+          <div class="flex items-center justify-center space-x-1">
+            <button class="text-gray-400 hover:text-blue-600 upload-photo-btn"
+                    data-order-id="${order.id}"
+                    data-process-id="${process.id}"
+                    data-process-name="${processName}"
+                    ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
+              <i class="fas fa-camera text-lg"></i>
+            </button>
+            <span class="text-xs text-gray-400">미등록</span>
+          </div>
         `}
       </td>
       <td class="px-3 py-3">
