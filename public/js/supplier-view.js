@@ -235,29 +235,6 @@ function renderOrderCard(order, index) {
       
       <!-- 상세 정보 (접혔다 펼쳐짐) -->
       <div id="order-detail-${index}" class="hidden">
-        <!-- 기본 정보 섹션 -->
-        <div class="px-6 py-4 border-b bg-blue-50">
-          <h4 class="text-sm font-bold text-gray-700 mb-3">📋 기본 정보</h4>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <p class="text-xs text-gray-500">국가</p>
-              <p class="text-sm font-medium">${order.country || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">생산업체</p>
-              <p class="text-sm font-medium">${order.supplier || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">발주일</p>
-              <p class="text-sm font-medium">${order.orderDate || '-'}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500">입고요구일</p>
-              <p class="text-sm font-medium">${order.requiredDelivery || '-'}</p>
-            </div>
-          </div>
-        </div>
-        
         <!-- 생산 공정 실적 입력 섹션 -->
         <div class="px-6 py-4">
           <h4 class="text-sm font-bold text-gray-700 mb-3">🏭 생산 공정 실적</h4>
@@ -267,9 +244,10 @@ function renderOrderCard(order, index) {
                 <tr>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 180px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">차이일수</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">비고</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">차이원인</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -288,9 +266,10 @@ function renderOrderCard(order, index) {
                 <tr>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 180px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">차이일수</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">비고</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">차이원인</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -307,12 +286,42 @@ function renderOrderCard(order, index) {
 function renderProcessRow(order, process, category) {
   const hasActualDate = !!process.actualDate;
   const hasPhoto = !!process.photo;
-  const isDelayed = process.targetDate && process.actualDate && process.actualDate > process.targetDate;
+  
+  // 공정명 가져오기 (process.name이 없으면 processKey로 찾기)
+  let processName = process.name;
+  if (!processName && process.processKey) {
+    const allProcesses = PROCESS_CONFIG[category] || [];
+    const foundProcess = allProcesses.find(p => p.key === process.processKey);
+    processName = foundProcess ? foundProcess.name : process.processKey;
+  }
+  if (!processName) {
+    processName = 'undefined';
+  }
+  
+  // 차이일수 계산 (실제 완료일 - 목표일)
+  let diffDays = '-';
+  let diffClass = '';
+  if (process.targetDate && process.actualDate) {
+    const targetDate = new Date(process.targetDate);
+    const actualDate = new Date(process.actualDate);
+    const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
+    
+    if (diff > 0) {
+      diffDays = `+${diff}`;
+      diffClass = 'text-red-600 font-bold'; // 지연 (빨간색)
+    } else if (diff < 0) {
+      diffDays = `${diff}`;
+      diffClass = 'text-blue-600 font-bold'; // 앞당김 (파란색)
+    } else {
+      diffDays = '0';
+      diffClass = 'text-green-600 font-bold'; // 정시 (초록색)
+    }
+  }
   
   return `
     <tr class="${hasActualDate ? 'bg-green-50' : ''}">
       <td class="px-3 py-3 text-sm font-medium text-gray-800">
-        ${process.name}
+        ${processName}
       </td>
       <td class="px-3 py-3 text-sm text-gray-600">
         ${process.targetDate || '-'}
@@ -323,8 +332,10 @@ function renderProcessRow(order, process, category) {
                data-order-id="${order.id}"
                data-process-id="${process.id}"
                data-category="${category}"
-               value="${process.actualDate || ''}"
-               ${hasActualDate ? '' : ''}>
+               value="${process.actualDate || ''}">
+      </td>
+      <td class="px-3 py-3 text-sm text-center ${diffClass}">
+        ${diffDays}
       </td>
       <td class="px-3 py-3 text-center">
         ${hasPhoto ? `
@@ -336,7 +347,7 @@ function renderProcessRow(order, process, category) {
           <button class="text-gray-400 hover:text-blue-600 upload-photo-btn"
                   data-order-id="${order.id}"
                   data-process-id="${process.id}"
-                  data-process-name="${process.name}"
+                  data-process-name="${processName}"
                   ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
             <i class="fas fa-camera text-lg"></i>
           </button>
@@ -348,7 +359,7 @@ function renderProcessRow(order, process, category) {
                data-order-id="${order.id}"
                data-process-id="${process.id}"
                value="${process.delayReason || ''}"
-               placeholder="${isDelayed ? '지연 사유 입력' : '비고'}">
+               placeholder="차이원인 등 필요사항 기재">
       </td>
     </tr>
   `;
