@@ -133,23 +133,70 @@ export function onAuthStateChanged(callback) {
 // 사용자 초기화 (테스트용 - 실제 환경에서는 제거)
 export async function initializeTestUsers() {
   try {
-    // 관리자 사용자 확인
+    // yang_hyeonguk 관리자 계정 확인
+    const hyeongukSnapshot = await window.db.collection('users')
+      .where('username', '==', 'yang_hyeonguk')
+      .limit(1)
+      .get();
+    
+    if (hyeongukSnapshot.empty) {
+      try {
+        // Firebase Auth에 계정 생성
+        const userCredential = await window.auth.createUserWithEmailAndPassword(
+          'yang.hyeonguk@elcanto.com',
+          'hyeonguk123!'
+        );
+        
+        // Firestore에 사용자 정보 저장 (Auth UID를 문서 ID로 사용)
+        await window.db.collection('users').doc(userCredential.user.uid).set({
+          username: 'yang_hyeonguk',
+          name: '양형욱',
+          email: 'yang.hyeonguk@elcanto.com',
+          role: 'admin',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastLogin: null
+        });
+        console.log('✅ yang_hyeonguk 관리자 계정 생성됨');
+      } catch (authError) {
+        if (authError.code === 'auth/email-already-in-use') {
+          console.log('⚠️ yang_hyeonguk 계정이 이미 Firebase Auth에 존재합니다.');
+        } else {
+          console.error('❌ yang_hyeonguk 계정 생성 실패:', authError);
+        }
+      }
+    }
+    
+    // 기본 관리자 사용자 확인
     const adminSnapshot = await window.db.collection('users')
       .where('username', '==', 'admin')
       .limit(1)
       .get();
     
     if (adminSnapshot.empty) {
-      // 관리자 생성
-      await window.db.collection('users').add({
-        username: 'admin',
-        password: 'admin123',
-        name: '관리자',
-        email: 'admin@elcanto.com',
-        role: 'admin',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log('✅ 관리자 계정 생성됨');
+      try {
+        // Firebase Auth에 계정 생성
+        const userCredential = await window.auth.createUserWithEmailAndPassword(
+          'admin@elcanto.com',
+          'admin123'
+        );
+        
+        // Firestore에 사용자 정보 저장
+        await window.db.collection('users').doc(userCredential.user.uid).set({
+          username: 'admin',
+          name: '관리자',
+          email: 'admin@elcanto.com',
+          role: 'admin',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastLogin: null
+        });
+        console.log('✅ admin 관리자 계정 생성됨');
+      } catch (authError) {
+        if (authError.code === 'auth/email-already-in-use') {
+          console.log('⚠️ admin 계정이 이미 Firebase Auth에 존재합니다.');
+        } else {
+          console.error('❌ admin 계정 생성 실패:', authError);
+        }
+      }
     }
     
     // 생산업체 사용자 확인
@@ -159,18 +206,32 @@ export async function initializeTestUsers() {
       .get();
     
     if (supplierSnapshot.empty) {
-      // 생산업체 사용자 생성
-      await window.db.collection('users').add({
-        username: 'shengan',
-        password: 'user123',
-        name: '성안',
-        email: 'shengan@example.com',
-        role: 'supplier',
-        supplierName: '성안',
-        country: '중국',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log('✅ 생산업체 계정 생성됨');
+      try {
+        // Firebase Auth에 계정 생성
+        const userCredential = await window.auth.createUserWithEmailAndPassword(
+          'shengan@example.com',
+          'user123'
+        );
+        
+        // Firestore에 사용자 정보 저장
+        await window.db.collection('users').doc(userCredential.user.uid).set({
+          username: 'shengan',
+          name: '성안',
+          email: 'shengan@example.com',
+          role: 'supplier',
+          supplierName: '성안',
+          country: '중국',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          lastLogin: null
+        });
+        console.log('✅ shengan 생산업체 계정 생성됨');
+      } catch (authError) {
+        if (authError.code === 'auth/email-already-in-use') {
+          console.log('⚠️ shengan 계정이 이미 Firebase Auth에 존재합니다.');
+        } else {
+          console.error('❌ shengan 계정 생성 실패:', authError);
+        }
+      }
     }
   } catch (error) {
     console.error('Test user initialization error:', error);
