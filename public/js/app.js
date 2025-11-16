@@ -8,6 +8,7 @@ import { renderAnalytics } from './analytics.js';
 import { renderSupplierView } from './supplier-view.js';
 import { renderSupplierManagement } from './supplier-management.js';
 import { renderWeeklyReport } from './weekly-report.js';
+import { renderUserManagement } from './user-management.js';
 
 // 전역 상태
 let currentView = null;
@@ -169,6 +170,9 @@ function navigateTo(view) {
         break;
       case 'supplier-management':
         renderSupplierManagement(mainContent);
+        break;
+      case 'user-management':
+        renderUserManagement(mainContent);
         break;
       case 'supplier-dashboard':
         renderSupplierView(mainContent, 'dashboard');
