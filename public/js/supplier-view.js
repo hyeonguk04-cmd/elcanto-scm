@@ -178,22 +178,58 @@ function renderOrderCard(order, index) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
+  // 공정 실적 등록 상태 계산
+  const allProcesses = [...productionProcesses, ...shippingProcesses];
+  const totalProcesses = allProcesses.length;
+  const completedProcesses = allProcesses.filter(p => p.actualDate).length;
+  
+  let statusText = '';
+  let statusColor = '';
+  let statusIcon = '';
+  
+  if (completedProcesses === 0) {
+    statusText = '미등록';
+    statusColor = 'text-red-600';
+    statusIcon = '🔴'; // 빨간색 신호등
+  } else if (completedProcesses === totalProcesses) {
+    statusText = '등록완료';
+    statusColor = 'text-green-600';
+    statusIcon = '🟢'; // 녹색 신호등
+  } else {
+    statusText = '등록중';
+    statusColor = 'text-yellow-600';
+    statusIcon = '🟡'; // 노란색 신호등
+  }
+  
   return `
     <div class="bg-white rounded-xl shadow-lg overflow-hidden">
       <!-- 기본 정보 헤더 (토글 가능) -->
-      <div class="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+      <div class="bg-gray-50 px-6 py-4 cursor-pointer hover:bg-gray-100"
            onclick="toggleOrderDetail(${index})">
-        <div class="flex items-center space-x-4">
-          <div>
-            <h3 class="text-lg font-bold text-gray-800">${order.style || '-'}</h3>
-            <p class="text-sm text-gray-500">
-              채널: ${order.channel || '-'} | 색상: ${order.color || '-'} | 수량: ${order.qty || 0}개
-            </p>
+        <div class="flex justify-between items-center">
+          <!-- 왼쪽: 스타일코드와 기본 정보 -->
+          <div class="flex items-center space-x-6">
+            <h3 class="text-lg font-bold text-gray-800 min-w-[120px]">${order.style || '-'}</h3>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+              <span>색상: <strong>${order.color || '-'}</strong></span>
+              <span>수량: <strong>${order.qty || 0}개</strong></span>
+              <span>사이즈: <strong>${order.size || '-'}</strong></span>
+              <span>발주일: <strong>${order.orderDate || '-'}</strong></span>
+              <span>입고요구일: <strong>${order.requiredDelivery || '-'}</strong></span>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center space-x-3">
-          <span class="text-sm text-gray-500">발주일: ${order.orderDate || '-'}</span>
-          <i class="fas fa-chevron-down transition-transform" id="toggle-icon-${index}"></i>
+          
+          <!-- 오른쪽: 등록 상태와 토글 아이콘 -->
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <span class="text-2xl">${statusIcon}</span>
+              <div class="text-right">
+                <p class="${statusColor} font-bold text-sm">${statusText}</p>
+                <p class="text-xs text-gray-500">${completedProcesses}/${totalProcesses} 완료</p>
+              </div>
+            </div>
+            <i class="fas fa-chevron-down transition-transform text-gray-400" id="toggle-icon-${index}"></i>
+          </div>
         </div>
       </div>
       
