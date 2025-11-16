@@ -335,6 +335,8 @@ function setupEventListeners() {
     }
     // 발주일 변경 시 공정 일정 재계산
     else if (field.classList.contains('order-date-input')) {
+      console.log('🎯 발주일 필드 이벤트 리스너 등록:', field.dataset.orderId);
+      
       // 날짜 형식 유효성 검사
       field.addEventListener('blur', (e) => {
         const value = e.target.value;
@@ -347,10 +349,16 @@ function setupEventListeners() {
       });
       
       field.addEventListener('change', async (e) => {
+        console.log('🔔 발주일 change 이벤트 발생');
         const orderId = e.target.dataset.orderId;
         const newOrderDate = e.target.value;
+        console.log('📝 입력된 발주일:', newOrderDate);
+        
         if (newOrderDate && /^\d{4}-\d{2}-\d{2}$/.test(newOrderDate)) {
+          console.log('✅ 날짜 형식 검증 통과, handleOrderDateChange 호출');
           await handleOrderDateChange(orderId, newOrderDate);
+        } else {
+          console.warn('⚠️ 날짜 형식 오류:', newOrderDate);
         }
       });
     }
@@ -478,28 +486,41 @@ async function handleRouteChangeInline(routeSelect) {
 }
 
 async function handleOrderDateChange(orderId, newOrderDate) {
+  console.log('📅 발주일 변경 시작:', { orderId, newOrderDate });
+  
   try {
     const order = orders.find(o => o.id === orderId);
-    if (!order) return;
+    if (!order) {
+      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      return;
+    }
+    
+    console.log('📦 기존 주문:', order);
+    console.log('🚢 경로:', order.route);
     
     // 발주일 변경 시 전체 공정 일정 재계산
     const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
+    console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 주문 업데이트
     await updateOrder(orderId, {
       orderDate: newOrderDate,
       schedule: newSchedule
     });
+    console.log('✅ Firestore 업데이트 완료');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
+    console.log('🔄 주문 목록 새로고침 완료');
+    
     renderOrdersTable();
     setupEventListeners();
+    console.log('🎨 테이블 렌더링 완료');
     
     UIUtils.showAlert('발주일이 변경되고 전체 일정이 재계산되었습니다.', 'success');
   } catch (error) {
-    console.error('Order date change error:', error);
-    UIUtils.showAlert('발주일 변경 실패', 'error');
+    console.error('❌ Order date change error:', error);
+    UIUtils.showAlert('발주일 변경 실패: ' + error.message, 'error');
   }
 }
 
