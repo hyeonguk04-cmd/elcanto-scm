@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder } from './firestore-service.js';
+import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
