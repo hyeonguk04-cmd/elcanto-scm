@@ -1,0 +1,42 @@
+From 1f730cf587cd3e73ece0b49ef75446ac4be325a8 Mon Sep 17 00:00:00 2001
+From: ELCANTO Dev <dev@elcanto.com>
+Date: Wed, 12 Nov 2025 00:15:40 +0000
+Subject: [PATCH] fix: Remove test account credentials from login screen
+
+- Replace test account information with IT department contact message
+- Change styling from gray to blue theme for better visibility
+- Improve security by not exposing default credentials
+- Guide users to contact IT team for account access
+
+Security improvement for production deployment.
+---
+ public/index.html | 13 ++++++++-----
+ 1 file changed, 8 insertions(+), 5 deletions(-)
+
+diff --git a/public/index.html b/public/index.html
+index 8459c04..b0662ab 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -58,11 +58,14 @@
+                     로그인
+                 </button>
+             </form>
+-            <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+-                <p class="text-xs text-gray-600 text-center mb-2">📋 테스트 계정 정보</p>
+-                <div class="space-y-1 text-xs text-gray-600">
+-                    <div class="text-center">🔐 관리자: <span class="font-bold text-blue-600">admin</span> / <span class="font-bold text-blue-600">admin123</span></div>
+-                    <div class="text-center">🏭 생산업체: <span class="font-bold text-green-600">shengan</span> / <span class="font-bold text-green-600">user123</span></div>
++            <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
++                <p class="text-xs text-blue-800 text-center mb-2">
++                    <i class="fas fa-info-circle mr-1"></i>
++                    <span class="font-semibold">계정 관련 문의</span>
++                </p>
++                <div class="text-xs text-blue-700 text-center space-y-1">
++                    <p>엘칸토 IT팀에 문의하여</p>
++                    <p>계정 정보를 받으세요.</p>
+                 </div>
+             </div>
+         </div>
+-- 
+2.39.5
+

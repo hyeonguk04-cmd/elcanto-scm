@@ -114,6 +114,14 @@ function renderOrdersTable() {
 }
 
 function renderOrderRow(order, rowNum, headers) {
+  console.log('🎨 renderOrderRow 호출:', {
+    orderId: order.id,
+    orderDate: order.orderDate,
+    scheduleExists: !!order.schedule,
+    productionCount: order.schedule?.production?.length,
+    shippingCount: order.schedule?.shipping?.length
+  });
+  
   // 물류입고 예정일 (마지막 공정의 목표일)
   const logisticsArrival = order.schedule.shipping[order.schedule.shipping.length - 1]?.targetDate || '-';
   
@@ -205,6 +213,11 @@ function renderOrderRow(order, rowNum, headers) {
       ${headers.production.map(h => {
         const process = order.schedule.production.find(p => p.processKey === h.key);
         const processDate = process?.targetDate || '';
+        console.log(`📅 생산공정 렌더링 - ${h.key}:`, {
+          processFound: !!process,
+          targetDate: process?.targetDate,
+          processDate: processDate
+        });
         return `<td class="px-2 py-2 border">
           <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  placeholder="YYYY-MM-DD" 
@@ -507,7 +520,36 @@ async function handleOrderDateChange(orderId, newOrderDate) {
       orderDate: newOrderDate,
       schedule: newSchedule
     });
-    console.log('✅ Firestore 업데이트 완료');
+    console.log('✅ orders 컬렉션 업데이트 완료');
+    
+    // 🔥 핵심 수정: processes 컬렉션의 개별 문서들도 업데이트
+    console.log('🔄 processes 컬렉션 업데이트 시작...');
+    const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
+    
+    // 생산 공정 업데이트
+    for (const newProcess of newSchedule.production) {
+      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+      if (existingProcess && existingProcess.id) {
+        await updateProcess(existingProcess.id, {
+          targetDate: newProcess.targetDate,
+          leadTime: newProcess.leadTime
+        });
+        console.log(`✅ 생산공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
+      }
+    }
+    
+    // 운송 공정 업데이트
+    for (const newProcess of newSchedule.shipping) {
+      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+      if (existingProcess && existingProcess.id) {
+        await updateProcess(existingProcess.id, {
+          targetDate: newProcess.targetDate,
+          leadTime: newProcess.leadTime
+        });
+        console.log(`✅ 운송공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
+      }
+    }
+    console.log('✅ processes 컬렉션 업데이트 완료');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
