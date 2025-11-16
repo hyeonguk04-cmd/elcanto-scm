@@ -1,8 +1,11 @@
-// 생산업체 뷰
-import { getOrdersBySupplier, updateProcess, uploadEvidence } from './firestore-service.js';
+// 생산업체 뷰 - 실적 입력
+import { getOrdersWithProcesses, updateProcess, uploadEvidence } from './firestore-service.js';
 import { getCurrentUser } from './auth.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils } from './utils.js';
+import { PROCESS_CONFIG } from './process-config.js';
+
+let supplierOrders = [];
 
 export async function renderSupplierView(container, view) {
   const user = getCurrentUser();
@@ -17,7 +20,22 @@ export async function renderSupplierView(container, view) {
 async function renderSupplierDashboard(container, user) {
   try {
     UIUtils.showLoading();
-    const orders = await getOrdersBySupplier(user.supplierName || user.name);
+    
+    // 모든 주문 가져와서 필터링
+    const allOrders = await getOrdersWithProcesses();
+    const orders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
+    
+    // 통계 계산
+    const totalQty = orders.reduce((sum, o) => sum + (o.qty || 0), 0);
+    
+    // 완료율 계산 (모든 생산공정이 완료된 주문 비율)
+    const completedOrders = orders.filter(order => {
+      const productionProcesses = order.schedule?.production || [];
+      return productionProcesses.every(p => p.actualDate);
+    });
+    const completionRate = orders.length > 0 
+      ? Math.round((completedOrders.length / orders.length) * 100) 
+      : 0;
     
     container.innerHTML = `
       <div class="space-y-6">
@@ -25,22 +43,67 @@ async function renderSupplierDashboard(container, user) {
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500">진행중인 발주</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">${orders.length}</p>
+            <p class="text-sm text-gray-500 font-medium">진행중인 발주</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">${orders.length}건</p>
           </div>
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500">총 발주 수량</p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">${orders.reduce((sum, o) => sum + (o.qty || 0), 0)}</p>
+            <p class="text-sm text-gray-500 font-medium">총 발주 수량</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">${totalQty.toLocaleString()}개</p>
           </div>
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500">완료율</p>
-            <p class="text-3xl font-bold text-green-600 mt-2">0%</p>
+            <p class="text-sm text-gray-500 font-medium">완료율</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">${completionRate}%</p>
           </div>
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-6">
           <h3 class="text-lg font-bold mb-4">최근 발주 현황</h3>
-          <div id="recent-orders"></div>
+          ${orders.length === 0 ? `
+            <div class="text-center text-gray-500 py-8">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>할당된 발주가 없습니다.</p>
+            </div>
+          ` : `
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">스타일</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">색상</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">수량</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">발주일</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">입고요구일</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">진행상태</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  ${orders.slice(0, 10).map(order => {
+                    const completedCount = (order.schedule?.production || []).filter(p => p.actualDate).length;
+                    const totalCount = (order.schedule?.production || []).length;
+                    const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                    
+                    return `
+                      <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm">${order.style || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${order.color || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${order.qty || 0}</td>
+                        <td class="px-4 py-3 text-sm">${order.orderDate || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${order.requiredDelivery || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                          <div class="flex items-center">
+                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                              <div class="bg-blue-600 h-2 rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-600">${progress}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
         </div>
       </div>
     `;
@@ -56,19 +119,53 @@ async function renderSupplierDashboard(container, user) {
 async function renderSupplierOrders(container, user) {
   try {
     UIUtils.showLoading();
-    const orders = await getOrdersBySupplier(user.supplierName || user.name);
+    
+    // 모든 주문 가져와서 필터링
+    const allOrders = await getOrdersWithProcesses();
+    supplierOrders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
     
     container.innerHTML = `
       <div class="space-y-6">
         <h2 class="text-2xl font-bold text-gray-800">실적 입력</h2>
         
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div id="orders-list"></div>
+        <div id="orders-accordion" class="space-y-4">
+          ${supplierOrders.length === 0 ? `
+            <div class="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>할당된 발주가 없습니다.</p>
+            </div>
+          ` : supplierOrders.map((order, index) => renderOrderCard(order, index)).join('')}
+        </div>
+      </div>
+      
+      <!-- 이미지 업로드 모달 -->
+      <div id="supplier-photo-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-lg">
+          <h3 class="text-xl font-bold mb-4">증빙 사진 업로드</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">공정: <span id="modal-process-name" class="font-bold"></span></label>
+              <input type="file" id="supplier-photo-input" accept="image/*" 
+                     class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+            <div id="supplier-photo-preview" class="hidden">
+              <p class="text-sm text-gray-500 mb-2">미리보기</p>
+              <img id="supplier-photo-preview-img" src="" alt="Preview" class="w-full h-auto rounded-lg max-h-64 object-contain">
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button type="button" id="supplier-photo-cancel-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+              취소
+            </button>
+            <button type="button" id="supplier-photo-upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+              업로드
+            </button>
+          </div>
         </div>
       </div>
     `;
     
-    renderOrdersList(orders);
+    setupEventListeners();
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
@@ -77,33 +174,311 @@ async function renderSupplierOrders(container, user) {
   }
 }
 
-function renderOrdersList(orders) {
-  const container = document.getElementById('orders-list');
+function renderOrderCard(order, index) {
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
   
-  if (orders.length === 0) {
-    container.innerHTML = renderEmptyState('할당된 발주가 없습니다.');
-    return;
-  }
-  
-  container.innerHTML = `
-    <div class="space-y-4">
-      ${orders.map(order => `
-        <div class="border rounded-lg p-4 hover:bg-gray-50">
-          <div class="flex justify-between items-start">
-            <div>
-              <h4 class="font-bold text-lg">${order.style}</h4>
-              <p class="text-sm text-gray-500">채널: ${order.channel} | 수량: ${order.qty}개</p>
-              <p class="text-sm text-gray-500">발주일: ${order.orderDate} | 입고요구일: ${order.requiredDelivery}</p>
-            </div>
-            <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                    onclick="alert('공정 입력 기능 개발 중')">
-              공정 입력
-            </button>
+  return `
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <!-- 기본 정보 헤더 (토글 가능) -->
+      <div class="bg-gray-50 px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-gray-100"
+           onclick="toggleOrderDetail(${index})">
+        <div class="flex items-center space-x-4">
+          <div>
+            <h3 class="text-lg font-bold text-gray-800">${order.style || '-'}</h3>
+            <p class="text-sm text-gray-500">
+              채널: ${order.channel || '-'} | 색상: ${order.color || '-'} | 수량: ${order.qty || 0}개
+            </p>
           </div>
         </div>
-      `).join('')}
+        <div class="flex items-center space-x-3">
+          <span class="text-sm text-gray-500">발주일: ${order.orderDate || '-'}</span>
+          <i class="fas fa-chevron-down transition-transform" id="toggle-icon-${index}"></i>
+        </div>
+      </div>
+      
+      <!-- 상세 정보 (접혔다 펼쳐짐) -->
+      <div id="order-detail-${index}" class="hidden">
+        <!-- 기본 정보 섹션 -->
+        <div class="px-6 py-4 border-b bg-blue-50">
+          <h4 class="text-sm font-bold text-gray-700 mb-3">📋 기본 정보</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p class="text-xs text-gray-500">국가</p>
+              <p class="text-sm font-medium">${order.country || '-'}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">생산업체</p>
+              <p class="text-sm font-medium">${order.supplier || '-'}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">발주일</p>
+              <p class="text-sm font-medium">${order.orderDate || '-'}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-500">입고요구일</p>
+              <p class="text-sm font-medium">${order.requiredDelivery || '-'}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 생산 공정 실적 입력 섹션 -->
+        <div class="px-6 py-4">
+          <h4 class="text-sm font-bold text-gray-700 mb-3">🏭 생산 공정 실적</h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 180px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">비고</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                ${productionProcesses.map(process => renderProcessRow(order, process, 'production')).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- 운송 공정 실적 입력 섹션 -->
+        <div class="px-6 py-4 border-t bg-green-50">
+          <h4 class="text-sm font-bold text-gray-700 mb-3">🚢 운송 공정 실적</h4>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 180px;">실제 완료일</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">비고</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                ${shippingProcesses.map(process => renderProcessRow(order, process, 'shipping')).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
 
-export default { renderSupplierView };
+function renderProcessRow(order, process, category) {
+  const hasActualDate = !!process.actualDate;
+  const hasPhoto = !!process.photo;
+  const isDelayed = process.targetDate && process.actualDate && process.actualDate > process.targetDate;
+  
+  return `
+    <tr class="${hasActualDate ? 'bg-green-50' : ''}">
+      <td class="px-3 py-3 text-sm font-medium text-gray-800">
+        ${process.name}
+      </td>
+      <td class="px-3 py-3 text-sm text-gray-600">
+        ${process.targetDate || '-'}
+      </td>
+      <td class="px-3 py-3">
+        <input type="date" 
+               class="actual-date-input w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               data-order-id="${order.id}"
+               data-process-id="${process.id}"
+               data-category="${category}"
+               value="${process.actualDate || ''}"
+               ${hasActualDate ? '' : ''}>
+      </td>
+      <td class="px-3 py-3 text-center">
+        ${hasPhoto ? `
+          <button class="text-green-600 hover:text-green-800 view-photo-btn"
+                  data-photo-url="${process.photo}">
+            <i class="fas fa-image text-lg"></i>
+          </button>
+        ` : `
+          <button class="text-gray-400 hover:text-blue-600 upload-photo-btn"
+                  data-order-id="${order.id}"
+                  data-process-id="${process.id}"
+                  data-process-name="${process.name}"
+                  ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
+            <i class="fas fa-camera text-lg"></i>
+          </button>
+        `}
+      </td>
+      <td class="px-3 py-3">
+        <input type="text"
+               class="delay-reason-input w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+               data-order-id="${order.id}"
+               data-process-id="${process.id}"
+               value="${process.delayReason || ''}"
+               placeholder="${isDelayed ? '지연 사유 입력' : '비고'}">
+      </td>
+    </tr>
+  `;
+}
+
+// 주문 상세 토글
+window.toggleOrderDetail = function(index) {
+  const detailDiv = document.getElementById(`order-detail-${index}`);
+  const icon = document.getElementById(`toggle-icon-${index}`);
+  
+  if (detailDiv.classList.contains('hidden')) {
+    detailDiv.classList.remove('hidden');
+    icon.classList.add('rotate-180');
+  } else {
+    detailDiv.classList.add('hidden');
+    icon.classList.remove('rotate-180');
+  }
+};
+
+function setupEventListeners() {
+  // 실제 완료일 입력
+  document.querySelectorAll('.actual-date-input').forEach(input => {
+    input.addEventListener('change', handleActualDateChange);
+  });
+  
+  // 지연 사유 입력
+  document.querySelectorAll('.delay-reason-input').forEach(input => {
+    input.addEventListener('blur', handleDelayReasonChange);
+  });
+  
+  // 사진 업로드 버튼
+  document.querySelectorAll('.upload-photo-btn').forEach(btn => {
+    btn.addEventListener('click', handlePhotoUploadClick);
+  });
+  
+  // 사진 보기 버튼
+  document.querySelectorAll('.view-photo-btn').forEach(btn => {
+    btn.addEventListener('click', handleViewPhotoClick);
+  });
+  
+  // 모달 관련
+  const photoInput = document.getElementById('supplier-photo-input');
+  const photoPreview = document.getElementById('supplier-photo-preview');
+  const photoPreviewImg = document.getElementById('supplier-photo-preview-img');
+  const uploadBtn = document.getElementById('supplier-photo-upload-btn');
+  const cancelBtn = document.getElementById('supplier-photo-cancel-btn');
+  
+  if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          photoPreviewImg.src = e.target.result;
+          photoPreview.classList.remove('hidden');
+          uploadBtn.disabled = false;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      document.getElementById('supplier-photo-modal').classList.add('hidden');
+      if (photoInput) photoInput.value = '';
+      photoPreview.classList.add('hidden');
+      uploadBtn.disabled = true;
+    });
+  }
+  
+  if (uploadBtn) {
+    uploadBtn.addEventListener('click', handlePhotoUpload);
+  }
+}
+
+async function handleActualDateChange(e) {
+  const orderId = e.target.dataset.orderId;
+  const processId = e.target.dataset.processId;
+  const newDate = e.target.value;
+  
+  if (!newDate) return;
+  
+  try {
+    UIUtils.showLoading();
+    
+    await updateProcess(processId, {
+      actualDate: newDate
+    });
+    
+    // 페이지 새로고침
+    const container = document.getElementById('main-content');
+    const user = getCurrentUser();
+    await renderSupplierOrders(container, user);
+    
+    UIUtils.showAlert('실제 완료일이 저장되었습니다.', 'success');
+  } catch (error) {
+    console.error('Actual date update error:', error);
+    UIUtils.showAlert('실제 완료일 저장에 실패했습니다.', 'error');
+  } finally {
+    UIUtils.hideLoading();
+  }
+}
+
+async function handleDelayReasonChange(e) {
+  const processId = e.target.dataset.processId;
+  const reason = e.target.value.trim();
+  
+  try {
+    await updateProcess(processId, {
+      delayReason: reason
+    });
+  } catch (error) {
+    console.error('Delay reason update error:', error);
+  }
+}
+
+let currentUploadProcessId = null;
+let currentUploadOrderId = null;
+
+function handlePhotoUploadClick(e) {
+  const btn = e.currentTarget;
+  currentUploadOrderId = btn.dataset.orderId;
+  currentUploadProcessId = btn.dataset.processId;
+  const processName = btn.dataset.processName;
+  
+  document.getElementById('modal-process-name').textContent = processName;
+  document.getElementById('supplier-photo-modal').classList.remove('hidden');
+}
+
+function handleViewPhotoClick(e) {
+  const photoUrl = e.currentTarget.dataset.photoUrl;
+  window.open(photoUrl, '_blank');
+}
+
+async function handlePhotoUpload() {
+  const photoInput = document.getElementById('supplier-photo-input');
+  const file = photoInput.files[0];
+  
+  if (!file || !currentUploadProcessId || !currentUploadOrderId) return;
+  
+  try {
+    UIUtils.showLoading();
+    
+    await uploadEvidence(currentUploadOrderId, currentUploadProcessId, file);
+    
+    // 모달 닫기
+    document.getElementById('supplier-photo-modal').classList.add('hidden');
+    photoInput.value = '';
+    document.getElementById('supplier-photo-preview').classList.add('hidden');
+    document.getElementById('supplier-photo-upload-btn').disabled = true;
+    
+    // 페이지 새로고침
+    const container = document.getElementById('main-content');
+    const user = getCurrentUser();
+    await renderSupplierOrders(container, user);
+    
+    UIUtils.showAlert('증빙 사진이 업로드되었습니다.', 'success');
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    UIUtils.showAlert('사진 업로드에 실패했습니다.', 'error');
+  } finally {
+    UIUtils.hideLoading();
+  }
+}
+
+export default {
+  renderSupplierView
+};
