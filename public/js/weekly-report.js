@@ -254,16 +254,26 @@ function renderOrderRow(order, rowNum) {
   let statusClass = 'text-gray-500';
   
   if (isReceived) {
-    const targetDate = arrivalProcess.targetDate ? new Date(arrivalProcess.targetDate) : null;
-    const actualDate = new Date(arrivalProcess.actualDate);
+    // 입고요구일과 물류입고 예정일 비교
+    const requiredDelivery = order.requiredDelivery ? new Date(order.requiredDelivery) : null;
+    const expectedDate = expectedArrivalInfo.date ? new Date(expectedArrivalInfo.date) : null;
     
-    if (targetDate && actualDate > targetDate) {
-      trafficLight = '🔴';
-      statusText = '지연입고';
-      statusClass = 'text-red-600 font-bold';
+    if (requiredDelivery && expectedDate) {
+      // 예정일이 요구일보다 늦으면 지연
+      if (expectedDate > requiredDelivery) {
+        trafficLight = '🔴';
+        statusText = '지연입고';
+        statusClass = 'text-red-600 font-bold';
+      } else {
+        // 예정일이 요구일과 같거나 빠르면 정상
+        trafficLight = '🟢';
+        statusText = '정상입고';
+        statusClass = 'text-green-600 font-bold';
+      }
     } else {
+      // 날짜 정보가 없으면 기본적으로 정시입고로 표시
       trafficLight = '🟢';
-      statusText = '정시입고';
+      statusText = '정상입고';
       statusClass = 'text-green-600 font-bold';
     }
   }
