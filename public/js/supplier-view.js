@@ -84,7 +84,13 @@ async function renderSupplierDashboard(container, user) {
                     
                     return `
                       <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">${order.style || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                          <button class="text-blue-600 hover:text-blue-800 font-medium hover:underline dashboard-style-link"
+                                  data-order-id="${order.id}"
+                                  data-style="${order.style || '-'}">
+                            ${order.style || '-'}
+                          </button>
+                        </td>
                         <td class="px-4 py-3 text-sm">${order.color || '-'}</td>
                         <td class="px-4 py-3 text-sm">${order.qty || 0}</td>
                         <td class="px-4 py-3 text-sm">${order.orderDate || '-'}</td>
@@ -108,12 +114,40 @@ async function renderSupplierDashboard(container, user) {
       </div>
     `;
     
+    // 스타일 클릭 이벤트 리스너 등록
+    setupDashboardEventListeners();
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
     console.error('Supplier dashboard error:', error);
     container.innerHTML = renderEmptyState('데이터를 불러오는 중 오류가 발생했습니다.');
   }
+}
+
+// 대시보드 이벤트 리스너
+function setupDashboardEventListeners() {
+  document.querySelectorAll('.dashboard-style-link').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const orderId = e.currentTarget.dataset.orderId;
+      const style = e.currentTarget.dataset.style;
+      
+      console.log(`📝 스타일 클릭: ${style} (Order ID: ${orderId})`);
+      
+      // 실적입력 페이지로 이동하면서 해당 주문 ID 저장
+      window.selectedOrderId = orderId;
+      
+      // 실적입력 페이지��� 내비게이션 (app.js의 navigateTo 함수 사용)
+      if (window.navigateTo) {
+        window.navigateTo('supplier-orders');
+      } else {
+        // Fallback: 직접 렌더링
+        const container = document.getElementById('main-content');
+        const user = getCurrentUser();
+        await renderSupplierOrders(container, user);
+      }
+    });
+  });
 }
 
 async function renderSupplierOrders(container, user) {
@@ -166,6 +200,30 @@ async function renderSupplierOrders(container, user) {
     `;
     
     setupEventListeners();
+    
+    // 대시보드에서 선택된 주문이 있으면 자동으로 펼치기
+    if (window.selectedOrderId) {
+      const selectedIndex = supplierOrders.findIndex(o => o.id === window.selectedOrderId);
+      if (selectedIndex !== -1) {
+        // 약간의 지연 후 펼치기 (DOM이 완전히 로드된 후)
+        setTimeout(() => {
+          toggleOrderDetail(selectedIndex);
+          
+          // 해당 요소로 스크롤
+          const orderCard = document.querySelector(`#order-detail-${selectedIndex}`);
+          if (orderCard) {
+            orderCard.closest('.bg-white').scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }
+          
+          // 선택 상태 초기화
+          window.selectedOrderId = null;
+        }, 300);
+      }
+    }
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
