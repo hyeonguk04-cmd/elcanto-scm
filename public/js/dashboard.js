@@ -69,7 +69,7 @@ export async function renderDashboard(container) {
         
         <!-- 지연 위험 주문 -->
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <h3 class="text-base font-bold text-gray-800 mb-3">⚠️ 지연 위험 주문</h3>
+          <h3 class="text-base font-bold text-gray-800 mb-3">🚨 모니터링 (미입고 상세 현황)</h3>
           <div id="pending-orders-table"></div>
         </div>
       </div>
@@ -515,14 +515,14 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
     container.innerHTML = `
       <div class="text-center py-8 text-gray-500">
         <i class="fas fa-check-circle text-3xl mb-2 text-green-500"></i>
-        <p class="font-medium">현재 지연 위험 주문이 없습니다.</p>
+        <p class="font-medium">현재 입고 지연 스타일은 없습니다.</p>
         <p class="text-xs mt-1">차트의 막대를 클릭하면 해당 일자의 미완료 주문을 볼 수 있습니다.</p>
       </div>
     `;
     return;
   }
   
-  const title = selectedDate ? `${selectedDate} 미완료 상세` : `지연 위험 주문 (총 ${orders.length}건)`;
+  const title = selectedDate ? `${selectedDate} 미완료 상세` : `입고 지연 스타일 (총 ${orders.length}건)`;
   
   container.innerHTML = `
     <div class="mb-3 flex justify-between items-center">
