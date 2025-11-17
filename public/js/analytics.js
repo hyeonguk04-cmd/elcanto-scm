@@ -133,7 +133,7 @@ function renderAnalyticsTable(orders) {
   const shippingHeaders = PROCESS_CONFIG.shipping.map(p => p.name);
   
   container.innerHTML = `
-    <table class="w-full text-xs">
+    <table class="w-full text-xs border-collapse">
       <thead class="bg-gray-100 sticky top-0 z-10">
         <!-- 메인 헤더 -->
         <tr class="border-b-2 border-gray-300">
