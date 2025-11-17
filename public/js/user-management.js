@@ -29,16 +29,15 @@ export async function renderUserManagement(container) {
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">이름</th>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 160px;">이메일</th>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 70px;">역할</th>
-                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">국가</th>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 130px;">마지막 로그인</th>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 130px;">생성일</th>
-                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 150px;">작업</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">작업</th>
                 </tr>
               </thead>
               <tbody>
                 ${users.length === 0 ? `
                   <tr>
-                    <td colspan="8" class="px-2 py-6 border text-center text-gray-500 text-xs">
+                    <td colspan="7" class="px-2 py-6 border text-center text-gray-500 text-xs">
                       <i class="fas fa-users text-3xl mb-3"></i>
                       <p class="text-sm font-medium">등록된 사용자가 없습니다.</p>
                     </td>
@@ -91,25 +90,6 @@ export async function renderUserManagement(container) {
                   <option value="admin">관리자</option>
                   <option value="supplier">생산업체</option>
                 </select>
-              </div>
-              
-              <div id="supplier-fields" class="hidden space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">생산업체명</label>
-                  <input type="text" id="user-supplier-name" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">국가</label>
-                  <select id="user-country" 
-                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">선택</option>
-                    <option value="중국">중국</option>
-                    <option value="베트남">베트남</option>
-                    <option value="인도">인도</option>
-                  </select>
-                </div>
               </div>
               
               <div class="flex justify-end space-x-3 mt-6">
@@ -208,18 +188,14 @@ function renderUserRow(user) {
           ${roleText}
         </span>
       </td>
-      <td class="px-2 py-2 border text-xs text-gray-700">${user.country || '-'}</td>
       <td class="px-2 py-2 border text-xs text-gray-500">${lastLogin}</td>
       <td class="px-2 py-2 border text-xs text-gray-500">${createdAt}</td>
       <td class="px-2 py-2 border text-xs">
         <button class="text-blue-600 hover:text-blue-900 mr-2 edit-user-btn" data-user-id="${user.id}" title="수정">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="text-green-600 hover:text-green-900 mr-2 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
+        <button class="text-green-600 hover:text-green-900 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
           <i class="fas fa-key"></i>
-        </button>
-        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-user-id="${user.id}" title="삭제">
-          <i class="fas fa-trash"></i>
         </button>
       </td>
     </tr>
@@ -232,19 +208,6 @@ function setupEventListeners() {
   if (addUserBtn) {
     addUserBtn.addEventListener('click', () => {
       openUserModal();
-    });
-  }
-  
-  // 역할 선택 변경 시 생산업체 필드 표시/숨김
-  const roleSelect = document.getElementById('user-role');
-  if (roleSelect) {
-    roleSelect.addEventListener('change', (e) => {
-      const supplierFields = document.getElementById('supplier-fields');
-      if (e.target.value === 'supplier') {
-        supplierFields.classList.remove('hidden');
-      } else {
-        supplierFields.classList.add('hidden');
-      }
     });
   }
   
@@ -275,14 +238,6 @@ function setupEventListeners() {
       openPasswordModal(userId);
     });
   });
-  
-  // 삭제 버튼들
-  document.querySelectorAll('.delete-user-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const userId = e.currentTarget.dataset.userId;
-      handleDeleteUser(userId);
-    });
-  });
 }
 
 function openUserModal(userId = null) {
@@ -305,12 +260,6 @@ function openUserModal(userId = null) {
     document.getElementById('user-name').value = user.name;
     document.getElementById('user-email').value = user.email;
     document.getElementById('user-role').value = user.role;
-    
-    if (user.role === 'supplier') {
-      document.getElementById('supplier-fields').classList.remove('hidden');
-      document.getElementById('user-supplier-name').value = user.supplierName || '';
-      document.getElementById('user-country').value = user.country || '';
-    }
     
     // 수정 시에는 비밀번호 필드 숨김
     passwordSection.classList.add('hidden');
@@ -354,11 +303,6 @@ async function handleUserFormSubmit(e) {
     email,
     role
   };
-  
-  if (role === 'supplier') {
-    userData.supplierName = document.getElementById('user-supplier-name').value.trim();
-    userData.country = document.getElementById('user-country').value;
-  }
   
   try {
     UIUtils.showLoading();
@@ -410,32 +354,7 @@ async function handlePasswordFormSubmit(e) {
   }
 }
 
-async function handleDeleteUser(userId) {
-  const user = users.find(u => u.id === userId);
-  if (!user) return;
-  
-  const confirmed = await UIUtils.confirm(
-    `사용자 "${user.name} (${user.username})"을(를) 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`
-  );
-  
-  if (!confirmed) return;
-  
-  try {
-    UIUtils.showLoading();
-    await deleteUser(userId);
-    UIUtils.showAlert('사용자가 삭제되었습니다.', 'success');
-    
-    // 목록 새로고침
-    users = await getUsers();
-    const container = document.getElementById('main-content');
-    await renderUserManagement(container);
-  } catch (error) {
-    console.error('User delete error:', error);
-    UIUtils.showAlert(error.message || '사용자 삭제에 실패했습니다.', 'error');
-  } finally {
-    UIUtils.hideLoading();
-  }
-}
+
 
 // Firestore 함수들
 async function getUsers() {
@@ -478,8 +397,6 @@ async function createUser(userData) {
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      supplierName: userData.supplierName || null,
-      country: userData.country || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastLogin: null
     });
@@ -508,8 +425,6 @@ async function updateUser(userId, userData) {
       name: userData.name,
       email: userData.email,
       role: userData.role,
-      supplierName: userData.supplierName || null,
-      country: userData.country || null,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   } catch (error) {
@@ -545,19 +460,6 @@ async function resetUserPassword(userId, newPassword) {
       throw new Error('유효하지 않은 이메일입니다.');
     }
     
-    throw error;
-  }
-}
-
-async function deleteUser(userId) {
-  try {
-    // Firestore에서 사용자 정보 삭제
-    await window.db.collection('users').doc(userId).delete();
-    
-    // Firebase Authentication에서도 삭제하려면 Cloud Function 필요
-    // 현재는 Firestore만 삭제
-  } catch (error) {
-    console.error('Delete user error:', error);
     throw error;
   }
 }
