@@ -26,7 +26,7 @@ export async function renderManufacturerManagement(container) {
 
       <!-- 테이블 -->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="overflow-auto" style="max-height: calc(100vh - 110px);">
+        <div class="overflow-auto" style="max-height: calc(100vh - 150px);">
           <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
             <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
