@@ -67,7 +67,7 @@ export async function renderDashboard(container) {
           </div>
         </div>
         
-        <!-- 지연 위험 주문 -->
+        <!-- 지연 위험 발주 -->
         <div class="bg-white rounded-xl shadow-lg p-3">
           <h3 class="text-base font-bold text-gray-800 mb-3">🚨 모니터링 (미입고 상세 현황)</h3>
           <div id="pending-orders-table"></div>
@@ -128,24 +128,24 @@ function updateDashboard() {
   // 발주/입고 현황 차트 렌더링
   renderDeliveryStatusChart();
   
-  // 지연 위험 주문 즉시 표시
+  // 지연 위험 발주 즉시 표시
   renderPendingOrdersTable(dashboardData.delayedOrders);
 }
 
 function processData(orders) {
-  // 미입고 주문 (입항이 완료되지 않은 주문)
+  // 미입고 발주 (입항이 완료되지 않은 발주)
   const pendingOrders = orders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
     return !arrivalProcess?.actualDate;
   });
   
-  // 완료된 주문
+  // 완료된 발주
   const completedOrders = orders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
     return arrivalProcess?.actualDate;
   });
   
-  // 지연된 주문 (입고요구일 기준으로 판단)
+  // 지연된 발주 (입고요구일 기준으로 판단)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -164,7 +164,7 @@ function processData(orders) {
   const pendingQty = DataUtils.sumBy(pendingOrders, 'qty');
   const delayedQty = DataUtils.sumBy(delayedOrders, 'qty');
   
-  // 정시 입고 주문 (입고요구일 vs 실제입고일 비교)
+  // 정시 입고 발주 (입고요구일 vs 실제입고일 비교)
   const onTimeOrders = completedOrders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
     if (!order.requiredDelivery || !arrivalProcess?.actualDate) return false;
@@ -184,7 +184,7 @@ function processData(orders) {
     completedOrders: completedOrders.length,
     pendingOrders: pendingOrders.length,
     delayedOrders: delayedOrders.length,
-    // 전체 주문 대비 정시 입고율
+    // 전체 발주 대비 정시 입고율
     onTimeRate: totalOrders > 0 ? Math.round((onTimeOrders / totalOrders) * 100) : 0,
     progressRate: totalQty > 0 ? Math.round((completedQty / totalQty) * 100) : 0,
     onTimeOrders: onTimeOrders
@@ -207,7 +207,7 @@ function renderKPICards() {
   container.innerHTML = `
     <!-- 납기 준수율 -->
     <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg transition-shadow"
-         title="전체 주문 대비 입고요구일 내 입고 완료">
+         title="전체 발주 대비 입고요구일 내 입고 완료">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-xs text-green-600 font-medium mb-0.5">납기 준수율</p>
@@ -304,7 +304,7 @@ function calculateProcessRate(order) {
 function renderDeliveryStatusChart() {
   const container = document.getElementById('delivery-status-chart');
   
-  // 날짜 범위 내의 주문 필터링 (입고요구일 기준)
+  // 날짜 범위 내의 발주 필터링 (입고요구일 기준)
   const filteredOrders = dashboardData.orders.filter(order => {
     if (!order.requiredDelivery) return false;
     return order.requiredDelivery >= currentStartDate && order.requiredDelivery <= currentEndDate;
@@ -516,7 +516,7 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
       <div class="text-center py-8 text-gray-500">
         <i class="fas fa-check-circle text-3xl mb-2 text-green-500"></i>
         <p class="font-medium">현재 입고 지연 스타일은 없습니다.</p>
-        <p class="text-xs mt-1">차트의 막대를 클릭하면 해당 일자의 미완료 주문을 볼 수 있습니다.</p>
+        <p class="text-xs mt-1">차트의 막대를 클릭하면 해당 일자의 미완료 발주을 볼 수 있습니다.</p>
       </div>
     `;
     return;

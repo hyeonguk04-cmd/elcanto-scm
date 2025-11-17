@@ -53,7 +53,7 @@ export function renderUserManual() {
           <div class="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
             <h4 class="font-bold text-blue-900 mb-2">🎯 주요 목적</h4>
             <ul class="list-disc list-inside space-y-1 text-blue-800">
-              <li><strong>생산 가시성 확보</strong>: 주문부터 입고까지 전 공정 실시간 모니터링</li>
+              <li><strong>생산 가시성 확보</strong>: 발주부터 입고까지 전 공정 실시간 모니터링</li>
               <li><strong>일정 관리 자동화</strong>: 각 공정별 목표일 자동 계산 및 지연 알림</li>
               <li><strong>협업 강화</strong>: 엘칸토와 생산업체 간 정보 공유 및 소통</li>
               <li><strong>데이터 기반 의사결정</strong>: KPI 및 통계 분석으로 개선점 파악</li>
@@ -63,11 +63,11 @@ export function renderUserManual() {
           <div class="bg-green-50 border-l-4 border-green-500 p-3 rounded">
             <h4 class="font-bold text-green-900 mb-2">✨ 핵심 기능</h4>
             <ul class="list-disc list-inside space-y-1 text-green-800">
-              <li><strong>주문 관리</strong>: 엑셀 업로드로 간편한 주문 등록 및 수정</li>
+              <li><strong>발주 관리</strong>: 엑셀 업로드로 간편한 발주 등록 및 수정</li>
               <li><strong>공정 스케줄링</strong>: 리드타임 기반 자동 일정 계산</li>
               <li><strong>실적 입력</strong>: 생산업체의 실제 완료일 및 증빙 사진 업로드</li>
-              <li><strong>진척률 추적</strong>: 각 주문별 공정 진행률 실시간 확인</li>
-              <li><strong>지연 모니터링</strong>: 지연 위험 주문 자동 감지 및 알림</li>
+              <li><strong>진척률 추적</strong>: 각 발주별 공정 진행률 실시간 확인</li>
+              <li><strong>지연 모니터링</strong>: 지연 위험 발주 자동 감지 및 알림</li>
               <li><strong>주간 리포트</strong>: 채널별 입고 현황 및 트래픽 라이트 표시</li>
             </ul>
           </div>
@@ -100,7 +100,7 @@ export function renderUserManual() {
               <div class="space-y-2">
                 <div>
                   <span class="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold mr-2">관리자 (Admin)</span>
-                  <span class="text-xs">모든 메뉴 접근 가능 (주문 관리, 통계, 업체 관리 등)</span>
+                  <span class="text-xs">모든 메뉴 접근 가능 (발주 관리, 통계, 업체 관리 등)</span>
                 </div>
                 <div>
                   <span class="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-bold mr-2">생산업체 (Supplier)</span>
@@ -191,22 +191,22 @@ export function renderUserManual() {
             종합 현황
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 전체 주문 및 공정 상황을 한눈에 파악하는 대시보드</p>
+            <p><strong>목적</strong>: 전체 발주 및 공정 상황을 한눈에 파악하는 대시보드</p>
             
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
               <h5 class="font-bold text-blue-900 mb-2">📈 주요 KPI 카드</h5>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div class="bg-white p-2 rounded border border-blue-100">
-                  <strong>📦 전체 주문</strong>
-                  <p class="text-gray-600">현재 진행 중인 총 주문 수</p>
+                  <strong>📦 전체 발주</strong>
+                  <p class="text-gray-600">현재 진행 중인 총 발주 수</p>
                 </div>
                 <div class="bg-white p-2 rounded border border-blue-100">
-                  <strong>⏳ 미입고 주문</strong>
-                  <p class="text-gray-600">아직 입고되지 않은 주문 수</p>
+                  <strong>⏳ 미입고 발주</strong>
+                  <p class="text-gray-600">아직 입고되지 않은 발주 수</p>
                 </div>
                 <div class="bg-white p-2 rounded border border-blue-100">
-                  <strong>🚨 지연 주문</strong>
-                  <p class="text-gray-600">입고요구일이 지난 주문 수</p>
+                  <strong>🚨 지연 발주</strong>
+                  <p class="text-gray-600">입고요구일이 지난 발주 수</p>
                 </div>
                 <div class="bg-white p-2 rounded border border-blue-100">
                   <strong>✅ 정시 입고율</strong>
@@ -226,12 +226,12 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
-              <h5 class="font-bold text-yellow-900 mb-2">⚠️ 지연 위험 주문 테이블</h5>
-              <p class="text-xs text-yellow-800 mb-2">입고요구일이 지났지만 아직 미입고된 주문을 표시합니다:</p>
+              <h5 class="font-bold text-yellow-900 mb-2">⚠️ 지연 위험 발주 테이블</h5>
+              <p class="text-xs text-yellow-800 mb-2">입고요구일이 지났지만 아직 미입고된 발주을 표시합니다:</p>
               <ul class="text-xs text-yellow-800 space-y-1">
                 <li>• 스타일, 채널, 생산업체 정보</li>
                 <li>• 입고요구일 및 공정 진행률</li>
-                <li>• 주문 클릭 시 상세 정보 확인 가능</li>
+                <li>• 발주 클릭 시 상세 정보 확인 가능</li>
               </ul>
             </div>
 
@@ -250,10 +250,10 @@ export function renderUserManual() {
             생산 목표일정 수립
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 주문을 등록하고 각 공정별 목표일을 설정하는 메뉴</p>
+            <p><strong>목적</strong>: 발주을 등록하고 각 공정별 목표일을 설정하는 메뉴</p>
             
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">📥 주문 등록 방법</h5>
+              <h5 class="font-bold text-green-900 mb-2">📥 발주 등록 방법</h5>
               <ol class="text-xs text-green-800 space-y-1 list-decimal list-inside">
                 <li><strong>엑셀 업로드</strong>: "📤 엑셀 업로드" 버튼 클릭 → 엑셀 파일 선택
                   <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
@@ -261,7 +261,7 @@ export function renderUserManual() {
                     <li>업로드 시 자동으로 목표일이 계산됩니다</li>
                   </ul>
                 </li>
-                <li><strong>수동 등록</strong>: "➕ 주문 추가" 버튼 클릭 → 폼 작성</li>
+                <li><strong>수동 등록</strong>: "➕ 발주 추가" 버튼 클릭 → 폼 작성</li>
               </ol>
             </div>
 
@@ -276,7 +276,7 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
-              <h5 class="font-bold text-yellow-900 mb-2">✏️ 주문 수정/삭제</h5>
+              <h5 class="font-bold text-yellow-900 mb-2">✏️ 발주 수정/삭제</h5>
               <ul class="text-xs text-yellow-800 space-y-1">
                 <li>• <strong>수정</strong>: 각 행의 "✏️" 버튼 클릭 → 정보 수정</li>
                 <li>• <strong>삭제</strong>: "🗑️" 버튼 클릭 → 확인 후 삭제</li>
@@ -303,7 +303,7 @@ export function renderUserManual() {
             공정 입고진척 현황
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 모든 주문의 공정별 진척 상황을 한 테이블에서 확인</p>
+            <p><strong>목적</strong>: 모든 발주의 공정별 진척 상황을 한 테이블에서 확인</p>
             
             <div class="bg-purple-50 border border-purple-200 p-3 rounded">
               <h5 class="font-bold text-purple-900 mb-2">📊 테이블 구성</h5>
@@ -443,7 +443,7 @@ export function renderUserManual() {
               <ul class="text-xs text-blue-800 space-y-1">
                 <li>• <strong>수정</strong>: "✏️" 버튼 클릭 → 정보 수정 → 저장</li>
                 <li>• <strong>삭제</strong>: "🗑️" 버튼 클릭 → 확인 메시지 → 삭제</li>
-                <li>• <strong>주의</strong>: 해당 업체에 진행 중인 주문이 있으면 삭제 불가</li>
+                <li>• <strong>주의</strong>: 해당 업체에 진행 중인 발주이 있으면 삭제 불가</li>
               </ul>
             </div>
 
@@ -488,7 +488,7 @@ export function renderUserManual() {
                   <strong class="text-blue-900">👨‍💼 관리자 (admin)</strong>
                   <ul class="mt-1 text-blue-800 space-y-1 list-disc list-inside ml-2">
                     <li>모든 메뉴 접근 가능</li>
-                    <li>주문 등록/수정/삭제</li>
+                    <li>발주 등록/수정/삭제</li>
                     <li>통계 및 리포트 조회</li>
                     <li>업체 및 사용자 관리</li>
                   </ul>
@@ -497,7 +497,7 @@ export function renderUserManual() {
                   <strong class="text-green-900">🏭 생산업체 (supplier)</strong>
                   <ul class="mt-1 text-green-800 space-y-1 list-disc list-inside ml-2">
                     <li>내 대시보드 접근</li>
-                    <li>실적 입력 (자신의 주문만)</li>
+                    <li>실적 입력 (자신의 발주만)</li>
                     <li>증빙 사진 업로드</li>
                     <li>완료일 입력/수정</li>
                   </ul>
@@ -534,14 +534,14 @@ export function renderUserManual() {
             내 대시보드
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 우리 업체에 배정된 주문 현황을 한눈에 확인</p>
+            <p><strong>목적</strong>: 우리 업체에 배정된 발주 현황을 한눈에 확인</p>
             
             <div class="bg-green-50 border border-green-200 p-3 rounded">
               <h5 class="font-bold text-green-900 mb-2">📊 KPI 카드</h5>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div class="bg-white p-2 rounded border border-green-100">
-                  <strong>📦 배정된 주문</strong>
-                  <p class="text-gray-600">우리 업체의 총 주문 수</p>
+                  <strong>📦 배정된 발주</strong>
+                  <p class="text-gray-600">우리 업체의 총 발주 수</p>
                 </div>
                 <div class="bg-white p-2 rounded border border-green-100">
                   <strong>✅ 완료율</strong>
@@ -549,11 +549,11 @@ export function renderUserManual() {
                 </div>
                 <div class="bg-white p-2 rounded border border-green-100">
                   <strong>⏰ 진행 중</strong>
-                  <p class="text-gray-600">아직 진행 중인 주문 수</p>
+                  <p class="text-gray-600">아직 진행 중인 발주 수</p>
                 </div>
                 <div class="bg-white p-2 rounded border border-green-100">
-                  <strong>🚨 지연 주문</strong>
-                  <p class="text-gray-600">일정이 지연된 주문 수</p>
+                  <strong>🚨 지연 발주</strong>
+                  <p class="text-gray-600">일정이 지연된 발주 수</p>
                 </div>
               </div>
             </div>
@@ -561,9 +561,9 @@ export function renderUserManual() {
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
               <h5 class="font-bold text-blue-900 mb-2">📋 최근 발주 현황</h5>
               <ul class="text-xs text-blue-800 space-y-1">
-                <li>• 최근 배정된 주문 목록 표시</li>
+                <li>• 최근 배정된 발주 목록 표시</li>
                 <li>• 스타일, 채널, 입고요구일, 진행률 표시</li>
-                <li>• <strong>스타일 클릭</strong>: 해당 주문의 실적 입력 페이지로 자동 이동 및 펼치기</li>
+                <li>• <strong>스타일 클릭</strong>: 해당 발주의 실적 입력 페이지로 자동 이동 및 펼치기</li>
               </ul>
             </div>
 
@@ -587,7 +587,7 @@ export function renderUserManual() {
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
               <h5 class="font-bold text-blue-900 mb-2">📝 실적 입력 방법</h5>
               <ol class="text-xs text-blue-800 space-y-1 list-decimal list-inside">
-                <li><strong>주문 선택</strong>: 목록에서 입력할 주문 클릭 (카드가 펼쳐짐)</li>
+                <li><strong>발주 선택</strong>: 목록에서 입력할 발주 클릭 (카드가 펼쳐짐)</li>
                 <li><strong>공정별 입력</strong>:
                   <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
                     <li>목표일이 표시되어 있습니다</li>
@@ -622,8 +622,8 @@ export function renderUserManual() {
             <div class="bg-purple-50 border border-purple-200 p-3 rounded">
               <h5 class="font-bold text-purple-900 mb-2">🔍 필터 기능</h5>
               <ul class="text-xs text-purple-800 space-y-1">
-                <li>• <strong>채널 필터</strong>: 특정 채널 주문만 보기</li>
-                <li>• <strong>상태 필터</strong>: 진행 중/완료/지연 주문 필터링</li>
+                <li>• <strong>채널 필터</strong>: 특정 채널 발주만 보기</li>
+                <li>• <strong>상태 필터</strong>: 진행 중/완료/지연 발주 필터링</li>
                 <li>• <strong>검색</strong>: 스타일명으로 빠른 검색</li>
               </ul>
             </div>
@@ -653,7 +653,7 @@ export function renderUserManual() {
             <div class="bg-white p-3 rounded border border-blue-100">
               <h5 class="font-bold text-blue-900 mb-2 text-sm">📊 분석 내용</h5>
               <ul class="text-xs text-gray-700 space-y-1 list-disc list-inside">
-                <li><strong>KPI 평가</strong>: 정시 입고율, 지연 주문 비율 등 주요 지표 분석</li>
+                <li><strong>KPI 평가</strong>: 정시 입고율, 지연 발주 비율 등 주요 지표 분석</li>
                 <li><strong>문제점 파악</strong>: 지연이 발생하는 공정 및 업체 식별</li>
                 <li><strong>개선 제안</strong>: 구체적이고 실행 가능한 개선 방안 제시</li>
                 <li><strong>트렌드 분석</strong>: 시간에 따른 성과 변화 추세</li>

@@ -479,17 +479,17 @@ async function handleRouteChangeInline(routeSelect) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     
     // 새로운 일정 재계산 (선적경로에 따라 입항 리드타임 변경)
     const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       route: newRoute,
       schedule: newSchedule
@@ -534,7 +534,7 @@ async function handleRouteChangeInline(routeSelect) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -553,18 +553,18 @@ async function handleOrderDateChange(orderId, newOrderDate) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     console.log('🚢 경로:', order.route);
     
     // 발주일 변경 시 전체 공정 일정 재계산
     const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       orderDate: newOrderDate,
       schedule: newSchedule
@@ -602,7 +602,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -683,7 +683,7 @@ function addNewRow() {
   const tempId = 'new_' + Date.now();
   console.log('🆔 새 행 ID:', tempId);
   
-  // 빈 주문 객체 생성
+  // 빈 발주 객체 생성
   const newOrder = {
     id: tempId,
     channel: MASTER_DATA.channels[0],
@@ -700,7 +700,7 @@ function addNewRow() {
     notes: ''
   };
   
-  console.log('📝 새 주문 객체:', newOrder);
+  console.log('📝 새 발주 객체:', newOrder);
   
   // 기본 일정 계산
   newOrder.schedule = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);

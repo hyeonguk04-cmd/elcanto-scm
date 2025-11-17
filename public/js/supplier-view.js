@@ -21,14 +21,14 @@ async function renderSupplierDashboard(container, user) {
   try {
     UIUtils.showLoading();
     
-    // 모든 주문 가져와서 필터링
+    // 모든 발주 가져와서 필터링
     const allOrders = await getOrdersWithProcesses();
     const orders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
     
     // 통계 계산
     const totalQty = orders.reduce((sum, o) => sum + (o.qty || 0), 0);
     
-    // 완료율 계산 (모든 생산공정이 완료된 주문 비율)
+    // 완료율 계산 (모든 생산공정이 완료된 발주 비율)
     const completedOrders = orders.filter(order => {
       const productionProcesses = order.schedule?.production || [];
       return productionProcesses.every(p => p.actualDate);
@@ -134,7 +134,7 @@ function setupDashboardEventListeners() {
       
       console.log(`📝 스타일 클릭: ${style} (Order ID: ${orderId})`);
       
-      // 실적입력 페이지로 이동하면서 해당 주문 ID 저장
+      // 실적입력 페이지로 이동하면서 해당 발주 ID 저장
       window.selectedOrderId = orderId;
       
       // 실적입력 페이지��� 내비게이션 (app.js의 navigateTo 함수 사용)
@@ -154,7 +154,7 @@ async function renderSupplierOrders(container, user) {
   try {
     UIUtils.showLoading();
     
-    // 모든 주문 가져와서 필터링
+    // 모든 발주 가져와서 필터링
     const allOrders = await getOrdersWithProcesses();
     supplierOrders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
     
@@ -201,7 +201,7 @@ async function renderSupplierOrders(container, user) {
     
     setupEventListeners();
     
-    // 대시보드에서 선택된 주문이 있으면 자동으로 펼치기
+    // 대시보드에서 선택된 발주이 있으면 자동으로 펼치기
     if (window.selectedOrderId) {
       const selectedIndex = supplierOrders.findIndex(o => o.id === window.selectedOrderId);
       if (selectedIndex !== -1) {
@@ -452,7 +452,7 @@ function renderProcessRow(order, process, category) {
   `;
 }
 
-// 주문 상세 토글
+// 발주 상세 토글
 window.toggleOrderDetail = function(index) {
   const detailDiv = document.getElementById(`order-detail-${index}`);
   const icon = document.getElementById(`toggle-icon-${index}`);

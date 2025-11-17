@@ -130,7 +130,7 @@ export async function addOrder(orderData) {
     const user = getCurrentUser();
     const batch = window.db.batch();
     
-    // 주문 추가
+    // 발주 추가
     const orderRef = window.db.collection('orders').doc();
     batch.set(orderRef, {
       ...orderData,
@@ -240,7 +240,7 @@ export async function deleteOrder(orderId) {
       batch.delete(doc.ref);
     });
     
-    // 주문 삭제
+    // 발주 삭제
     batch.delete(window.db.collection('orders').doc(orderId));
     
     await batch.commit();

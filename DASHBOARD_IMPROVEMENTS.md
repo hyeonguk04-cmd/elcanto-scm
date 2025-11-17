@@ -5,8 +5,8 @@
 ### 1. **KPI 지표의 정확성 및 명확성**
 **현재 문제:**
 - "납기 준수율"의 계산 기준이 모호함
-  - 현재: 완료된 주문 중 정시 입고된 주문 비율
-  - 문제: 미완료 주문은 제외되어 실제 전체 납기 준수 상황을 반영하지 못함
+  - 현재: 완료된 발주 중 정시 입고된 발주 비율
+  - 문제: 미완료 발주은 제외되어 실제 전체 납기 준수 상황을 반영하지 못함
   
 **개선 방안:**
 ```javascript
@@ -18,7 +18,7 @@ const onTimeOrders = completedOrders.filter(order => {
   return delayDays <= 0;
 }).length;
 
-// 개선안 1: 전체 주문 대비 정시 입고율
+// 개선안 1: 전체 발주 대비 정시 입고율
 onTimeRate = Math.round((onTimeOrders / totalOrders) * 100)
 
 // 개선안 2: 별도 KPI 추가
@@ -48,7 +48,7 @@ Option 2: 필터 적용 범위 명시
 ### 3. **지연 물량 계산 로직 오류**
 **현재 문제 (Line 147-155):**
 ```javascript
-// 미입고 주문 중에서만 지연 판단
+// 미입고 발주 중에서만 지연 판단
 const delayedOrders = pendingOrders.filter(order => {
   const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
   if (!arrivalProcess) return false;
@@ -112,14 +112,14 @@ Option 2: 테이블 뷰 추가
 
 **개선 방안:**
 ```javascript
-// Line 131: 초기에 모든 미입고 주문 표시
+// Line 131: 초기에 모든 미입고 발주 표시
 renderPendingOrdersTable(dashboardData.pendingOrders);
 
-// 또는 지연된 주문만 초기 표시
+// 또는 지연된 발주만 초기 표시
 renderPendingOrdersTable(dashboardData.delayedOrders);
 
 // 제목 변경
-"🚨 지연 리스크 주문" 또는 "⚠️ 입고 지연 우려"
+"🚨 지연 리스크 발주" 또는 "⚠️ 입고 지연 우려"
 ```
 
 ### 6. **공정률 계산의 정확성**
@@ -236,7 +236,7 @@ function calculateExpectedArrival(order) {
 
 **개선 방안:**
 ```javascript
-// 1. 막대 클릭 시 해당 주문으로 이동
+// 1. 막대 클릭 시 해당 발주으로 이동
 onclick="navigateToOrders('${data.date}')"
 
 // 2. 드래그로 날짜 범위 선택
@@ -267,7 +267,7 @@ setInterval(() => {
 
 ### 13. **알림 기능**
 ```javascript
-// 지연 위험 주문 자동 알림
+// 지연 위험 발주 자동 알림
 // 임계값 초과 시 경고
 if (kpi.onTimeRate < 70) {
   showWarning('납기 준수율이 70% 미만입니다!');
@@ -340,7 +340,7 @@ const change = kpi.onTimeRate - previousPeriod.onTimeRate;
 │ 📊 공정 진행 현황   [차트타입▼]  │
 │    [차트 - 작음]                  │
 ├──────────────────────────────────┤
-│ ⚠️ 지연 위험 주문 (15건)         │
+│ ⚠️ 지연 위험 발주 (15건)         │
 │    [정렬된 테이블 - 즉시 표시]   │
 └──────────────────────────────────┘
 ```
@@ -367,7 +367,7 @@ if (JSON.stringify(newFilters) === JSON.stringify(oldFilters)) {
 }
 
 // 3. 대량 데이터 처리
-// 1000개 이상 주문 시 가상 스크롤링 적용
+// 1000개 이상 발주 시 가상 스크롤링 적용
 ```
 
 ### 에러 처리
