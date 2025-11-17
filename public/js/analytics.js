@@ -12,12 +12,9 @@ export async function renderAnalytics(container) {
     allOrders = await getOrdersWithProcesses();
     
     container.innerHTML = `
-      <div class="space-y-4">
+      <div class="space-y-3">
         <div class="flex justify-between items-center">
-        <div>
           <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
-          <p class="text-xs text-gray-500 mt-0.5">생산업체가 등록한 공정별 완료 일정을 확인하고, 각 공정의 목표대비 실적차이를 통해 납기리스크를 관리합니다.</p>
-        </div>
           <div class="flex space-x-2">
             <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 채널</option>
@@ -33,8 +30,8 @@ export async function renderAnalytics(container) {
           </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 50px);"></div>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 110px);"></div>
         </div>
       </div>
       

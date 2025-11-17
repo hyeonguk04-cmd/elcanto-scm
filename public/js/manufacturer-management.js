@@ -25,8 +25,8 @@ export async function renderManufacturerManagement(container) {
       </div>
 
       <!-- 테이블 -->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="overflow-auto" style="max-height: calc(100vh - 170px);">
+      <div class="bg-white rounded-xl shadow-lg p-3">
+        <div class="overflow-auto" style="max-height: calc(100vh - 110px);">
           <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
             <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
@@ -63,7 +63,7 @@ export async function renderManufacturerManagement(container) {
       <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <h3 id="modal-title" class="text-xl font-bold mb-6">생산업체 정보 편집</h3>
         
-        <form id="manufacturer-form" class="space-y-4">
+        <form id="manufacturer-form" class="space-y-6">
           <!-- 기본 정보 -->
           <div class="border-b pb-4">
             <h4 class="text-md font-semibold text-gray-700 mb-4">기본 정보</h4>
