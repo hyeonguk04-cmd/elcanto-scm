@@ -3,8 +3,7 @@ import { UIUtils } from './utils.js';
 import { 
   getAllSuppliers, 
   addSupplier, 
-  updateSupplier,
-  deleteManufacturer 
+  updateSupplier
 } from './firestore-service.js';
 
 let suppliers = [];
