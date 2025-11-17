@@ -12,7 +12,6 @@ export function renderSidebar(role) {
     { id: 'analytics', icon: 'fa-chart-bar', text: '공정 입고진척 현황' },
     { id: 'weekly-report', icon: 'fa-calendar-week', text: '주간 리포트' },
     { id: 'manufacturer-management', icon: 'fa-industry', text: '생산업체 관리' },
-    { id: 'supplier-management', icon: 'fa-building', text: '협력사 관리' },
     { id: 'user-management', icon: 'fa-users', text: '사용자 관리' }
   ] : [
     { id: 'supplier-dashboard', icon: 'fa-tachometer-alt', text: '내 대시보드' },

@@ -1,13 +1,13 @@
-// 생산업체 관리 페이지
+// 생산업체 관리 페이지 (Suppliers 컬렉션 사용)
 import { UIUtils } from './utils.js';
 import { 
-  getAllManufacturers, 
-  addManufacturer, 
-  updateManufacturer,
+  getAllSuppliers, 
+  addSupplier, 
+  updateSupplier,
   deleteManufacturer 
 } from './firestore-service.js';
 
-let manufacturers = [];
+let suppliers = [];
 let currentEditId = null;
 
 // 메인 렌더링 함수
@@ -33,21 +33,17 @@ export async function renderManufacturerManagement(container) {
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NO.</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">업체명</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">연락처</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">담당자명</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">국가</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주소</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">담당자</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">이메일</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">세금번호</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">인증조항</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">공정방법</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주요 제품</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">연락처</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">상태</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">관리</th>
               </tr>
             </thead>
             <tbody id="manufacturers-table-body">
               <tr>
-                <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
                   <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                   <p>데이터를 불러오는 중...</p>
                 </td>
@@ -60,81 +56,111 @@ export async function renderManufacturerManagement(container) {
 
     <!-- 생산업체 정보 모달 -->
     <div id="manufacturer-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center hidden z-50">
-      <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <h3 id="modal-title" class="text-xl font-bold mb-6">생산업체 정보 편집</h3>
         
-        <form id="manufacturer-form" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- 업체명 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">업체명 <span class="text-red-500">*</span></label>
-              <input type="text" id="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
+        <form id="manufacturer-form" class="space-y-6">
+          <!-- 기본 정보 -->
+          <div class="border-b pb-4">
+            <h4 class="text-md font-semibold text-gray-700 mb-4">기본 정보</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- 업체명 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">업체명 <span class="text-red-500">*</span></label>
+                <input type="text" id="name" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
 
-            <!-- 담당자명 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">담당자명 <span class="text-red-500">*</span></label>
-              <input type="text" id="manager" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
+              <!-- 국가 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">국가 <span class="text-red-500">*</span></label>
+                <select id="country" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option value="">선택하세요</option>
+                  <option value="베트남">베트남</option>
+                  <option value="중국">중국</option>
+                  <option value="인도네시아">인도네시아</option>
+                  <option value="한국">한국</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
 
-            <!-- 연락처 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">연락처 <span class="text-red-500">*</span></label>
-              <input type="tel" id="contact" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
+              <!-- 담당자 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">담당자명 <span class="text-red-500">*</span></label>
+                <input type="text" id="contact" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
 
-            <!-- 이메일 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
-              <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            </div>
+              <!-- 이메일 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
 
-            <!-- 국가 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">국가 <span class="text-red-500">*</span></label>
-              <select id="country" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">선택하세요</option>
-                <option value="베트남">베트남</option>
-                <option value="중국">중국</option>
-                <option value="인도네시아">인도네시아</option>
-                <option value="한국">한국</option>
-                <option value="기타">기타</option>
-              </select>
-            </div>
+              <!-- 연락처 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
+                <input type="tel" id="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
 
-            <!-- 세금번호 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">세금번호</label>
-              <input type="text" id="taxNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <!-- 상태 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">상태</label>
+                <select id="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                  <option value="활성">활성</option>
+                  <option value="비활성">비활성</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          <!-- 주소 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">주소</label>
-            <textarea id="address" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
-          </div>
-
-          <!-- 인증조항 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">인증조항</label>
-            <input type="text" id="certification" placeholder="예: ISO9001, FOB" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-
-          <!-- 공정방법 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">공정방법</label>
-            <input type="text" id="processMethod" placeholder="예: 사출, 봉제" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          </div>
-
-          <!-- 주요 제품 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">주요 제품</label>
-            <input type="text" id="mainProducts" placeholder="예: 운동화, 샌들" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <!-- 공정 리드타임 (일수) -->
+          <div class="border-b pb-4">
+            <h4 class="text-md font-semibold text-gray-700 mb-4">공정별 리드타임 (일수)</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">원단 어퍼</label>
+                <input type="number" id="leadTime_material_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">원단 솔</label>
+                <input type="number" id="leadTime_material_sole" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">핸도컨펌</label>
+                <input type="number" id="leadTime_hando_cfm" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">단절</label>
+                <input type="number" id="leadTime_cutting" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">갑피제작</label>
+                <input type="number" id="leadTime_upper_making" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">조립</label>
+                <input type="number" id="leadTime_assembly" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">자체검수</label>
+                <input type="number" id="leadTime_self_inspection" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">공장출고</label>
+                <input type="number" id="leadTime_factory_shipment" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">선적</label>
+                <input type="number" id="leadTime_shipping" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">입고</label>
+                <input type="number" id="leadTime_arrival" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+            </div>
           </div>
 
           <!-- 버튼 -->
-          <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+          <div class="flex justify-end space-x-3 pt-4 border-t">
             <button type="button" id="cancel-btn" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-300 font-medium">
               취소
             </button>
@@ -154,7 +180,7 @@ export async function renderManufacturerManagement(container) {
   attachEventListeners();
 
   // 데이터 로드
-  await loadManufacturers();
+  await loadSuppliers();
 }
 
 // 이벤트 리스너 등록
@@ -172,12 +198,12 @@ function attachEventListeners() {
   // 폼 제출
   document.getElementById('manufacturer-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    await saveManufacturer();
+    await saveSupplier();
   });
 
   // 삭제 버튼
   document.getElementById('delete-btn').addEventListener('click', async () => {
-    await deleteCurrentManufacturer();
+    await deleteCurrentSupplier();
   });
 
   // 테이블 클릭 이벤트 (이벤트 위임)
@@ -191,20 +217,19 @@ function attachEventListeners() {
 }
 
 // 생산업체 목록 로드
-async function loadManufacturers() {
+async function loadSuppliers() {
   try {
     console.log('생산업체 목록 로드 시작...');
-    manufacturers = await getAllManufacturers();
-    console.log('생산업체 목록 로드 성공:', manufacturers.length, '개');
-    renderManufacturersTable();
+    suppliers = await getAllSuppliers();
+    console.log('생산업체 목록 로드 성공:', suppliers.length, '개');
+    renderSuppliersTable();
   } catch (error) {
     console.error('생산업체 로드 실패:', error);
     console.error('오류 상세:', error.message);
-    console.error('오류 스택:', error.stack);
     UIUtils.showAlert(`생산업체 목록을 불러오는데 실패했습니다: ${error.message}`, 'error');
     document.getElementById('manufacturers-table-body').innerHTML = `
       <tr>
-        <td colspan="12" class="px-4 py-8 text-center text-red-500">
+        <td colspan="8" class="px-4 py-8 text-center text-red-500">
           <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
           <p>데이터를 불러오는데 실패했습니다.</p>
           <p class="text-sm mt-2">${error.message}</p>
@@ -215,13 +240,13 @@ async function loadManufacturers() {
 }
 
 // 테이블 렌더링
-function renderManufacturersTable() {
+function renderSuppliersTable() {
   const tbody = document.getElementById('manufacturers-table-body');
 
-  if (manufacturers.length === 0) {
+  if (suppliers.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
           <i class="fas fa-inbox text-4xl mb-4"></i>
           <p class="text-lg">등록된 생산업체가 없습니다.</p>
           <p class="text-sm mt-2">업체 추가 버튼을 눌러 새로운 생산업체를 등록하세요.</p>
@@ -231,21 +256,21 @@ function renderManufacturersTable() {
     return;
   }
 
-  tbody.innerHTML = manufacturers.map((manufacturer, index) => `
+  tbody.innerHTML = suppliers.map((supplier, index) => `
     <tr class="border-b hover:bg-gray-50">
       <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
-      <td class="px-4 py-3 text-sm font-medium text-gray-900">${manufacturer.name || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.contact || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.manager || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.country || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" title="${manufacturer.address || '-'}">${manufacturer.address || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.email || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.taxNumber || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.certification || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.processMethod || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${manufacturer.mainProducts || '-'}</td>
+      <td class="px-4 py-3 text-sm font-medium text-gray-900">${supplier.name || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.country || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.contact || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.email || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.phone || '-'}</td>
       <td class="px-4 py-3 text-sm">
-        <button class="edit-manufacturer-btn text-blue-600 hover:text-blue-800 text-xl" data-id="${manufacturer.id}" title="정보 수정">
+        <span class="px-2 py-1 text-xs rounded-full ${supplier.status === '활성' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+          ${supplier.status || '활성'}
+        </span>
+      </td>
+      <td class="px-4 py-3 text-sm">
+        <button class="edit-manufacturer-btn text-blue-600 hover:text-blue-800 text-xl" data-id="${supplier.id}" title="정보 수정">
           📝
         </button>
       </td>
@@ -269,18 +294,28 @@ function openModal(id = null) {
     modalTitle.textContent = '생산업체 정보 편집';
     deleteBtn.classList.remove('hidden');
 
-    const manufacturer = manufacturers.find(m => m.id === id);
-    if (manufacturer) {
-      document.getElementById('name').value = manufacturer.name || '';
-      document.getElementById('manager').value = manufacturer.manager || '';
-      document.getElementById('contact').value = manufacturer.contact || '';
-      document.getElementById('email').value = manufacturer.email || '';
-      document.getElementById('country').value = manufacturer.country || '';
-      document.getElementById('taxNumber').value = manufacturer.taxNumber || '';
-      document.getElementById('address').value = manufacturer.address || '';
-      document.getElementById('certification').value = manufacturer.certification || '';
-      document.getElementById('processMethod').value = manufacturer.processMethod || '';
-      document.getElementById('mainProducts').value = manufacturer.mainProducts || '';
+    const supplier = suppliers.find(s => s.id === id);
+    if (supplier) {
+      document.getElementById('name').value = supplier.name || '';
+      document.getElementById('country').value = supplier.country || '';
+      document.getElementById('contact').value = supplier.contact || '';
+      document.getElementById('email').value = supplier.email || '';
+      document.getElementById('phone').value = supplier.phone || '';
+      document.getElementById('status').value = supplier.status || '활성';
+
+      // 리드타임 값 설정
+      if (supplier.leadTimes) {
+        document.getElementById('leadTime_material_upper').value = supplier.leadTimes.material_upper || '';
+        document.getElementById('leadTime_material_sole').value = supplier.leadTimes.material_sole || '';
+        document.getElementById('leadTime_hando_cfm').value = supplier.leadTimes.hando_cfm || '';
+        document.getElementById('leadTime_cutting').value = supplier.leadTimes.cutting || '';
+        document.getElementById('leadTime_upper_making').value = supplier.leadTimes.upper_making || '';
+        document.getElementById('leadTime_assembly').value = supplier.leadTimes.assembly || '';
+        document.getElementById('leadTime_self_inspection').value = supplier.leadTimes.self_inspection || '';
+        document.getElementById('leadTime_factory_shipment').value = supplier.leadTimes.factory_shipment || '';
+        document.getElementById('leadTime_shipping').value = supplier.leadTimes.shipping || '';
+        document.getElementById('leadTime_arrival').value = supplier.leadTimes.arrival || '';
+      }
     }
   } else {
     // 추가 모드
@@ -299,23 +334,31 @@ function closeModal() {
 }
 
 // 생산업체 저장
-async function saveManufacturer() {
+async function saveSupplier() {
   try {
-    const manufacturerData = {
+    const supplierData = {
       name: document.getElementById('name').value.trim(),
-      manager: document.getElementById('manager').value.trim(),
+      country: document.getElementById('country').value,
       contact: document.getElementById('contact').value.trim(),
       email: document.getElementById('email').value.trim(),
-      country: document.getElementById('country').value,
-      taxNumber: document.getElementById('taxNumber').value.trim(),
-      address: document.getElementById('address').value.trim(),
-      certification: document.getElementById('certification').value.trim(),
-      processMethod: document.getElementById('processMethod').value.trim(),
-      mainProducts: document.getElementById('mainProducts').value.trim()
+      phone: document.getElementById('phone').value.trim(),
+      status: document.getElementById('status').value || '활성',
+      leadTimes: {
+        material_upper: parseInt(document.getElementById('leadTime_material_upper').value) || 0,
+        material_sole: parseInt(document.getElementById('leadTime_material_sole').value) || 0,
+        hando_cfm: parseInt(document.getElementById('leadTime_hando_cfm').value) || 0,
+        cutting: parseInt(document.getElementById('leadTime_cutting').value) || 0,
+        upper_making: parseInt(document.getElementById('leadTime_upper_making').value) || 0,
+        assembly: parseInt(document.getElementById('leadTime_assembly').value) || 0,
+        self_inspection: parseInt(document.getElementById('leadTime_self_inspection').value) || 0,
+        factory_shipment: parseInt(document.getElementById('leadTime_factory_shipment').value) || 0,
+        shipping: parseInt(document.getElementById('leadTime_shipping').value) || 0,
+        arrival: parseInt(document.getElementById('leadTime_arrival').value) || 0
+      }
     };
 
     // 필수 필드 검증
-    if (!manufacturerData.name || !manufacturerData.manager || !manufacturerData.contact || !manufacturerData.country) {
+    if (!supplierData.name || !supplierData.country || !supplierData.contact) {
       UIUtils.showAlert('필수 항목을 모두 입력해주세요.', 'warning');
       return;
     }
@@ -324,16 +367,16 @@ async function saveManufacturer() {
 
     if (currentEditId) {
       // 수정
-      await updateManufacturer(currentEditId, manufacturerData);
+      await updateSupplier(currentEditId, supplierData);
       UIUtils.showAlert('생산업체 정보가 수정되었습니다.', 'success');
     } else {
       // 추가
-      await addManufacturer(manufacturerData);
+      await addSupplier(supplierData);
       UIUtils.showAlert('생산업체가 추가되었습니다.', 'success');
     }
 
     closeModal();
-    await loadManufacturers();
+    await loadSuppliers();
   } catch (error) {
     console.error('생산업체 저장 실패:', error);
     UIUtils.showAlert('저장에 실패했습니다.', 'error');
@@ -343,7 +386,7 @@ async function saveManufacturer() {
 }
 
 // 생산업체 삭제
-async function deleteCurrentManufacturer() {
+async function deleteCurrentSupplier() {
   if (!currentEditId) return;
 
   try {
@@ -351,11 +394,14 @@ async function deleteCurrentManufacturer() {
     if (!confirmed) return;
 
     UIUtils.showLoading();
-    await deleteManufacturer(currentEditId);
+    
+    // suppliers 컬렉션에서 삭제
+    await window.db.collection('suppliers').doc(currentEditId).delete();
+    
     UIUtils.showAlert('생산업체가 삭제되었습니다.', 'success');
 
     closeModal();
-    await loadManufacturers();
+    await loadSuppliers();
   } catch (error) {
     console.error('생산업체 삭제 실패:', error);
     UIUtils.showAlert('삭제에 실패했습니다.', 'error');
