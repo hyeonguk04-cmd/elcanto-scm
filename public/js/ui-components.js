@@ -7,22 +7,23 @@ export function renderSidebar(role) {
   const sidebar = document.getElementById('sidebar-container');
   
   const menuItems = role === 'admin' ? [
-    { id: 'dashboard', icon: 'fa-chart-line', text: '종합 현황' },
-    { id: 'order-management', icon: 'fa-clipboard-list', text: '생산 목표일정 수립' },
-    { id: 'analytics', icon: 'fa-chart-bar', text: '공정 입고진척 현황' },
-    { id: 'weekly-report', icon: 'fa-calendar-week', text: '주간 리포트' },
-    { id: 'manufacturer-management', icon: 'fa-industry', text: '생산업체 관리' },
-    { id: 'user-management', icon: 'fa-users', text: '사용자 관리' }
+    { id: 'dashboard', emoji: '📊', text: '종합 현황' },
+    { id: 'order-management', emoji: '📋', text: '생산 목표일정 수립' },
+    { id: 'analytics', emoji: '📈', text: '공정 입고진척 현황' },
+    { id: 'weekly-report', emoji: '📅', text: '주간 리포트' },
+    { id: 'manufacturer-management', emoji: '🏭', text: '생산업체 관리' },
+    { id: 'user-management', emoji: '👥', text: '사용자 관리' },
+    { id: 'user-manual', emoji: '📖', text: '사용 메뉴얼' }
   ] : [
-    { id: 'supplier-dashboard', icon: 'fa-tachometer-alt', text: '내 대시보드' },
-    { id: 'supplier-orders', icon: 'fa-tasks', text: '실적 입력' }
+    { id: 'supplier-dashboard', emoji: '📊', text: '내 대시보드' },
+    { id: 'supplier-orders', emoji: '✅', text: '실적 입력' }
   ];
   
   sidebar.innerHTML = `
     <div class="space-y-2">
       ${menuItems.map(item => `
         <div class="sidebar-btn" data-view="${item.id}">
-          <i class="fas ${item.icon} w-5"></i>
+          <span class="text-xl mr-2">${item.emoji}</span>
           <span>${item.text}</span>
         </div>
       `).join('')}
