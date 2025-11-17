@@ -24,7 +24,7 @@ export async function renderUserManagement(container) {
         
         <!-- 사용자 목록 테이블 -->
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div class="overflow-auto" style="max-height: calc(100vh - 170px);">
+          <div class="overflow-auto" style="max-height: calc(100vh - 180px);">
             <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
               <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
