@@ -195,8 +195,9 @@ function renderWeeklyTable(orders) {
   }
   
   container.innerHTML = `
-    <table class="w-full text-xs">
-      <thead class="bg-gray-100 sticky top-0">
+    <div class="overflow-auto" style="max-height: 60vh;">
+      <table class="w-full text-xs">
+        <thead class="bg-gray-100 sticky top-0 z-10">
         <tr class="border-b-2 border-gray-300">
           <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 60px;">채널</th>
@@ -215,7 +216,8 @@ function renderWeeklyTable(orders) {
       <tbody>
         ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
-    </table>
+      </table>
+    </div>
   `;
 }
 

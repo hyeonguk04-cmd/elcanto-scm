@@ -130,8 +130,9 @@ function renderAnalyticsTable(orders) {
   const shippingHeaders = PROCESS_CONFIG.shipping.map(p => p.name);
   
   container.innerHTML = `
-    <table class="w-full text-xs">
-      <thead class="bg-gray-100 sticky top-0">
+    <div class="overflow-auto" style="max-height: 70vh;">
+      <table class="w-full text-xs">
+        <thead class="bg-gray-100 sticky top-0 z-10">
         <!-- 메인 헤더 -->
         <tr class="border-b-2 border-gray-300">
           <th rowspan="2" class="px-2 py-2 border-r text-center" style="min-width: 40px;">NO.</th>
@@ -171,7 +172,8 @@ function renderAnalyticsTable(orders) {
       <tbody>
         ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
-    </table>
+      </table>
+    </div>
   `;
 }
 
