@@ -31,7 +31,7 @@ export async function renderAnalytics(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 300px);"></div>
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 180px);"></div>
         </div>
       </div>
       
