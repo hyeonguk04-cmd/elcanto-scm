@@ -87,15 +87,22 @@ export async function deleteManufacturer(manufacturerId) {
 
 export async function getAllSuppliers() {
   try {
-    const snapshot = await window.db.collection('suppliers')
-      .orderBy('country')
-      .orderBy('name')
-      .get();
+    const snapshot = await window.db.collection('suppliers').get();
     
-    return snapshot.docs.map(doc => ({
+    // 클라이언트 사이드에서 정렬
+    const suppliers = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    
+    // 국가순, 이름순으로 정렬
+    suppliers.sort((a, b) => {
+      const countryCompare = (a.country || '').localeCompare(b.country || '');
+      if (countryCompare !== 0) return countryCompare;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    
+    return suppliers;
   } catch (error) {
     console.error('Error getting suppliers:', error);
     throw error;
