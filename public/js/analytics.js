@@ -14,7 +14,10 @@ export async function renderAnalytics(container) {
     container.innerHTML = `
       <div class="space-y-3">
         <div class="flex justify-between items-center">
+        <div>
           <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
+          <p class="text-xs text-gray-500 mt-0.5">생산업체가 등록한 공정별 실제 완료일을 기준으로 각 공정별 목표대비 실적차이 확인을 통해 납기 리스크를 관리합니다</p>
+        </div>           
           <div class="flex space-x-2">
             <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 채널</option>
