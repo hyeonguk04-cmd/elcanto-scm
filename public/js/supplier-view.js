@@ -220,7 +220,7 @@ function renderOrderCard(order, index) {
         const foundProcess = allConfigProcesses.find(p => p.key === lastCompletedProcess.processKey);
         processName = foundProcess ? foundProcess.name : lastCompletedProcess.processKey;
       }
-      statusDetail = ` ('${processName}' 단계 완료)`;
+      statusDetail = ` (${processName} 완료)`;
     }
   }
   
@@ -308,7 +308,7 @@ function renderOrderCard(order, index) {
 
 function renderProcessRow(order, process, category) {
   const hasActualDate = !!process.actualDate;
-  const hasPhoto = !!process.photo;
+  const hasPhoto = !!(process.photo || process.evidenceUrl);
   
   // 공정명 가져오기 (process.name이 없으면 processKey로 찾기)
   let processName = process.name;
@@ -364,7 +364,7 @@ function renderProcessRow(order, process, category) {
         ${hasPhoto ? `
           <div class="flex items-center justify-center space-x-1">
             <button class="text-green-600 hover:text-green-800 view-photo-btn"
-                    data-photo-url="${process.photo}">
+                    data-photo-url="${process.photo || process.evidenceUrl}">
               <i class="fas fa-camera text-lg"></i>
             </button>
             <span class="text-xs text-green-600 font-medium">등록</span>
