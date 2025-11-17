@@ -135,7 +135,7 @@ function renderAnalyticsTable(orders) {
         <!-- 메인 헤더 -->
         <tr class="border-b-2 border-gray-300">
           <th rowspan="2" class="px-2 py-2 border-r text-center" style="min-width: 40px;">NO.</th>
-          <th colspan="7" class="px-2 py-2 border-r bg-blue-50 text-center">발주 정보</th>
+          <th colspan="8" class="px-2 py-2 border-r bg-blue-50 text-center">발주 정보</th>
           <th colspan="${productionHeaders.length}" class="px-2 py-2 border-r bg-green-50 text-center">생산 공정 (일)</th>
           <th colspan="${shippingHeaders.length}" class="px-2 py-2 border-r bg-yellow-50 text-center">운송 상황 (일)</th>
           <th colspan="2" class="px-2 py-2 bg-purple-50 text-center">최종 현황</th>
@@ -145,6 +145,7 @@ function renderAnalyticsTable(orders) {
         <tr class="border-b-2 border-gray-300">
           <!-- 발주 정보 -->
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 60px;">채널</th>
+          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 80px;">생산업체</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 100px;">스타일</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">색상</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">사이즈</th>
@@ -207,6 +208,7 @@ function renderOrderRow(order, rowNum) {
       
       <!-- 발주 정보 -->
       <td class="px-2 py-2 border-r">${order.channel || '-'}</td>
+      <td class="px-2 py-2 border-r">${order.supplier || '-'}</td>
       <td class="px-2 py-2 border-r font-medium">${order.style || '-'}</td>
       <td class="px-2 py-2 border-r">${order.color || '-'}</td>
       <td class="px-2 py-2 border-r">${order.size || '-'}</td>
