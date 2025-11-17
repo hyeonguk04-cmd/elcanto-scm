@@ -135,9 +135,10 @@ function renderAnalyticsTable(orders) {
         <!-- 메인 헤더 -->
         <tr class="border-b-2 border-gray-300">
           <th rowspan="2" class="px-2 py-2 border-r text-center" style="min-width: 40px;">NO.</th>
-          <th colspan="6" class="px-2 py-2 border-r bg-blue-50 text-center">발주 정보</th>
+          <th colspan="7" class="px-2 py-2 border-r bg-blue-50 text-center">발주 정보</th>
           <th colspan="${productionHeaders.length}" class="px-2 py-2 border-r bg-green-50 text-center">생산 공정 (일)</th>
-          <th colspan="${shippingHeaders.length}" class="px-2 py-2 bg-yellow-50 text-center">운송 상황 (일)</th>
+          <th colspan="${shippingHeaders.length}" class="px-2 py-2 border-r bg-yellow-50 text-center">운송 상황 (일)</th>
+          <th colspan="2" class="px-2 py-2 bg-purple-50 text-center">최종 현황</th>
         </tr>
         
         <!-- 서브 헤더 -->
@@ -146,6 +147,7 @@ function renderAnalyticsTable(orders) {
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 60px;">채널</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 100px;">스타일</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">색상</th>
+          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">사이즈</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 60px;">수량</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 90px;">발주일</th>
           <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 90px;">입고요구일</th>
@@ -159,6 +161,10 @@ function renderAnalyticsTable(orders) {
           ${shippingHeaders.map(name => `
             <th class="px-2 py-2 border-r bg-yellow-50 text-center" style="min-width: 70px;">${name}</th>
           `).join('')}
+          
+          <!-- 최종 현황 -->
+          <th class="px-2 py-2 border-r bg-purple-50 text-center" style="min-width: 80px;">최종<br>지연일수</th>
+          <th class="px-2 py-2 bg-purple-50 text-center" style="min-width: 90px;">물류입고<br>예정일</th>
         </tr>
       </thead>
       <tbody>
@@ -172,6 +178,29 @@ function renderOrderRow(order, rowNum) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
+  // 물류입고 예정일 계산
+  const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
+  
+  // 최종 지연일수 계산 (물류입고 예정일 - 입고요구일)
+  let finalDelayDays = '-';
+  let finalDelayClass = '';
+  if (expectedArrivalInfo.date && order.requiredDelivery) {
+    const expectedDate = new Date(expectedArrivalInfo.date);
+    const requiredDate = new Date(order.requiredDelivery);
+    const diff = Math.floor((expectedDate - requiredDate) / (1000 * 60 * 60 * 24));
+    
+    if (diff > 0) {
+      finalDelayDays = `+${diff}`;
+      finalDelayClass = 'bg-red-100 text-red-700 font-bold';
+    } else if (diff < 0) {
+      finalDelayDays = `${diff}`;
+      finalDelayClass = 'bg-blue-100 text-blue-700 font-bold';
+    } else {
+      finalDelayDays = '0';
+      finalDelayClass = 'bg-green-100 text-green-700 font-bold';
+    }
+  }
+  
   return `
     <tr class="border-b hover:bg-gray-50">
       <td class="px-2 py-2 text-center border-r">${rowNum}</td>
@@ -180,6 +209,7 @@ function renderOrderRow(order, rowNum) {
       <td class="px-2 py-2 border-r">${order.channel || '-'}</td>
       <td class="px-2 py-2 border-r font-medium">${order.style || '-'}</td>
       <td class="px-2 py-2 border-r">${order.color || '-'}</td>
+      <td class="px-2 py-2 border-r">${order.size || '-'}</td>
       <td class="px-2 py-2 border-r text-right">${order.qty || 0}</td>
       <td class="px-2 py-2 border-r">${order.orderDate || '-'}</td>
       <td class="px-2 py-2 border-r">${order.requiredDelivery || '-'}</td>
@@ -195,8 +225,72 @@ function renderOrderRow(order, rowNum) {
         const process = shippingProcesses.find(p => p.processKey === processConfig.key);
         return renderProcessCell(order, process, processConfig, 'shipping');
       }).join('')}
+      
+      <!-- 최종 현황 -->
+      <td class="px-2 py-2 border-r text-center ${finalDelayClass}">${finalDelayDays}</td>
+      <td class="px-2 py-2 text-center">${expectedArrivalInfo.date || '-'}</td>
     </tr>
   `;
+}
+
+// 물류입고 예정일 계산 함수
+function calculateExpectedArrival(order, productionProcesses, shippingProcesses) {
+  // 모든 공정을 순서대로 배열
+  const allProcesses = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      config,
+      process: productionProcesses.find(p => p.processKey === config.key)
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      config,
+      process: shippingProcesses.find(p => p.processKey === config.key)
+    }))
+  ];
+  
+  let currentDate = null;
+  let lastCompletedIndex = -1;
+  
+  // 완료된 마지막 공정 찾기
+  for (let i = allProcesses.length - 1; i >= 0; i--) {
+    if (allProcesses[i].process?.actualDate) {
+      currentDate = new Date(allProcesses[i].process.actualDate);
+      lastCompletedIndex = i;
+      break;
+    }
+  }
+  
+  // 완료된 공정이 없으면 발주일 기준으로 시작
+  if (!currentDate && order.orderDate) {
+    currentDate = new Date(order.orderDate);
+  }
+  
+  // 완료되지 않은 공정들의 리드타임을 누적
+  if (currentDate) {
+    for (let i = lastCompletedIndex + 1; i < allProcesses.length; i++) {
+      const { config, process } = allProcesses[i];
+      
+      // 목표일이 설정되어 있으면 목표일 사용, 없으면 리드타임 누적
+      if (process?.targetDate) {
+        currentDate = new Date(process.targetDate);
+      } else {
+        // 리드타임만큼 날짜 증가
+        const leadTime = process?.leadTime || config.defaultLeadTime || 0;
+        currentDate.setDate(currentDate.getDate() + leadTime);
+      }
+    }
+    
+    // 최종 날짜를 YYYY-MM-DD 형식으로 변환
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    
+    return {
+      date: `${year}-${month}-${day}`,
+      isEstimated: lastCompletedIndex < allProcesses.length - 1
+    };
+  }
+  
+  return { date: null, isEstimated: false };
 }
 
 function renderProcessCell(order, process, processConfig, category) {
@@ -306,6 +400,10 @@ window.showProcessDetail = async function(orderId, processId, processKey, catego
           <div>
             <span class="text-gray-600">색상:</span>
             <span class="font-medium ml-2">${order.color || '-'}</span>
+          </div>
+          <div>
+            <span class="text-gray-600">사이즈:</span>
+            <span class="font-medium ml-2">${order.size || '-'}</span>
           </div>
           <div>
             <span class="text-gray-600">수량:</span>
