@@ -2,6 +2,7 @@
 import { getOrdersWithProcesses } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, FormatUtils } from './utils.js';
+import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
 let currentWeekStart = null;
@@ -97,7 +98,7 @@ function filterOrders() {
   renderWeeklyTable(filtered);
 }
 
-// KPI 카드 렌더링
+// KPI 카드 렌더링 (크기 축소)
 function renderKPICards(orders) {
   const weeklyOrderQty = calculateWeeklyOrderQty(orders);
   const weeklyReceivedQty = calculateWeeklyReceivedQty(orders);
@@ -106,40 +107,40 @@ function renderKPICards(orders) {
   const container = document.getElementById('kpi-cards');
   container.innerHTML = `
     <!-- 주간 발주량 -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-lg p-6">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-blue-600 font-medium mb-1">주간 발주량</p>
-          <p class="text-3xl font-bold text-blue-700">${weeklyOrderQty.toLocaleString()}개</p>
+          <p class="text-xs text-blue-600 font-medium mb-1">주간 발주량</p>
+          <p class="text-2xl font-bold text-blue-700">${weeklyOrderQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-blue-200 rounded-full p-3">
-          <i class="fas fa-shopping-cart text-2xl text-blue-600"></i>
+        <div class="bg-blue-200 rounded-full p-2">
+          <i class="fas fa-shopping-cart text-lg text-blue-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 주간 입고량 -->
-    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg p-6">
+    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-green-600 font-medium mb-1">주간 입고량</p>
-          <p class="text-3xl font-bold text-green-700">${weeklyReceivedQty.toLocaleString()}개</p>
+          <p class="text-xs text-green-600 font-medium mb-1">주간 입고량</p>
+          <p class="text-2xl font-bold text-green-700">${weeklyReceivedQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-green-200 rounded-full p-3">
-          <i class="fas fa-box-open text-2xl text-green-600"></i>
+        <div class="bg-green-200 rounded-full p-2">
+          <i class="fas fa-box-open text-lg text-green-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 주간 지연건수 -->
-    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-lg p-6">
+    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-sm text-red-600 font-medium mb-1">주간 지연건수</p>
-          <p class="text-3xl font-bold text-red-700">${weeklyDelayedQty.toLocaleString()}개</p>
+          <p class="text-xs text-red-600 font-medium mb-1">주간 지연건수</p>
+          <p class="text-2xl font-bold text-red-700">${weeklyDelayedQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-red-200 rounded-full p-3">
-          <i class="fas fa-exclamation-triangle text-2xl text-red-600"></i>
+        <div class="bg-red-200 rounded-full p-2">
+          <i class="fas fa-exclamation-triangle text-lg text-red-600"></i>
         </div>
       </div>
     </div>
@@ -179,7 +180,7 @@ function calculateWeeklyDelayedQty(orders) {
   }).length;
 }
 
-// 주간 테이블 렌더링
+// 주간 테이블 렌더링 (analytics.js 스타일 통일)
 function renderWeeklyTable(orders) {
   const container = document.getElementById('weekly-table-container');
   
@@ -194,32 +195,42 @@ function renderWeeklyTable(orders) {
   }
   
   container.innerHTML = `
-    <table class="w-full text-sm">
+    <table class="w-full text-xs">
       <thead class="bg-gray-100 sticky top-0">
         <tr class="border-b-2 border-gray-300">
-          <th class="px-4 py-3 text-center" style="min-width: 80px;">채널</th>
-          <th class="px-4 py-3 text-center" style="min-width: 80px;">생산국</th>
-          <th class="px-4 py-3 text-center" style="min-width: 100px;">업체명</th>
-          <th class="px-4 py-3 text-center" style="min-width: 100px;">발주수량</th>
-          <th class="px-4 py-3 text-center" style="min-width: 120px;">입고예정일</th>
-          <th class="px-4 py-3 text-center" style="min-width: 150px;">입고율</th>
-          <th class="px-4 py-3 text-center" style="min-width: 100px;">누적입고</th>
-          <th class="px-4 py-3 text-center" style="min-width: 100px;">주입고량</th>
-          <th class="px-4 py-3 text-center" style="min-width: 100px;">입고 구분</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 60px;">채널</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">생산국</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">업체명</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">발주수량</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 90px;">입고요구일</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 120px;">공정률</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">누적입고</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">주입고량</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 90px;">물류입고<br>예정일</th>
+          <th class="px-2 py-2 text-center" style="min-width: 80px;">입고 구분</th>
         </tr>
       </thead>
       <tbody>
-        ${orders.map(order => renderOrderRow(order)).join('')}
+        ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
     </table>
   `;
 }
 
-function renderOrderRow(order) {
-  // 입고율 계산 (입항 완료 여부)
-  const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+function renderOrderRow(order, rowNum) {
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
+  
+  // 공정률 계산 (완료된 공정 / 전체 공정 * 100)
+  const allProcesses = [...productionProcesses, ...shippingProcesses];
+  const totalProcesses = PROCESS_CONFIG.production.length + PROCESS_CONFIG.shipping.length;
+  const completedProcesses = allProcesses.filter(p => p.actualDate).length;
+  const processRate = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0;
+  
+  // 입항 완료 여부
+  const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
   const isReceived = !!arrivalProcess?.actualDate;
-  const receiptRate = isReceived ? 100 : 0;
   
   // 누적입고 (완료된 경우 전체 수량, 미완료는 0)
   const cumulativeReceipt = isReceived ? (parseInt(order.qty) || 0) : 0;
@@ -233,8 +244,12 @@ function renderOrderRow(order) {
     }
   }
   
-  // 입고 구분 (정시입고 / 지연입고)
-  let receiptStatus = '미입고';
+  // 물류입고 예정일 계산
+  const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
+  
+  // 입고 구분 (신호등 표시)
+  let trafficLight = '⚪'; // 미입고
+  let statusText = '미입고';
   let statusClass = 'text-gray-500';
   
   if (isReceived) {
@@ -242,39 +257,100 @@ function renderOrderRow(order) {
     const actualDate = new Date(arrivalProcess.actualDate);
     
     if (targetDate && actualDate > targetDate) {
-      receiptStatus = '지연입고';
+      trafficLight = '🔴';
+      statusText = '지연입고';
       statusClass = 'text-red-600 font-bold';
     } else {
-      receiptStatus = '정시입고';
+      trafficLight = '🟢';
+      statusText = '정시입고';
       statusClass = 'text-green-600 font-bold';
     }
   }
   
-  // 입고예정일 (입항 목표일 또는 입고요구일)
-  const expectedDate = arrivalProcess?.targetDate || order.requiredDelivery || '-';
-  
   return `
     <tr class="border-b hover:bg-gray-50">
-      <td class="px-4 py-3 text-center">${order.channel || '-'}</td>
-      <td class="px-4 py-3 text-center">${order.country || '-'}</td>
-      <td class="px-4 py-3 text-center">${order.supplier || '-'}</td>
-      <td class="px-4 py-3 text-right font-medium">${(order.qty || 0).toLocaleString()}</td>
-      <td class="px-4 py-3 text-center">${expectedDate}</td>
-      <td class="px-4 py-3">
+      <td class="px-2 py-2 text-center border-r">${rowNum}</td>
+      <td class="px-2 py-2 text-center border-r">${order.channel || '-'}</td>
+      <td class="px-2 py-2 text-center border-r">${order.country || '-'}</td>
+      <td class="px-2 py-2 text-center border-r">${order.supplier || '-'}</td>
+      <td class="px-2 py-2 text-right border-r">${(order.qty || 0).toLocaleString()}</td>
+      <td class="px-2 py-2 text-center border-r">${order.requiredDelivery || '-'}</td>
+      <td class="px-2 py-2 border-r">
         <div class="flex items-center space-x-2">
-          <div class="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
-            <div class="h-full ${receiptRate === 100 ? 'bg-orange-400' : 'bg-gray-300'} flex items-center justify-center transition-all" 
-                 style="width: ${receiptRate}%">
-              <span class="text-xs font-bold ${receiptRate === 100 ? 'text-white' : 'text-gray-600'}">${receiptRate}%</span>
+          <div class="flex-1 bg-gray-200 rounded-full h-5 overflow-hidden">
+            <div class="h-full ${processRate === 100 ? 'bg-orange-400' : processRate > 0 ? 'bg-blue-400' : 'bg-gray-300'} flex items-center justify-center transition-all" 
+                 style="width: ${processRate}%">
+              <span class="text-xs font-bold ${processRate > 0 ? 'text-white' : 'text-gray-600'}">${processRate}%</span>
             </div>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3 text-right font-medium">${cumulativeReceipt.toLocaleString()}</td>
-      <td class="px-4 py-3 text-right font-medium">${weeklyReceipt.toLocaleString()}</td>
-      <td class="px-4 py-3 text-center ${statusClass}">${receiptStatus}</td>
+      <td class="px-2 py-2 text-right border-r">${cumulativeReceipt.toLocaleString()}</td>
+      <td class="px-2 py-2 text-right border-r">${weeklyReceipt.toLocaleString()}</td>
+      <td class="px-2 py-2 text-center border-r">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-2 py-2 text-center ${statusClass}">${trafficLight} ${statusText}</td>
     </tr>
   `;
+}
+
+// 물류입고 예정일 계산 함수 (analytics.js와 동일)
+function calculateExpectedArrival(order, productionProcesses, shippingProcesses) {
+  // 모든 공정을 순서대로 배열
+  const allProcesses = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      config,
+      process: productionProcesses.find(p => p.processKey === config.key)
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      config,
+      process: shippingProcesses.find(p => p.processKey === config.key)
+    }))
+  ];
+  
+  let currentDate = null;
+  let lastCompletedIndex = -1;
+  
+  // 완료된 마지막 공정 찾기
+  for (let i = allProcesses.length - 1; i >= 0; i--) {
+    if (allProcesses[i].process?.actualDate) {
+      currentDate = new Date(allProcesses[i].process.actualDate);
+      lastCompletedIndex = i;
+      break;
+    }
+  }
+  
+  // 완료된 공정이 없으면 발주일 기준으로 시작
+  if (!currentDate && order.orderDate) {
+    currentDate = new Date(order.orderDate);
+  }
+  
+  // 완료되지 않은 공정들의 리드타임을 누적
+  if (currentDate) {
+    for (let i = lastCompletedIndex + 1; i < allProcesses.length; i++) {
+      const { config, process } = allProcesses[i];
+      
+      // 목표일이 설정되어 있으면 목표일 사용, 없으면 리드타임 누적
+      if (process?.targetDate) {
+        currentDate = new Date(process.targetDate);
+      } else {
+        // 리드타임만큼 날짜 증가
+        const leadTime = process?.leadTime || config.defaultLeadTime || 0;
+        currentDate.setDate(currentDate.getDate() + leadTime);
+      }
+    }
+    
+    // 최종 날짜를 YYYY-MM-DD 형식으로 변환
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    
+    return {
+      date: `${year}-${month}-${day}`,
+      isEstimated: lastCompletedIndex < allProcesses.length - 1
+    };
+  }
+  
+  return { date: null, isEstimated: false };
 }
 
 function formatDate(date) {
