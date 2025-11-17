@@ -49,7 +49,7 @@ export async function renderOrderManagement(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <div id="orders-table"></div>
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 250px);"></div>
         </div>
       </div>
     `;
@@ -69,9 +69,8 @@ function renderOrdersTable() {
   const headers = createProcessTableHeaders();
   
   tableContainer.innerHTML = `
-    <div class="overflow-x-auto overflow-y-auto" style="max-height: 70vh;">
-      <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
-        <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
+    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
@@ -109,7 +108,6 @@ function renderOrdersTable() {
           ` : orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
         </tbody>
       </table>
-    </div>
   `;
 }
 

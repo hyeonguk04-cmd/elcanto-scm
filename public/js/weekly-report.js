@@ -56,7 +56,7 @@ export async function renderWeeklyReport(container) {
           <div class="px-6 py-4 border-b">
             <h3 class="text-lg font-bold text-gray-800">주간 생산별 및 입고실적 현황</h3>
           </div>
-          <div id="weekly-table-container" class="overflow-x-auto">
+          <div id="weekly-table-container" class="overflow-auto" style="max-height: calc(100vh - 450px);">
             <!-- 동적으로 생성 -->
           </div>
         </div>
@@ -195,9 +195,8 @@ function renderWeeklyTable(orders) {
   }
   
   container.innerHTML = `
-    <div class="overflow-auto" style="max-height: 60vh;">
-      <table class="w-full text-xs">
-        <thead class="bg-gray-100 sticky top-0 z-10">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-100 sticky top-0 z-10">
         <tr class="border-b-2 border-gray-300">
           <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 60px;">채널</th>
@@ -216,8 +215,7 @@ function renderWeeklyTable(orders) {
       <tbody>
         ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
-      </table>
-    </div>
+    </table>
   `;
 }
 
