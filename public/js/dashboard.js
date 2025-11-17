@@ -2,6 +2,7 @@
 import { getOrdersWithProcesses } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, DataUtils, FormatUtils } from './utils.js';
+import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
 let dashboardData = null;
@@ -50,10 +51,10 @@ export async function renderDashboard(container) {
           <!-- 동적으로 생성 -->
         </div>
         
-        <!-- 전체 발주량 대비 입고 현황 -->
+        <!-- 전체 발주 대비 공정 현황 -->
         <div class="bg-white rounded-xl shadow-lg p-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800">📊 전체 발주량 대비 입고 현황</h3>
+            <h3 class="text-lg font-bold text-gray-800">📊 전체 발주 대비 공정 현황</h3>
             <div class="flex space-x-2">
               <input type="date" id="status-start-date" value="${currentStartDate}" class="px-3 py-2 border rounded-lg text-sm">
               <span class="self-center">~</span>
@@ -249,38 +250,54 @@ function renderKPICards() {
   `;
 }
 
-// 발주/입고 현황 차트 렌더링 (세로형 누적 막대)
+// 공정률 계산 함수
+function calculateProcessRate(order) {
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
+  const allProcesses = [...productionProcesses, ...shippingProcesses];
+  const totalProcesses = PROCESS_CONFIG.production.length + PROCESS_CONFIG.shipping.length;
+  const completedProcesses = allProcesses.filter(p => p.actualDate).length;
+  return totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0;
+}
+
+// 발주/공정 현황 차트 렌더링 (세로형 누적 막대)
 function renderDeliveryStatusChart() {
   const container = document.getElementById('delivery-status-chart');
   
-  // 날짜 범위 내의 주문 필터링 (발주일 기준)
+  // 날짜 범위 내의 주문 필터링 (입고요구일 기준)
   const filteredOrders = dashboardData.orders.filter(order => {
-    if (!order.orderDate) return false;
-    return order.orderDate >= currentStartDate && order.orderDate <= currentEndDate;
+    if (!order.requiredDelivery) return false;
+    return order.requiredDelivery >= currentStartDate && order.requiredDelivery <= currentEndDate;
   });
   
-  // 발주일별로 그룹화
+  // 입고요구일별로 그룹화
   const ordersByDate = {};
   filteredOrders.forEach(order => {
-    const date = order.orderDate;
+    const date = order.requiredDelivery;
     if (!ordersByDate[date]) {
       ordersByDate[date] = {
         date,
         totalQty: 0,
-        receivedQty: 0,
-        pendingQty: 0,
-        pendingOrders: []
+        completedQty: 0,
+        inProgressQty: 0,
+        pendingOrders: [],
+        orders: []
       };
     }
     
     const qty = parseInt(order.qty) || 0;
     ordersByDate[date].totalQty += qty;
+    ordersByDate[date].orders.push(order);
     
-    const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
-    if (arrivalProcess?.actualDate) {
-      ordersByDate[date].receivedQty += qty;
+    // 공정 완료 여부 확인 (모든 공정 완료)
+    const allProcesses = [...(order.schedule?.production || []), ...(order.schedule?.shipping || [])];
+    const totalProcessCount = PROCESS_CONFIG.production.length + PROCESS_CONFIG.shipping.length;
+    const isCompleted = allProcesses.filter(p => p.actualDate).length === totalProcessCount;
+    
+    if (isCompleted) {
+      ordersByDate[date].completedQty += qty;
     } else {
-      ordersByDate[date].pendingQty += qty;
+      ordersByDate[date].inProgressQty += qty;
       ordersByDate[date].pendingOrders.push(order);
     }
   });
@@ -311,21 +328,25 @@ function renderDeliveryStatusChart() {
       <div class="flex justify-center mb-4 space-x-4">
         <div class="flex items-center">
           <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
-          <span class="text-xs text-gray-600">입고수량</span>
+          <span class="text-xs text-gray-600">공정완료</span>
         </div>
         <div class="flex items-center">
           <div class="w-4 h-4 bg-gray-300 rounded mr-2"></div>
-          <span class="text-xs text-gray-600">미입고수량</span>
+          <span class="text-xs text-gray-600">미완료</span>
         </div>
       </div>
       
       <!-- 차트 영역 -->
       <div class="flex items-end justify-around px-4" style="height: ${chartHeight}px;">
         ${sortedData.map(data => {
-          const achievementRate = data.totalQty > 0 ? Math.round((data.receivedQty / data.totalQty) * 100) : 0;
-          const receivedHeight = maxQty > 0 ? (data.receivedQty / maxQty) * (chartHeight - 40) : 0;
-          const pendingHeight = maxQty > 0 ? (data.pendingQty / maxQty) * (chartHeight - 40) : 0;
-          const totalHeight = receivedHeight + pendingHeight;
+          // 평균 공정률 계산
+          const avgProcessRate = data.orders.length > 0 
+            ? Math.round(data.orders.reduce((sum, order) => sum + calculateProcessRate(order), 0) / data.orders.length)
+            : 0;
+          
+          const completedHeight = maxQty > 0 ? (data.completedQty / maxQty) * (chartHeight - 40) : 0;
+          const inProgressHeight = maxQty > 0 ? (data.inProgressQty / maxQty) * (chartHeight - 40) : 0;
+          const totalHeight = completedHeight + inProgressHeight;
           
           return `
             <div class="flex flex-col items-center relative bar-container" style="width: ${100 / sortedData.length}%; max-width: 80px;">
@@ -334,10 +355,10 @@ function renderDeliveryStatusChart() {
                    style="left: 50%; transform: translateX(-50%);">
                 <div class="font-bold mb-2 border-b border-gray-600 pb-1">${data.date}</div>
                 <div class="space-y-1">
-                  <div>📦 입고수량: <span class="font-bold">${data.receivedQty.toLocaleString()}개</span></div>
-                  <div>⏳ 미입고수량: <span class="font-bold">${data.pendingQty.toLocaleString()}개</span></div>
+                  <div>✅ 공정완료: <span class="font-bold">${data.completedQty.toLocaleString()}개</span></div>
+                  <div>⏳ 미완료: <span class="font-bold">${data.inProgressQty.toLocaleString()}개</span></div>
                   <div>📊 총 발주량: <span class="font-bold">${data.totalQty.toLocaleString()}개</span></div>
-                  <div>✅ 달성률: <span class="font-bold text-green-400">${achievementRate}%</span></div>
+                  <div>🔧 공정률: <span class="font-bold text-green-400">${avgProcessRate}%</span></div>
                 </div>
               </div>
               
@@ -345,19 +366,19 @@ function renderDeliveryStatusChart() {
               <div class="flex flex-col w-full cursor-pointer hover:opacity-90 bar"
                    onclick="showPendingDetails('${data.date}')"
                    style="height: ${totalHeight}px;">
-                <!-- 미입고 (위) -->
+                <!-- 미완료 (위) -->
                 <div class="bg-gray-300 w-full rounded-t transition-all"
-                     style="height: ${pendingHeight}px;">
+                     style="height: ${inProgressHeight}px;">
                 </div>
-                <!-- 입고 (아래) -->
+                <!-- 공정완료 (아래) -->
                 <div class="bg-green-500 w-full rounded-b transition-all"
-                     style="height: ${receivedHeight}px;">
+                     style="height: ${completedHeight}px;">
                 </div>
               </div>
               
-              <!-- 달성률 표시 -->
-              <div class="text-xs font-bold mt-1 ${achievementRate === 100 ? 'text-green-600' : achievementRate === 0 ? 'text-gray-400' : 'text-blue-600'}">
-                ${achievementRate}%
+              <!-- 공정률 표시 -->
+              <div class="text-xs font-bold mt-1 ${avgProcessRate === 100 ? 'text-green-600' : avgProcessRate === 0 ? 'text-gray-400' : 'text-blue-600'}">
+                ${avgProcessRate}%
               </div>
               
               <!-- 날짜 레이블 -->
@@ -396,6 +417,57 @@ function renderDeliveryStatusChart() {
   };
 }
 
+// 물류입고 예정일 계산 함수
+function calculateExpectedArrival(order) {
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
+  
+  const allProcesses = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      config,
+      process: productionProcesses.find(p => p.processKey === config.key)
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      config,
+      process: shippingProcesses.find(p => p.processKey === config.key)
+    }))
+  ];
+  
+  let currentDate = null;
+  let lastCompletedIndex = -1;
+  
+  for (let i = allProcesses.length - 1; i >= 0; i--) {
+    if (allProcesses[i].process?.actualDate) {
+      currentDate = new Date(allProcesses[i].process.actualDate);
+      lastCompletedIndex = i;
+      break;
+    }
+  }
+  
+  if (!currentDate && order.orderDate) {
+    currentDate = new Date(order.orderDate);
+  }
+  
+  if (currentDate) {
+    for (let i = lastCompletedIndex + 1; i < allProcesses.length; i++) {
+      const { config, process } = allProcesses[i];
+      if (process?.targetDate) {
+        currentDate = new Date(process.targetDate);
+      } else {
+        const leadTime = process?.leadTime || config.defaultLeadTime || 0;
+        currentDate.setDate(currentDate.getDate() + leadTime);
+      }
+    }
+    
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
+  return '-';
+}
+
 function renderPendingOrdersTable(orders, selectedDate = null) {
   const container = document.getElementById('pending-orders-table');
   
@@ -403,13 +475,13 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
     container.innerHTML = `
       <div class="text-center py-8 text-gray-500">
         <i class="fas fa-mouse-pointer text-3xl mb-2"></i>
-        <p>미입고 수량을 클릭하면 상세 내역이 표시됩니다.</p>
+        <p>미완료 수량을 클릭하면 상세 내역이 표시됩니다.</p>
       </div>
     `;
     return;
   }
   
-  const title = selectedDate ? `${selectedDate} 미입고 상세` : '미입고 상세';
+  const title = selectedDate ? `${selectedDate} 미완료 상세` : '미완료 상세';
   
   container.innerHTML = `
     <div class="mb-3">
@@ -423,23 +495,48 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
             <th class="px-2 py-2 text-center border-r">스타일</th>
             <th class="px-2 py-2 text-center border-r">생산지</th>
             <th class="px-2 py-2 text-center border-r">컬러</th>
+            <th class="px-2 py-2 text-center border-r">사이즈</th>
             <th class="px-2 py-2 text-center border-r">수량</th>
-            <th class="px-2 py-2 text-center border-r">지역번호</th>
-            <th class="px-2 py-2 text-center">입고일</th>
+            <th class="px-2 py-2 text-center border-r">차이일수</th>
+            <th class="px-2 py-2 text-center border-r">입고요구일</th>
+            <th class="px-2 py-2 text-center">물류입고<br>예정일</th>
           </tr>
         </thead>
         <tbody>
           ${orders.map(order => {
-            const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+            const expectedArrival = calculateExpectedArrival(order);
+            
+            // 차이일수 계산 (물류입고 예정일 - 입고요구일)
+            let diffDays = '-';
+            let diffClass = '';
+            if (expectedArrival !== '-' && order.requiredDelivery) {
+              const expectedDate = new Date(expectedArrival);
+              const requiredDate = new Date(order.requiredDelivery);
+              const diff = Math.floor((expectedDate - requiredDate) / (1000 * 60 * 60 * 24));
+              
+              if (diff > 0) {
+                diffDays = `+${diff}`;
+                diffClass = 'text-red-600 font-bold';
+              } else if (diff < 0) {
+                diffDays = `${diff}`;
+                diffClass = 'text-blue-600 font-bold';
+              } else {
+                diffDays = '0';
+                diffClass = 'text-green-600 font-bold';
+              }
+            }
+            
             return `
               <tr class="border-b hover:bg-gray-50">
                 <td class="px-2 py-2 text-center border-r">${order.channel || '-'}</td>
                 <td class="px-2 py-2 text-center border-r font-medium">${order.style || '-'}</td>
                 <td class="px-2 py-2 text-center border-r">${order.supplier || '-'}</td>
                 <td class="px-2 py-2 text-center border-r">${order.color || '-'}</td>
-                <td class="px-2 py-2 text-right border-r">${(order.qty || 0).toLocaleString()}</td>
                 <td class="px-2 py-2 text-center border-r">${order.size || '-'}</td>
-                <td class="px-2 py-2 text-center">${order.requiredDelivery || '-'}</td>
+                <td class="px-2 py-2 text-right border-r">${(order.qty || 0).toLocaleString()}</td>
+                <td class="px-2 py-2 text-center border-r ${diffClass}">${diffDays}</td>
+                <td class="px-2 py-2 text-center border-r">${order.requiredDelivery || '-'}</td>
+                <td class="px-2 py-2 text-center">${expectedArrival}</td>
               </tr>
             `;
           }).join('')}
