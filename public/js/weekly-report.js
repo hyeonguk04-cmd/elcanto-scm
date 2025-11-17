@@ -200,13 +200,14 @@ function renderWeeklyTable(orders) {
         <tr class="border-b-2 border-gray-300">
           <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 60px;">채널</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">생산국</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">업체명</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">발주수량</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">생산국</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">업체명</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">스타일코드</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">발주수량</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 90px;">입고요구일</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 120px;">공정률</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">누적입고</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">주입고량</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 65px;">누적입고</th>
+          <th class="px-2 py-2 text-center border-r" style="min-width: 65px;">주입고량</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 90px;">물류입고<br>예정일</th>
           <th class="px-2 py-2 text-center" style="min-width: 80px;">입고 구분</th>
         </tr>
@@ -273,6 +274,7 @@ function renderOrderRow(order, rowNum) {
       <td class="px-2 py-2 text-center border-r">${order.channel || '-'}</td>
       <td class="px-2 py-2 text-center border-r">${order.country || '-'}</td>
       <td class="px-2 py-2 text-center border-r">${order.supplier || '-'}</td>
+      <td class="px-2 py-2 text-center border-r font-medium">${order.style || '-'}</td>
       <td class="px-2 py-2 text-right border-r">${(order.qty || 0).toLocaleString()}</td>
       <td class="px-2 py-2 text-center border-r">${order.requiredDelivery || '-'}</td>
       <td class="px-2 py-2 border-r">
