@@ -53,21 +53,21 @@ export async function renderDashboard(container) {
         <!-- 전체 발주량 대비 입고 현황 -->
         <div class="bg-white rounded-xl shadow-lg p-6">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800">전체 발주량 대비 입고 현황</h3>
+            <h3 class="text-lg font-bold text-gray-800">📊 전체 발주량 대비 입고 현황</h3>
             <div class="flex space-x-2">
               <input type="date" id="status-start-date" value="${currentStartDate}" class="px-3 py-2 border rounded-lg text-sm">
               <span class="self-center">~</span>
               <input type="date" id="status-end-date" value="${currentEndDate}" class="px-3 py-2 border rounded-lg text-sm">
             </div>
           </div>
-          <div id="delivery-status-chart" class="min-h-[300px]">
+          <div id="delivery-status-chart" class="min-h-[400px]">
             <!-- 차트 영역 -->
           </div>
         </div>
         
         <!-- 미입고 상세 현황 -->
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">미입고 상세 현황</h3>
+          <h3 class="text-lg font-bold text-gray-800 mb-4">🚨 모니터링 (미입고 상세 현황)</h3>
           <div id="pending-orders-table"></div>
         </div>
       </div>
@@ -249,7 +249,7 @@ function renderKPICards() {
   `;
 }
 
-// 발주/입고 현황 차트 렌더링
+// 발주/입고 현황 차트 렌더링 (세로형 누적 막대)
 function renderDeliveryStatusChart() {
   const container = document.getElementById('delivery-status-chart');
   
@@ -300,42 +300,89 @@ function renderDeliveryStatusChart() {
     return;
   }
   
-  // 막대 차트 HTML 생성
+  // 최대 수량 계산
   const maxQty = Math.max(...sortedData.map(d => d.totalQty));
+  const chartHeight = 300;
   
+  // 세로형 누적 막대 차트 HTML 생성
   container.innerHTML = `
-    <div class="space-y-4">
-      ${sortedData.map(data => {
-        const receivedPercent = data.totalQty > 0 ? (data.receivedQty / data.totalQty) * 100 : 0;
-        const pendingPercent = data.totalQty > 0 ? (data.pendingQty / data.totalQty) * 100 : 0;
-        
-        return `
-          <div class="relative">
-            <div class="flex items-center mb-1">
-              <span class="text-xs text-gray-600 w-24">${data.date}</span>
-              <span class="text-xs text-gray-500 ml-2">${Math.round(receivedPercent)}%</span>
-            </div>
-            <div class="flex items-center">
-              <div class="w-full bg-gray-200 rounded-full h-8 overflow-hidden relative cursor-pointer hover:opacity-90"
-                   onclick="showPendingDetails('${data.date}')">
-                <div class="h-full flex">
-                  <div class="bg-green-500 h-full flex items-center justify-center text-white text-xs font-bold"
-                       style="width: ${receivedPercent}%"
-                       title="입고완료: ${data.receivedQty.toLocaleString()}개">
-                    ${receivedPercent > 10 ? data.receivedQty.toLocaleString() : ''}
-                  </div>
-                  <div class="bg-gray-300 h-full flex items-center justify-center text-gray-600 text-xs font-bold"
-                       style="width: ${pendingPercent}%"
-                       title="미입고: ${data.pendingQty.toLocaleString()}개">
-                    ${pendingPercent > 10 ? data.pendingQty.toLocaleString() : ''}
-                  </div>
+    <div class="relative">
+      <!-- 범례 -->
+      <div class="flex justify-center mb-4 space-x-4">
+        <div class="flex items-center">
+          <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
+          <span class="text-xs text-gray-600">입고수량</span>
+        </div>
+        <div class="flex items-center">
+          <div class="w-4 h-4 bg-gray-300 rounded mr-2"></div>
+          <span class="text-xs text-gray-600">미입고수량</span>
+        </div>
+      </div>
+      
+      <!-- 차트 영역 -->
+      <div class="flex items-end justify-around px-4" style="height: ${chartHeight}px;">
+        ${sortedData.map(data => {
+          const achievementRate = data.totalQty > 0 ? Math.round((data.receivedQty / data.totalQty) * 100) : 0;
+          const receivedHeight = maxQty > 0 ? (data.receivedQty / maxQty) * (chartHeight - 40) : 0;
+          const pendingHeight = maxQty > 0 ? (data.pendingQty / maxQty) * (chartHeight - 40) : 0;
+          const totalHeight = receivedHeight + pendingHeight;
+          
+          return `
+            <div class="flex flex-col items-center relative bar-container" style="width: ${100 / sortedData.length}%; max-width: 80px;">
+              <!-- 툴팁 (호버 시 표시) -->
+              <div class="tooltip absolute bottom-full mb-2 hidden bg-gray-800 text-white text-xs rounded-lg p-3 shadow-lg z-10 whitespace-nowrap"
+                   style="left: 50%; transform: translateX(-50%);">
+                <div class="font-bold mb-2 border-b border-gray-600 pb-1">${data.date}</div>
+                <div class="space-y-1">
+                  <div>📦 입고수량: <span class="font-bold">${data.receivedQty.toLocaleString()}개</span></div>
+                  <div>⏳ 미입고수량: <span class="font-bold">${data.pendingQty.toLocaleString()}개</span></div>
+                  <div>📊 총 발주량: <span class="font-bold">${data.totalQty.toLocaleString()}개</span></div>
+                  <div>✅ 달성률: <span class="font-bold text-green-400">${achievementRate}%</span></div>
                 </div>
               </div>
+              
+              <!-- 누적 막대 -->
+              <div class="flex flex-col w-full cursor-pointer hover:opacity-90 bar"
+                   onclick="showPendingDetails('${data.date}')"
+                   style="height: ${totalHeight}px;">
+                <!-- 미입고 (위) -->
+                <div class="bg-gray-300 w-full rounded-t transition-all"
+                     style="height: ${pendingHeight}px;">
+                </div>
+                <!-- 입고 (아래) -->
+                <div class="bg-green-500 w-full rounded-b transition-all"
+                     style="height: ${receivedHeight}px;">
+                </div>
+              </div>
+              
+              <!-- 달성률 표시 -->
+              <div class="text-xs font-bold mt-1 ${achievementRate === 100 ? 'text-green-600' : achievementRate === 0 ? 'text-gray-400' : 'text-blue-600'}">
+                ${achievementRate}%
+              </div>
+              
+              <!-- 날짜 레이블 -->
+              <div class="text-xs text-gray-600 mt-1 text-center" style="writing-mode: horizontal-tb; transform: rotate(-45deg); transform-origin: center; white-space: nowrap; margin-top: 20px;">
+                ${data.date}
+              </div>
             </div>
-          </div>
-        `;
-      }).join('')}
+          `;
+        }).join('')}
+      </div>
+      
+      <!-- 안내 메시지 -->
+      <div class="text-center text-xs text-gray-500 mt-6">
+        💡 막대를 클릭하면 해당 일자의 미입고 상세 내역을 볼 수 있습니다.
+      </div>
     </div>
+    
+    <style>
+      .bar-container:hover .tooltip {
+        display: block !important;
+      }
+      .bar-container .bar:hover {
+        opacity: 0.85;
+      }
+    </style>
   `;
   
   // 전역 함수로 등록
