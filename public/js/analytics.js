@@ -12,7 +12,7 @@ export async function renderAnalytics(container) {
     allOrders = await getOrdersWithProcesses();
     
     container.innerHTML = `
-      <div class="space-y-3">
+      <div class="space-y-4">
         <div class="flex justify-between items-center">
           <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
           <div class="flex space-x-2">
