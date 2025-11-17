@@ -56,7 +56,7 @@ export async function renderWeeklyReport(container) {
           <div class="px-4 py-2 border-b -mx-3 -mt-3 mb-3">
             <h3 class="text-base font-bold text-gray-800">주간 생산별 및 입고실적 현황</h3>
           </div>
-          <div id="weekly-table-container" class="overflow-auto" style="max-height: calc(100vh - 280px);">
+          <div id="weekly-table-container" class="overflow-auto" style="max-height: calc(100vh - 300px);">
             <!-- 동적으로 생성 -->
           </div>
         </div>
