@@ -36,13 +36,18 @@ export async function renderManufacturerManagement(container) {
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">담당자</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">이메일</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">연락처</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">인도조건</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">포워딩업체</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주요채널</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주요품목</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">결제조건</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">상태</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">관리</th>
               </tr>
             </thead>
             <tbody id="manufacturers-table-body">
               <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="13" class="px-4 py-8 text-center text-gray-500">
                   <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                   <p>데이터를 불러오는 중...</p>
                 </td>
@@ -72,7 +77,7 @@ export async function renderManufacturerManagement(container) {
               <!-- 국가 -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">국가 <span class="text-red-500">*</span></label>
-                <select id="country" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <select id="location" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">선택하세요</option>
                   <option value="베트남">베트남</option>
                   <option value="중국">중국</option>
@@ -107,6 +112,42 @@ export async function renderManufacturerManagement(container) {
                   <option value="활성">활성</option>
                   <option value="비활성">비활성</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 거래 정보 -->
+          <div class="border-b pb-4">
+            <h4 class="text-md font-semibold text-gray-700 mb-4">거래 정보</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- 인도조건 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">인도조건</label>
+                <input type="text" id="deliveryTerms" placeholder="예: FOB, CIF, EXW" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+
+              <!-- 포워딩업체 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">포워딩업체</label>
+                <input type="text" id="forwarder" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+
+              <!-- 주요채널 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">주요채널</label>
+                <input type="text" id="mainChannel" placeholder="예: 온라인, 오프라인, 수출" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+
+              <!-- 주요품목 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">주요품목</label>
+                <input type="text" id="mainItem" placeholder="예: 운동화, 샌들, 부츠" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+
+              <!-- 결제조건 -->
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-2">결제조건</label>
+                <input type="text" id="paymentTerms" placeholder="예: NET 30, NET 60, 선불" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
             </div>
           </div>
@@ -228,7 +269,7 @@ async function loadSuppliers() {
     UIUtils.showAlert(`생산업체 목록을 불러오는데 실패했습니다: ${error.message}`, 'error');
     document.getElementById('manufacturers-table-body').innerHTML = `
       <tr>
-        <td colspan="8" class="px-4 py-8 text-center text-red-500">
+        <td colspan="13" class="px-4 py-8 text-center text-red-500">
           <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
           <p>데이터를 불러오는데 실패했습니다.</p>
           <p class="text-sm mt-2">${error.message}</p>
@@ -245,7 +286,7 @@ function renderSuppliersTable() {
   if (suppliers.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+        <td colspan="13" class="px-4 py-8 text-center text-gray-500">
           <i class="fas fa-inbox text-4xl mb-4"></i>
           <p class="text-lg">등록된 생산업체가 없습니다.</p>
           <p class="text-sm mt-2">업체 추가 버튼을 눌러 새로운 생산업체를 등록하세요.</p>
@@ -259,10 +300,15 @@ function renderSuppliersTable() {
     <tr class="border-b hover:bg-gray-50">
       <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
       <td class="px-4 py-3 text-sm font-medium text-gray-900">${supplier.name || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.country || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.location || supplier.country || '-'}</td>
       <td class="px-4 py-3 text-sm text-gray-700">${supplier.contact || '-'}</td>
       <td class="px-4 py-3 text-sm text-gray-700">${supplier.email || '-'}</td>
       <td class="px-4 py-3 text-sm text-gray-700">${supplier.phone || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.deliveryTerms || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.forwarder || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.mainChannel || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.mainItem || '-'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${supplier.paymentTerms || '-'}</td>
       <td class="px-4 py-3 text-sm">
         <span class="px-2 py-1 text-xs rounded-full ${supplier.status === '활성' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
           ${supplier.status || '활성'}
@@ -296,11 +342,18 @@ function openModal(id = null) {
     const supplier = suppliers.find(s => s.id === id);
     if (supplier) {
       document.getElementById('name').value = supplier.name || '';
-      document.getElementById('country').value = supplier.country || '';
+      document.getElementById('location').value = supplier.location || supplier.country || '';
       document.getElementById('contact').value = supplier.contact || '';
       document.getElementById('email').value = supplier.email || '';
       document.getElementById('phone').value = supplier.phone || '';
       document.getElementById('status').value = supplier.status || '활성';
+      
+      // 거래 정보
+      document.getElementById('deliveryTerms').value = supplier.deliveryTerms || '';
+      document.getElementById('forwarder').value = supplier.forwarder || '';
+      document.getElementById('mainChannel').value = supplier.mainChannel || '';
+      document.getElementById('mainItem').value = supplier.mainItem || '';
+      document.getElementById('paymentTerms').value = supplier.paymentTerms || '';
 
       // 리드타임 값 설정
       if (supplier.leadTimes) {
@@ -337,11 +390,16 @@ async function saveSupplier() {
   try {
     const supplierData = {
       name: document.getElementById('name').value.trim(),
-      country: document.getElementById('country').value,
+      location: document.getElementById('location').value,
       contact: document.getElementById('contact').value.trim(),
       email: document.getElementById('email').value.trim(),
       phone: document.getElementById('phone').value.trim(),
       status: document.getElementById('status').value || '활성',
+      deliveryTerms: document.getElementById('deliveryTerms').value.trim(),
+      forwarder: document.getElementById('forwarder').value.trim(),
+      mainChannel: document.getElementById('mainChannel').value.trim(),
+      mainItem: document.getElementById('mainItem').value.trim(),
+      paymentTerms: document.getElementById('paymentTerms').value.trim(),
       leadTimes: {
         material_upper: parseInt(document.getElementById('leadTime_material_upper').value) || 0,
         material_sole: parseInt(document.getElementById('leadTime_material_sole').value) || 0,
@@ -357,7 +415,7 @@ async function saveSupplier() {
     };
 
     // 필수 필드 검증
-    if (!supplierData.name || !supplierData.country || !supplierData.contact) {
+    if (!supplierData.name || !supplierData.location || !supplierData.contact) {
       UIUtils.showAlert('필수 항목을 모두 입력해주세요.', 'warning');
       return;
     }
