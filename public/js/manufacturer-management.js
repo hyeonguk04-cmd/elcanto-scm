@@ -63,7 +63,7 @@ export async function renderManufacturerManagement(container) {
       <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <h3 id="modal-title" class="text-xl font-bold mb-6">생산업체 정보 편집</h3>
         
-        <form id="manufacturer-form" class="space-y-6">
+        <form id="manufacturer-form" class="space-y-4">
           <!-- 기본 정보 -->
           <div class="border-b pb-4">
             <h4 class="text-md font-semibold text-gray-700 mb-4">기본 정보</h4>
