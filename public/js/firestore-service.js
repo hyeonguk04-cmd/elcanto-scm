@@ -6,15 +6,22 @@ import { calculateProcessSchedule } from './process-config.js';
 
 export async function getAllManufacturers() {
   try {
-    const snapshot = await window.db.collection('manufacturers')
-      .orderBy('country')
-      .orderBy('name')
-      .get();
+    const snapshot = await window.db.collection('manufacturers').get();
     
-    return snapshot.docs.map(doc => ({
+    // 클라이언트 사이드에서 정렬
+    const manufacturers = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    
+    // 국가순, 이름순으로 정렬
+    manufacturers.sort((a, b) => {
+      const countryCompare = (a.country || '').localeCompare(b.country || '');
+      if (countryCompare !== 0) return countryCompare;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    
+    return manufacturers;
   } catch (error) {
     console.error('Error getting manufacturers:', error);
     throw error;
