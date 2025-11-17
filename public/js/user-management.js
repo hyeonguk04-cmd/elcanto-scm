@@ -11,17 +11,17 @@ export async function renderUserManagement(container) {
     users = await getUsers();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">사용자 관리</h2>
-          <button id="add-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            <i class="fas fa-plus mr-2"></i>사용자 추가
+          <h2 class="text-xl font-bold text-gray-800">사용자 관리</h2>
+          <button id="add-user-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm">
+            <i class="fas fa-plus mr-1"></i>사용자 추가
           </button>
         </div>
         
         <!-- 사용자 목록 테이블 -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="overflow-auto" style="max-height: calc(100vh - 150px);">
+          <div class="overflow-auto" style="max-height: calc(100vh - 110px);">
             <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
               <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>

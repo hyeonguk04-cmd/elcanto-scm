@@ -27,18 +27,18 @@ export async function renderWeeklyReport(container) {
     currentWeekEnd.setHours(23, 59, 59, 999);
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <!-- 헤더 -->
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
+          <h2 class="text-lg font-bold text-gray-800">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
           <div class="flex space-x-2">
-            <select id="weekly-country-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="weekly-country-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">생산국 전체</option>
               <option value="중국">중국</option>
               <option value="베트남">베트남</option>
               <option value="인도">인도</option>
             </select>
-            <select id="weekly-channel-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="weekly-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">채널 전체</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
@@ -47,16 +47,16 @@ export async function renderWeeklyReport(container) {
         </div>
         
         <!-- KPI 카드 -->
-        <div id="kpi-cards" class="grid grid-cols-3 gap-4">
+        <div id="kpi-cards" class="grid grid-cols-3 gap-3">
           <!-- 동적으로 생성 -->
         </div>
         
         <!-- 주간 생산별 및 업고실적 현황 -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="px-6 py-4 border-b">
-            <h3 class="text-lg font-bold text-gray-800">주간 생산별 및 입고실적 현황</h3>
+          <div class="px-4 py-2 border-b">
+            <h3 class="text-base font-bold text-gray-800">주간 생산별 및 입고실적 현황</h3>
           </div>
-          <div id="weekly-table-container" class="overflow-auto" style="max-height: calc(100vh - 350px);">
+          <div id="weekly-table-container" class="overflow-auto" style="max-height: calc(100vh - 280px);">
             <!-- 동적으로 생성 -->
           </div>
         </div>
@@ -107,40 +107,40 @@ function renderKPICards(orders) {
   const container = document.getElementById('kpi-cards');
   container.innerHTML = `
     <!-- 주간 발주량 -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-blue-600 font-medium mb-1">주간 발주량</p>
-          <p class="text-2xl font-bold text-blue-700">${weeklyOrderQty.toLocaleString()}개</p>
+          <p class="text-xs text-blue-600 font-medium mb-0.5">주간 발주량</p>
+          <p class="text-xl font-bold text-blue-700">${weeklyOrderQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-blue-200 rounded-full p-2">
-          <i class="fas fa-shopping-cart text-lg text-blue-600"></i>
+        <div class="bg-blue-200 rounded-full p-1.5">
+          <i class="fas fa-shopping-cart text-base text-blue-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 주간 입고량 -->
-    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-green-600 font-medium mb-1">주간 입고량</p>
-          <p class="text-2xl font-bold text-green-700">${weeklyReceivedQty.toLocaleString()}개</p>
+          <p class="text-xs text-green-600 font-medium mb-0.5">주간 입고량</p>
+          <p class="text-xl font-bold text-green-700">${weeklyReceivedQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-green-200 rounded-full p-2">
-          <i class="fas fa-box-open text-lg text-green-600"></i>
+        <div class="bg-green-200 rounded-full p-1.5">
+          <i class="fas fa-box-open text-base text-green-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 주간 지연건수 -->
-    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-red-600 font-medium mb-1">주간 지연건수</p>
-          <p class="text-2xl font-bold text-red-700">${weeklyDelayedQty.toLocaleString()}개</p>
+          <p class="text-xs text-red-600 font-medium mb-0.5">주간 지연건수</p>
+          <p class="text-xl font-bold text-red-700">${weeklyDelayedQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-red-200 rounded-full p-2">
-          <i class="fas fa-exclamation-triangle text-lg text-red-600"></i>
+        <div class="bg-red-200 rounded-full p-1.5">
+          <i class="fas fa-exclamation-triangle text-base text-red-600"></i>
         </div>
       </div>
     </div>

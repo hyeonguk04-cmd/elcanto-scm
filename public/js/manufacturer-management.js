@@ -14,19 +14,19 @@ export async function renderManufacturerManagement(container) {
   container.innerHTML = `
     <div class="manufacturer-management">
       <!-- 헤더 -->
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-between items-center mb-3">
         <div>
-          <h2 class="text-2xl font-bold text-gray-800">생산업체 관리</h2>
-          <p class="text-sm text-gray-500 mt-1">생산업체 정보를 등록하고 관리합니다</p>
+          <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
+          <p class="text-xs text-gray-500 mt-0.5">생산업체 정보를 등록하고 관리합니다</p>
         </div>
-        <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
-          <i class="fas fa-plus mr-2"></i>업체 추가
+        <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition duration-200 text-sm">
+          <i class="fas fa-plus mr-1"></i>업체 추가
         </button>
       </div>
 
       <!-- 테이블 -->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="overflow-auto" style="max-height: calc(100vh - 150px);">
+        <div class="overflow-auto" style="max-height: calc(100vh - 110px);">
           <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
             <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>

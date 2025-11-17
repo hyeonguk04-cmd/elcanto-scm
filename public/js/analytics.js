@@ -12,16 +12,16 @@ export async function renderAnalytics(container) {
     allOrders = await getOrdersWithProcesses();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">공정 입고진척 현황</h2>
+          <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
           <div class="flex space-x-2">
-            <select id="analytics-channel-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 채널</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
             </select>
-            <select id="analytics-status-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="analytics-status-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 상태</option>
               <option value="진행중">진행중</option>
               <option value="지연">지연 발생</option>
@@ -31,7 +31,7 @@ export async function renderAnalytics(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 180px);"></div>
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 110px);"></div>
         </div>
       </div>
       

@@ -25,31 +25,31 @@ export async function renderOrderManagement(container) {
     });
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <h2 class="text-2xl font-bold text-gray-800">생산 목표일정 수립</h2>
+          <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
           <div class="space-x-2">
-            <button id="template-btn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-              <i class="fas fa-file-download mr-2"></i>템플릿 다운로드
+            <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
+              <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>
-            <button id="upload-btn" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">
-              <i class="fas fa-file-excel mr-2"></i>엑셀 업로드
+            <button id="upload-btn" class="bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm">
+              <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
             </button>
             <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
-            <button id="add-row-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-              <i class="fas fa-plus mr-2"></i>행 추가
+            <button id="add-row-btn" class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 text-sm">
+              <i class="fas fa-plus mr-1"></i>행 추가
             </button>
-            <button id="save-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-save mr-2"></i>저장
+            <button id="save-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-save mr-1"></i>저장
             </button>
-            <button id="delete-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-trash mr-2"></i>삭제
+            <button id="delete-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-trash mr-1"></i>삭제
             </button>
           </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 150px);"></div>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 120px);"></div>
         </div>
       </div>
     `;
