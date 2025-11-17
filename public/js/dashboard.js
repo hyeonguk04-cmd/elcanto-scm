@@ -29,17 +29,17 @@ export async function renderDashboard(container) {
     const suppliers = [...new Set(allOrders.map(o => o.supplier).filter(s => s))].sort();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <!-- 헤더 -->
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">KPI 요약</h2>
+          <h2 class="text-lg font-bold text-gray-800">KPI 요약</h2>
           <div class="flex space-x-2">
-            <select id="dashboard-channel-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="dashboard-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">채널 전체</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
             </select>
-            <select id="dashboard-supplier-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="dashboard-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">생산업체 전체</option>
               ${suppliers.map(s => `<option value="${s}">${s}</option>`).join('')}
             </select>
@@ -47,28 +47,28 @@ export async function renderDashboard(container) {
         </div>
         
         <!-- KPI 카드 (주간리포트와 동일한 크기) -->
-        <div id="kpi-cards" class="grid grid-cols-4 gap-4">
+        <div id="kpi-cards" class="grid grid-cols-4 gap-3">
           <!-- 동적으로 생성 -->
         </div>
         
         <!-- 전체 발주 대비 공정 현황 -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800">📊 전체 발주 대비 공정 현황</h3>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-base font-bold text-gray-800">📊 전체 발주 대비 공정 현황</h3>
             <div class="flex space-x-2">
-              <input type="date" id="status-start-date" value="${currentStartDate}" class="px-3 py-2 border rounded-lg text-sm">
-              <span class="self-center">~</span>
-              <input type="date" id="status-end-date" value="${currentEndDate}" class="px-3 py-2 border rounded-lg text-sm">
+              <input type="date" id="status-start-date" value="${currentStartDate}" class="px-2 py-1.5 border rounded-lg text-sm">
+              <span class="self-center text-sm">~</span>
+              <input type="date" id="status-end-date" value="${currentEndDate}" class="px-2 py-1.5 border rounded-lg text-sm">
             </div>
           </div>
-          <div id="delivery-status-chart" class="min-h-[400px]">
+          <div id="delivery-status-chart" class="min-h-[280px]">
             <!-- 차트 영역 -->
           </div>
         </div>
         
         <!-- 미입고 상세 현황 -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">🚨 모니터링 (미입고 상세 현황)</h3>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <h3 class="text-base font-bold text-gray-800 mb-3">🚨 모니터링 (미입고 상세 현황)</h3>
           <div id="pending-orders-table"></div>
         </div>
       </div>
@@ -197,53 +197,53 @@ function renderKPICards() {
   
   container.innerHTML = `
     <!-- 납기 준수율 -->
-    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-green-600 font-medium mb-1">납기 준수율</p>
-          <p class="text-2xl font-bold text-green-700">${kpi.onTimeRate}%</p>
+          <p class="text-xs text-green-600 font-medium mb-0.5">납기 준수율</p>
+          <p class="text-xl font-bold text-green-700">${kpi.onTimeRate}%</p>
         </div>
-        <div class="bg-green-200 rounded-full p-2">
-          <i class="fas fa-check-circle text-lg text-green-600"></i>
+        <div class="bg-green-200 rounded-full p-1.5">
+          <i class="fas fa-check-circle text-base text-green-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 입고 진행률 -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-blue-600 font-medium mb-1">입고 진행률</p>
-          <p class="text-2xl font-bold text-blue-700">${kpi.progressRate}%</p>
+          <p class="text-xs text-blue-600 font-medium mb-0.5">입고 진행률</p>
+          <p class="text-xl font-bold text-blue-700">${kpi.progressRate}%</p>
         </div>
-        <div class="bg-blue-200 rounded-full p-2">
-          <i class="fas fa-truck text-lg text-blue-600"></i>
+        <div class="bg-blue-200 rounded-full p-1.5">
+          <i class="fas fa-truck text-base text-blue-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 지연 물량 -->
-    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-red-600 font-medium mb-1">지연 물량</p>
-          <p class="text-2xl font-bold text-red-700">${kpi.delayedQty.toLocaleString()}개</p>
+          <p class="text-xs text-red-600 font-medium mb-0.5">지연 물량</p>
+          <p class="text-xl font-bold text-red-700">${kpi.delayedQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-red-200 rounded-full p-2">
-          <i class="fas fa-exclamation-triangle text-lg text-red-600"></i>
+        <div class="bg-red-200 rounded-full p-1.5">
+          <i class="fas fa-exclamation-triangle text-base text-red-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 총 발주량 -->
-    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-3">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-purple-600 font-medium mb-1">총 발주량</p>
-          <p class="text-2xl font-bold text-purple-700">${kpi.totalQty.toLocaleString()}개</p>
+          <p class="text-xs text-purple-600 font-medium mb-0.5">총 발주량</p>
+          <p class="text-xl font-bold text-purple-700">${kpi.totalQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-purple-200 rounded-full p-2">
-          <i class="fas fa-boxes text-lg text-purple-600"></i>
+        <div class="bg-purple-200 rounded-full p-1.5">
+          <i class="fas fa-boxes text-base text-purple-600"></i>
         </div>
       </div>
     </div>
