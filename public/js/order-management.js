@@ -27,7 +27,10 @@ export async function renderOrderManagement(container) {
     container.innerHTML = `
       <div class="space-y-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
+        <div>
           <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
+          <p class="text-xs text-gray-500 mt-0.5">승인된 발주 정보를 기준으로 생산 공정별 목표 일정을 수립합니다. 입고요구일과 입고예정일 차이를 확인해 주세요</p>
+        </div>     
           <div class="space-x-2">
             <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
               <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
@@ -49,7 +52,7 @@ export async function renderOrderManagement(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 170px);"></div>
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
         </div>
       </div>
     `;
