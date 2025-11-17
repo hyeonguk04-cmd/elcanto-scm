@@ -253,16 +253,16 @@ function renderKPICards() {
 function renderDeliveryStatusChart() {
   const container = document.getElementById('delivery-status-chart');
   
-  // 날짜 범위 내의 주문 필터링
+  // 날짜 범위 내의 주문 필터링 (발주일 기준)
   const filteredOrders = dashboardData.orders.filter(order => {
-    if (!order.requiredDelivery) return false;
-    return order.requiredDelivery >= currentStartDate && order.requiredDelivery <= currentEndDate;
+    if (!order.orderDate) return false;
+    return order.orderDate >= currentStartDate && order.orderDate <= currentEndDate;
   });
   
-  // 입고요구일별로 그룹화
+  // 발주일별로 그룹화
   const ordersByDate = {};
   filteredOrders.forEach(order => {
-    const date = order.requiredDelivery;
+    const date = order.orderDate;
     if (!ordersByDate[date]) {
       ordersByDate[date] = {
         date,
