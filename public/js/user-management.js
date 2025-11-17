@@ -20,32 +20,33 @@ export async function renderUserManagement(container) {
         </div>
         
         <!-- 사용자 목록 테이블 -->
-        <div class="bg-white rounded-lg shadow overflow-hidden">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">아이디</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이름</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">역할</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">생산업체</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">국가</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">마지막 로그인</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">생성일</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              ${users.length === 0 ? `
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
+              <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <td colspan="9" class="px-6 py-8 text-center text-gray-500">
-                    <i class="fas fa-users text-4xl mb-2"></i>
-                    <p>등록된 사용자가 없습니다.</p>
-                  </td>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">아이디</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">이름</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 160px;">이메일</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 70px;">역할</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">국가</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 130px;">마지막 로그인</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 130px;">생성일</th>
+                  <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 150px;">작업</th>
                 </tr>
-              ` : users.map(user => renderUserRow(user)).join('')}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                ${users.length === 0 ? `
+                  <tr>
+                    <td colspan="8" class="px-2 py-6 border text-center text-gray-500 text-xs">
+                      <i class="fas fa-users text-3xl mb-3"></i>
+                      <p class="text-sm font-medium">등록된 사용자가 없습니다.</p>
+                    </td>
+                  </tr>
+                ` : users.map(user => renderUserRow(user)).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       
@@ -178,50 +179,47 @@ function renderUserRow(user) {
     : 'bg-green-100 text-green-800';
   
   const lastLogin = user.lastLogin 
-    ? new Date(user.lastLogin.toDate()).toLocaleString('ko-KR') 
+    ? new Date(user.lastLogin.toDate()).toLocaleString('ko-KR', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     : '-';
   
   const createdAt = user.createdAt 
-    ? new Date(user.createdAt.toDate()).toLocaleString('ko-KR') 
+    ? new Date(user.createdAt.toDate()).toLocaleString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     : '-';
   
   return `
-    <tr class="hover:bg-gray-50">
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm font-medium text-gray-900">${user.username}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-900">${user.name}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500">${user.email}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${roleBadge}">
+    <tr class="border hover:bg-gray-50">
+      <td class="px-2 py-2 border text-xs font-medium text-gray-900">${user.username}</td>
+      <td class="px-2 py-2 border text-xs text-gray-900">${user.name}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700" style="font-size: 10px;">${user.email}</td>
+      <td class="px-2 py-2 border text-xs text-center">
+        <span class="px-2 py-0.5 text-xs rounded-full ${roleBadge}">
           ${roleText}
         </span>
       </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-900">${user.supplierName || '-'}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-900">${user.country || '-'}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500">${lastLogin}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap">
-        <div class="text-sm text-gray-500">${createdAt}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <button class="text-blue-600 hover:text-blue-900 mr-3 edit-user-btn" data-user-id="${user.id}">
-          <i class="fas fa-edit"></i> 수정
+      <td class="px-2 py-2 border text-xs text-gray-700">${user.country || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-500">${lastLogin}</td>
+      <td class="px-2 py-2 border text-xs text-gray-500">${createdAt}</td>
+      <td class="px-2 py-2 border text-xs">
+        <button class="text-blue-600 hover:text-blue-900 mr-2 edit-user-btn" data-user-id="${user.id}" title="수정">
+          <i class="fas fa-edit"></i>
         </button>
-        <button class="text-green-600 hover:text-green-900 mr-3 reset-password-btn" data-user-id="${user.id}">
-          <i class="fas fa-key"></i> 비밀번호
+        <button class="text-green-600 hover:text-green-900 mr-2 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
+          <i class="fas fa-key"></i>
         </button>
-        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-user-id="${user.id}">
-          <i class="fas fa-trash"></i> 삭제
+        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-user-id="${user.id}" title="삭제">
+          <i class="fas fa-trash"></i>
         </button>
       </td>
     </tr>
