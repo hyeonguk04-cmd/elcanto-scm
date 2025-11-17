@@ -49,7 +49,7 @@ export async function renderOrderManagement(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 120px);"></div>
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 200px);"></div>
         </div>
       </div>
     `;
