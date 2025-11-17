@@ -193,16 +193,21 @@ function attachEventListeners() {
 // 생산업체 목록 로드
 async function loadManufacturers() {
   try {
+    console.log('생산업체 목록 로드 시작...');
     manufacturers = await getAllManufacturers();
+    console.log('생산업체 목록 로드 성공:', manufacturers.length, '개');
     renderManufacturersTable();
   } catch (error) {
     console.error('생산업체 로드 실패:', error);
-    UIUtils.showAlert('생산업체 목록을 불러오는데 실패했습니다.', 'error');
+    console.error('오류 상세:', error.message);
+    console.error('오류 스택:', error.stack);
+    UIUtils.showAlert(`생산업체 목록을 불러오는데 실패했습니다: ${error.message}`, 'error');
     document.getElementById('manufacturers-table-body').innerHTML = `
       <tr>
         <td colspan="12" class="px-4 py-8 text-center text-red-500">
           <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
           <p>데이터를 불러오는데 실패했습니다.</p>
+          <p class="text-sm mt-2">${error.message}</p>
         </td>
       </tr>
     `;

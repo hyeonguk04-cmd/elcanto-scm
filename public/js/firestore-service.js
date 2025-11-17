@@ -6,7 +6,9 @@ import { calculateProcessSchedule } from './process-config.js';
 
 export async function getAllManufacturers() {
   try {
+    console.log('Firestore manufacturers 컬렉션 조회 시작...');
     const snapshot = await window.db.collection('manufacturers').get();
+    console.log('Firestore 조회 성공, 문서 수:', snapshot.docs.length);
     
     // 클라이언트 사이드에서 정렬
     const manufacturers = snapshot.docs.map(doc => ({
@@ -21,9 +23,11 @@ export async function getAllManufacturers() {
       return (a.name || '').localeCompare(b.name || '');
     });
     
+    console.log('정렬 완료, 반환할 데이터:', manufacturers);
     return manufacturers;
   } catch (error) {
     console.error('Error getting manufacturers:', error);
+    console.error('Error details:', error.code, error.message);
     throw error;
   }
 }
