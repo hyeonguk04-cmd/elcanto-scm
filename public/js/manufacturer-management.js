@@ -27,28 +27,28 @@ export async function renderManufacturerManagement(container) {
       <!-- 테이블 -->
       <div class="bg-white rounded-xl shadow-lg overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full">
+          <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">NO.</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">업체명</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">국가</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">담당자</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">이메일</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">연락처</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">인도조건</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">포워딩업체</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주요채널</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">주요품목</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">결제조건</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">상태</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">관리</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 40px;">NO.</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 120px;">업체명</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">국가</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">담당자</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 140px;">이메일</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">연락처</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">인도조건</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">포워딩업체</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">주요채널</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">주요품목</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">결제조건</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 60px;">상태</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 50px;">관리</th>
               </tr>
             </thead>
             <tbody id="manufacturers-table-body">
               <tr>
-                <td colspan="13" class="px-4 py-8 text-center text-gray-500">
-                  <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <td colspan="13" class="px-2 py-4 border text-center text-gray-500 text-xs">
+                  <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
                   <p>데이터를 불러오는 중...</p>
                 </td>
               </tr>
@@ -269,10 +269,10 @@ async function loadSuppliers() {
     UIUtils.showAlert(`생산업체 목록을 불러오는데 실패했습니다: ${error.message}`, 'error');
     document.getElementById('manufacturers-table-body').innerHTML = `
       <tr>
-        <td colspan="13" class="px-4 py-8 text-center text-red-500">
-          <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-          <p>데이터를 불러오는데 실패했습니다.</p>
-          <p class="text-sm mt-2">${error.message}</p>
+        <td colspan="13" class="px-2 py-6 border text-center text-red-500 text-xs">
+          <i class="fas fa-exclamation-triangle text-xl mb-2"></i>
+          <p class="text-sm font-medium">데이터를 불러오는데 실패했습니다.</p>
+          <p class="text-xs mt-1">${error.message}</p>
         </td>
       </tr>
     `;
@@ -286,10 +286,10 @@ function renderSuppliersTable() {
   if (suppliers.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="13" class="px-4 py-8 text-center text-gray-500">
-          <i class="fas fa-inbox text-4xl mb-4"></i>
-          <p class="text-lg">등록된 생산업체가 없습니다.</p>
-          <p class="text-sm mt-2">업체 추가 버튼을 눌러 새로운 생산업체를 등록하세요.</p>
+        <td colspan="13" class="px-2 py-6 border text-center text-gray-500 text-xs">
+          <i class="fas fa-inbox text-3xl mb-3"></i>
+          <p class="text-sm font-medium">등록된 생산업체가 없습니다.</p>
+          <p class="text-xs mt-1">업체 추가 버튼을 눌러 새로운 생산업체를 등록하세요.</p>
         </td>
       </tr>
     `;
@@ -297,25 +297,25 @@ function renderSuppliersTable() {
   }
 
   tbody.innerHTML = suppliers.map((supplier, index) => `
-    <tr class="border-b hover:bg-gray-50">
-      <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
-      <td class="px-4 py-3 text-sm font-medium text-gray-900">${supplier.name || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.location || supplier.country || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.contact || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.email || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.phone || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.deliveryTerms || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.forwarder || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.mainChannel || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.mainItem || '-'}</td>
-      <td class="px-4 py-3 text-sm text-gray-700">${supplier.paymentTerms || '-'}</td>
-      <td class="px-4 py-3 text-sm">
-        <span class="px-2 py-1 text-xs rounded-full ${supplier.status === '활성' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+    <tr class="border hover:bg-gray-50">
+      <td class="px-2 py-2 border text-xs text-gray-700">${index + 1}</td>
+      <td class="px-2 py-2 border text-xs font-medium text-gray-900">${supplier.name || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.location || supplier.country || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.contact || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700" style="font-size: 10px;">${supplier.email || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.phone || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.deliveryTerms || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.forwarder || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.mainChannel || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.mainItem || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-gray-700">${supplier.paymentTerms || '-'}</td>
+      <td class="px-2 py-2 border text-xs text-center">
+        <span class="px-2 py-0.5 text-xs rounded-full ${supplier.status === '활성' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
           ${supplier.status || '활성'}
         </span>
       </td>
-      <td class="px-4 py-3 text-sm">
-        <button class="edit-manufacturer-btn text-blue-600 hover:text-blue-800 text-xl" data-id="${supplier.id}" title="정보 수정">
+      <td class="px-2 py-2 border text-xs text-center">
+        <button class="edit-manufacturer-btn text-blue-600 hover:text-blue-800 text-lg" data-id="${supplier.id}" title="정보 수정">
           📝
         </button>
       </td>
