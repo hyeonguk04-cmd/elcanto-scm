@@ -6,6 +6,7 @@ import { renderDashboard } from './dashboard.js';
 import { renderOrderManagement } from './order-management.js';
 import { renderAnalytics } from './analytics.js';
 import { renderSupplierView } from './supplier-view.js';
+import { renderManufacturerManagement } from './manufacturer-management.js';
 import { renderSupplierManagement } from './supplier-management.js';
 import { renderWeeklyReport } from './weekly-report.js';
 import { renderUserManagement } from './user-management.js';
@@ -167,6 +168,9 @@ function navigateTo(view) {
         break;
       case 'weekly-report':
         renderWeeklyReport(mainContent);
+        break;
+      case 'manufacturer-management':
+        renderManufacturerManagement(mainContent);
         break;
       case 'supplier-management':
         renderSupplierManagement(mainContent);

@@ -2,6 +2,76 @@
 import { getCurrentUser } from './auth.js';
 import { calculateProcessSchedule } from './process-config.js';
 
+// ============ Manufacturers (생산업체) ============
+
+export async function getAllManufacturers() {
+  try {
+    const snapshot = await window.db.collection('manufacturers')
+      .orderBy('country')
+      .orderBy('name')
+      .get();
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error getting manufacturers:', error);
+    throw error;
+  }
+}
+
+export async function getManufacturerById(manufacturerId) {
+  try {
+    const doc = await window.db.collection('manufacturers').doc(manufacturerId).get();
+    if (!doc.exists) {
+      throw new Error('Manufacturer not found');
+    }
+    return {
+      id: doc.id,
+      ...doc.data()
+    };
+  } catch (error) {
+    console.error('Error getting manufacturer:', error);
+    throw error;
+  }
+}
+
+export async function addManufacturer(manufacturerData) {
+  try {
+    const docRef = await window.db.collection('manufacturers').add({
+      ...manufacturerData,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding manufacturer:', error);
+    throw error;
+  }
+}
+
+export async function updateManufacturer(manufacturerId, manufacturerData) {
+  try {
+    await window.db.collection('manufacturers').doc(manufacturerId).update({
+      ...manufacturerData,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating manufacturer:', error);
+    throw error;
+  }
+}
+
+export async function deleteManufacturer(manufacturerId) {
+  try {
+    await window.db.collection('manufacturers').doc(manufacturerId).delete();
+  } catch (error) {
+    console.error('Error deleting manufacturer:', error);
+    throw error;
+  }
+}
+
 // ============ Suppliers ============
 
 export async function getAllSuppliers() {
@@ -395,6 +465,11 @@ export function listenToProcesses(orderId, callback) {
 }
 
 export default {
+  getAllManufacturers,
+  getManufacturerById,
+  addManufacturer,
+  updateManufacturer,
+  deleteManufacturer,
   getAllSuppliers,
   getSupplierById,
   getSupplierByName,
