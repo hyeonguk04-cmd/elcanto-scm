@@ -12,6 +12,7 @@ const translations = {
     accountInquiryText2: '계정 정보를 받으세요.',
     
     // 헤더
+    appTitle: '엘칸토 SCM 포털',
     logout: '로그아웃',
     
     // 사이드바 메뉴
@@ -123,10 +124,11 @@ const translations = {
     password: 'Password',
     loginButton: 'Login',
     accountInquiry: 'Account Inquiry',
-    accountInquiryText1: 'Please contact',
-    accountInquiryText2: 'ELCANTO IT Team for account information.',
+    accountInquiryText1: 'Please contact ELCANTO IT Team',
+    accountInquiryText2: 'for account information.',
     
     // Header
+    appTitle: 'ELCANTO SCM Portal',
     logout: 'Logout',
     
     // Sidebar menu

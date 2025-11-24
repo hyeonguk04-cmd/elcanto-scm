@@ -138,6 +138,9 @@ function showLoginView() {
   document.getElementById('login-form').reset();
 }
 
+// 언어 변경 핸들러 (한 번만 등록)
+let languageChangeHandler = null;
+
 // 앱 화면 표시
 function showAppView(user) {
   document.getElementById('login-view').classList.add('hidden');
@@ -146,21 +149,30 @@ function showAppView(user) {
   // 사용자 정보 표시
   document.getElementById('user-display').textContent = `${user.name}`;
   
+  // 앱 타이틀 업데이트
+  updateAppTitle();
+  
   // 로그아웃 버튼 텍스트 업데이트
   updateLogoutButton();
   
   // 사이드바 렌더링
   renderSidebar(user.role);
   
-  // 언어 변경 이벤트 리스너
-  window.addEventListener('languageChanged', () => {
-    renderSidebar(user.role);
-    updateLogoutButton();
-    // 현재 뷰 다시 렌더링
-    if (currentView) {
-      navigateTo(currentView);
-    }
-  });
+  // 언어 변경 이벤트 리스너 (중복 방지)
+  if (!languageChangeHandler) {
+    languageChangeHandler = () => {
+      updateAppTitle();
+      renderSidebar(user.role);
+      updateLogoutButton();
+      // 현재 뷰 다시 렌더링
+      if (currentView) {
+        const tempView = currentView;
+        currentView = null; // 중복 방지
+        navigateTo(tempView);
+      }
+    };
+    window.addEventListener('languageChanged', languageChangeHandler);
+  }
   
   // 초기 뷰 로드
   if (isAdmin()) {
@@ -235,6 +247,9 @@ function navigateTo(view) {
 
 // 로그인 페이지 언어 업데이트
 function updateLoginPageLanguage() {
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  
   document.getElementById('login-title').textContent = t('loginTitle');
   document.getElementById('login-subtitle').textContent = t('loginSubtitle');
   document.getElementById('label-username').textContent = t('username');
@@ -243,6 +258,10 @@ function updateLoginPageLanguage() {
   document.getElementById('account-inquiry-title').textContent = t('accountInquiry');
   document.getElementById('account-inquiry-text1').textContent = t('accountInquiryText1');
   document.getElementById('account-inquiry-text2').textContent = t('accountInquiryText2');
+  
+  // Placeholder 업데이트
+  if (usernameInput) usernameInput.placeholder = t('username');
+  if (passwordInput) passwordInput.placeholder = t('password');
 }
 
 // 언어 버튼 상태 업데이트
@@ -260,14 +279,19 @@ function updateLanguageButtons() {
   }
 }
 
+// 앱 타이틀 업데이트
+function updateAppTitle() {
+  const appTitle = document.getElementById('app-title');
+  if (appTitle) {
+    appTitle.textContent = t('appTitle');
+  }
+}
+
 // 로그아웃 버튼 업데이트
 function updateLogoutButton() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
-    const icon = logoutBtn.querySelector('i');
-    logoutBtn.innerHTML = '';
-    logoutBtn.appendChild(icon);
-    logoutBtn.appendChild(document.createTextNode(t('logout')));
+    logoutBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket mr-1"></i>${t('logout')}`;
   }
 }
 
