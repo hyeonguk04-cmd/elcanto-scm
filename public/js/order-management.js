@@ -39,6 +39,9 @@ export async function renderOrderManagement(container) {
               <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
             </button>
             <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
+            <button id="download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+              <i class="fas fa-download mr-1"></i>엑셀 다운로드
+            </button>
             <button id="add-row-btn" class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 text-sm">
               <i class="fas fa-plus mr-1"></i>행 추가
             </button>
@@ -436,6 +439,7 @@ function setupEventListeners() {
   document.getElementById('upload-btn')?.addEventListener('click', () => {
     document.getElementById('excel-uploader').click();
   });
+  document.getElementById('download-excel-btn')?.addEventListener('click', downloadCurrentDataAsExcel);
   document.getElementById('add-row-btn')?.addEventListener('click', addNewRow);
   document.getElementById('save-btn')?.addEventListener('click', saveAllChanges);
   document.getElementById('delete-btn')?.addEventListener('click', deleteSelectedOrders);
@@ -814,6 +818,85 @@ function downloadTemplate() {
   
   ExcelUtils.downloadTemplate(basicColumns, 'elcanto_order_template.xlsx');
   UIUtils.showAlert('템플릿 다운로드 완료! 필수 항목만 입력하면 공정 날짜가 자동 계산됩니다.', 'success');
+}
+
+function downloadCurrentDataAsExcel() {
+  try {
+    if (orders.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    // 헤더 생성
+    const headers = createProcessTableHeaders();
+    const excelHeaders = [
+      '채널', '스타일', '색상', '사이즈', '수량',
+      '국가', '생산업체', '발주일', '입고요구일'
+    ];
+    
+    // 생산 공정 헤더 추가
+    headers.production.forEach(h => {
+      excelHeaders.push(h.name);
+    });
+    
+    // 운송 헤더 추가
+    excelHeaders.push('선적', '선적경로', '입항', '물류입고', '입고기준 예상차이', '비고');
+    
+    // 데이터 변환
+    const excelData = orders.map(order => {
+      const row = {
+        '채널': order.channel || '',
+        '스타일': order.style || '',
+        '색상': order.color || '',
+        '사이즈': order.size || '',
+        '수량': order.qty || 0,
+        '국가': order.country || '',
+        '생산업체': order.supplier || '',
+        '발주일': order.orderDate || '',
+        '입고요구일': order.requiredDelivery || ''
+      };
+      
+      // 생산 공정 데이터 추가
+      headers.production.forEach(h => {
+        const process = order.schedule.production.find(p => p.processKey === h.key);
+        row[h.name] = process?.targetDate || '';
+      });
+      
+      // 운송 데이터 추가
+      const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
+      const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
+      
+      row['선적'] = shippingProcess?.targetDate || '';
+      row['선적경로'] = order.route || '';
+      row['입항'] = arrivalProcess?.targetDate || '';
+      
+      // 물류입고일 계산
+      const logisticsArrival = arrivalProcess?.targetDate 
+        ? DateUtils.addDays(arrivalProcess.targetDate, 2)
+        : '';
+      row['물류입고'] = logisticsArrival;
+      
+      // 입고기준 예상차이 계산
+      if (order.requiredDelivery && logisticsArrival) {
+        const diff = DateUtils.getDaysDifference(order.requiredDelivery, logisticsArrival);
+        row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+      } else {
+        row['입고기준 예상차이'] = '';
+      }
+      
+      row['비고'] = order.notes || '';
+      
+      return row;
+    });
+    
+    // 엑셀 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산목표일정_${timestamp}.xlsx`);
+    UIUtils.showAlert('엑셀 다운로드 완료!', 'success');
+  } catch (error) {
+    console.error('Excel download error:', error);
+    UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
 }
 
 async function handleExcelUpload(e) {
