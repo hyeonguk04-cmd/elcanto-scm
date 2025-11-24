@@ -3,8 +3,8 @@ import { getOrdersWithProcesses, updateProcess, uploadEvidence } from './firesto
 import { getCurrentUser } from './auth.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils } from './utils.js';
-import { PROCESS_CONFIG } from './process-config.js';
-import { t } from './i18n.js';
+import { PROCESS_CONFIG, getProcessName } from './process-config.js';
+import { t, getCurrentLanguage } from './i18n.js';
 
 let supplierOrders = [];
 
@@ -368,13 +368,16 @@ function renderOrderCard(order, index) {
 function renderProcessRow(order, process, category) {
   const hasActualDate = !!process.actualDate;
   const hasPhoto = !!(process.photo || process.evidenceUrl);
+  const currentLang = getCurrentLanguage();
   
-  // 공정명 가져오기 (process.name이 없으면 processKey로 찾기)
-  let processName = process.name;
-  if (!processName && process.processKey) {
+  // 공정명 가져오기 (언어에 따라)
+  let processName = '';
+  if (process.processKey) {
     const allProcesses = PROCESS_CONFIG[category] || [];
     const foundProcess = allProcesses.find(p => p.key === process.processKey);
-    processName = foundProcess ? foundProcess.name : process.processKey;
+    processName = foundProcess ? getProcessName(foundProcess, currentLang) : process.processKey;
+  } else if (process.name) {
+    processName = currentLang === 'en' ? (process.name_en || process.name) : process.name;
   }
   if (!processName) {
     processName = 'undefined';
@@ -426,7 +429,7 @@ function renderProcessRow(order, process, category) {
                     data-photo-url="${process.photo || process.evidenceUrl}">
               <i class="fas fa-camera text-lg"></i>
             </button>
-            <span class="text-xs text-green-600 font-medium">등록</span>
+            <span class="text-xs text-green-600 font-medium">${t('registered')}</span>
           </div>
         ` : `
           <div class="flex items-center justify-center space-x-1">
@@ -434,10 +437,10 @@ function renderProcessRow(order, process, category) {
                     data-order-id="${order.id}"
                     data-process-id="${process.id}"
                     data-process-name="${processName}"
-                    ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
+                    ${!hasActualDate ? `disabled title="${t('uploadFirst')}"` : ''}>
               <i class="fas fa-camera text-lg"></i>
             </button>
-            <span class="text-xs text-gray-400">미등록</span>
+            <span class="text-xs text-gray-400">${t('notUploaded')}</span>
           </div>
         `}
       </td>
@@ -447,7 +450,7 @@ function renderProcessRow(order, process, category) {
                data-order-id="${order.id}"
                data-process-id="${process.id}"
                value="${process.delayReason || ''}"
-               placeholder="차이원인 등 필요사항 기재">
+               placeholder="${t('reason')}">
       </td>
     </tr>
   `;

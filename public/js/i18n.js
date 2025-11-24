@@ -103,6 +103,10 @@ const translations = {
     notRegistered: '미등록',
     registrationComplete: '등록완료',
     registering: '등록중',
+    registered: '등록',
+    notUploaded: '미등록',
+    uploadFirst: '실제 완료일을 먼저 입력하세요',
+    reason: '차이원인 등 필요사항 기재',
     
     // 발주 관리
     orders: '발주',
@@ -219,6 +223,10 @@ const translations = {
     notRegistered: 'Not Registered',
     registrationComplete: 'Registration Complete',
     registering: 'In Progress',
+    registered: 'Uploaded',
+    notUploaded: 'Not Uploaded',
+    uploadFirst: 'Please enter actual date first',
+    reason: 'Enter reason for delay or notes',
     
     // Order Management
     orders: 'Orders',
