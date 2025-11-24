@@ -197,8 +197,11 @@ function renderUserRow(user) {
         <button class="text-blue-600 hover:text-blue-900 mr-2 edit-user-btn" data-user-id="${user.id}" title="수정">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="text-green-600 hover:text-green-900 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
+        <button class="text-green-600 hover:text-green-900 mr-2 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
           <i class="fas fa-key"></i>
+        </button>
+        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" title="삭제">
+          <i class="fas fa-trash"></i>
         </button>
       </td>
     </tr>
@@ -239,6 +242,15 @@ function setupEventListeners() {
     btn.addEventListener('click', (e) => {
       const userId = e.currentTarget.dataset.userId;
       openPasswordModal(userId);
+    });
+  });
+  
+  // 삭제 버튼들
+  document.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const userId = e.currentTarget.dataset.userId;
+      const username = e.currentTarget.dataset.username;
+      await handleDeleteUser(userId, username);
     });
   });
 }
@@ -464,6 +476,34 @@ async function resetUserPassword(userId, newPassword) {
     }
     
     throw error;
+  }
+}
+
+async function handleDeleteUser(userId, username) {
+  try {
+    const confirmed = await UIUtils.confirm(
+      `사용자 "${username}"를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\n⚠️ Firestore 문서만 삭제되며, Firebase Auth 계정은 수동으로 삭제해야 합니다.`
+    );
+    
+    if (!confirmed) return;
+    
+    UIUtils.showLoading();
+    
+    // Firestore에서 사용자 문서 삭제
+    await window.db.collection('users').doc(userId).delete();
+    
+    UIUtils.showAlert('사용자가 삭제되었습니다.', 'success');
+    
+    // 목록 새로고침
+    users = await getUsers();
+    const container = document.getElementById('main-content');
+    await renderUserManagement(container);
+    
+  } catch (error) {
+    console.error('Delete user error:', error);
+    UIUtils.showAlert(error.message || '사용자 삭제에 실패했습니다.', 'error');
+  } finally {
+    UIUtils.hideLoading();
   }
 }
 
