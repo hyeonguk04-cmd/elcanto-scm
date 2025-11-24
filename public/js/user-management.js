@@ -406,8 +406,9 @@ async function createUser(userData) {
       userData.password
     );
     
-    // Firestore에 사용자 정보 저장 (Auth UID를 문서 ID로 사용)
-    await window.db.collection('users').doc(authResult.user.uid).set({
+    // Firestore에 사용자 정보 저장 (username을 문서 ID로 사용 - 기존 시스템과 일관성 유지)
+    await window.db.collection('users').doc(userData.username).set({
+      uid: authResult.user.uid,  // Firebase Auth UID 저장 (참조용)
       username: userData.username,
       name: userData.name,
       email: userData.email,
@@ -415,6 +416,8 @@ async function createUser(userData) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastLogin: null
     });
+    
+    console.log(`✅ 사용자 생성 완료: ${userData.username} (Auth UID: ${authResult.user.uid})`);
     
     // 현재 사용자로 다시 로그인 (관리자)
     // Note: createUserWithEmailAndPassword는 자동으로 새 사용자로 로그인하므로
