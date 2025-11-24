@@ -878,8 +878,12 @@ function downloadCurrentDataAsExcel() {
       
       // 입고기준 예상차이 계산
       if (order.requiredDelivery && logisticsArrival) {
-        const diff = DateUtils.getDaysDifference(order.requiredDelivery, logisticsArrival);
-        row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+        const diff = DateUtils.diffInDays(order.requiredDelivery, logisticsArrival);
+        if (diff !== null) {
+          row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+        } else {
+          row['입고기준 예상차이'] = '';
+        }
       } else {
         row['입고기준 예상차이'] = '';
       }
