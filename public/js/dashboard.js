@@ -29,46 +29,47 @@ export async function renderDashboard(container) {
     const suppliers = [...new Set(allOrders.map(o => o.supplier).filter(s => s))].sort();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <!-- 헤더 -->
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">KPI 요약</h2>
+          <h2 class="text-lg font-bold text-gray-800">종합현황</h2>
           <div class="flex space-x-2">
-            <select id="dashboard-channel-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="dashboard-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">채널 전체</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
             </select>
-            <select id="dashboard-supplier-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="dashboard-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">생산업체 전체</option>
               ${suppliers.map(s => `<option value="${s}">${s}</option>`).join('')}
             </select>
+            <input type="date" id="dashboard-start-date" value="${currentStartDate}" class="px-2 py-1.5 border rounded-lg text-sm">
+            <span class="self-center text-sm">~</span>
+            <input type="date" id="dashboard-end-date" value="${currentEndDate}" class="px-2 py-1.5 border rounded-lg text-sm">
           </div>
         </div>
         
         <!-- KPI 카드 (주간리포트와 동일한 크기) -->
-        <div id="kpi-cards" class="grid grid-cols-4 gap-4">
+        <div id="kpi-cards" class="grid grid-cols-4 gap-3">
           <!-- 동적으로 생성 -->
         </div>
         
         <!-- 전체 발주 대비 공정 현황 -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-gray-800">📊 전체 발주 대비 공정 현황</h3>
-            <div class="flex space-x-2">
-              <input type="date" id="status-start-date" value="${currentStartDate}" class="px-3 py-2 border rounded-lg text-sm">
-              <span class="self-center">~</span>
-              <input type="date" id="status-end-date" value="${currentEndDate}" class="px-3 py-2 border rounded-lg text-sm">
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-base font-bold text-gray-800">📊 공정 진행 현황</h3>
+            <div class="text-xs text-gray-500">
+              날짜 범위: ${currentStartDate} ~ ${currentEndDate}
             </div>
           </div>
-          <div id="delivery-status-chart" class="min-h-[400px]">
+          <div id="delivery-status-chart" class="min-h-[280px]">
             <!-- 차트 영역 -->
           </div>
         </div>
         
-        <!-- 미입고 상세 현황 -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-lg font-bold text-gray-800 mb-4">🚨 모니터링 (미입고 상세 현황)</h3>
+        <!-- 지연 위험 발주 -->
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <h3 class="text-base font-bold text-gray-800 mb-3">🚨 모니터링 (미입고 상세 현황)</h3>
           <div id="pending-orders-table"></div>
         </div>
       </div>
@@ -88,12 +89,12 @@ export async function renderDashboard(container) {
       updateDashboard();
     });
     
-    document.getElementById('status-start-date')?.addEventListener('change', (e) => {
+    document.getElementById('dashboard-start-date')?.addEventListener('change', (e) => {
       currentStartDate = e.target.value;
       updateDashboard();
     });
     
-    document.getElementById('status-end-date')?.addEventListener('change', (e) => {
+    document.getElementById('dashboard-end-date')?.addEventListener('change', (e) => {
       currentEndDate = e.target.value;
       updateDashboard();
     });
@@ -127,31 +128,33 @@ function updateDashboard() {
   // 발주/입고 현황 차트 렌더링
   renderDeliveryStatusChart();
   
-  // 미입고 테이블 렌더링 (초기에는 빈 상태)
-  renderPendingOrdersTable([]);
+  // 지연 위험 발주 즉시 표시
+  renderPendingOrdersTable(dashboardData.delayedOrders);
 }
 
 function processData(orders) {
-  // 미입고 주문 (입항이 완료되지 않은 주문)
+  // 미입고 발주 (입항이 완료되지 않은 발주)
   const pendingOrders = orders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
     return !arrivalProcess?.actualDate;
   });
   
-  // 완료된 주문
+  // 완료된 발주
   const completedOrders = orders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
     return arrivalProcess?.actualDate;
   });
   
-  // 지연된 주문
+  // 지연된 발주 (입고요구일 기준으로 판단)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const delayedOrders = pendingOrders.filter(order => {
-    const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
-    if (!arrivalProcess) return false;
-    
-    const targetDate = arrivalProcess.targetDate;
-    const today = DateUtils.today();
-    return DateUtils.isAfter(today, targetDate);
+    if (!order.requiredDelivery) return false;
+    const requiredDate = new Date(order.requiredDelivery);
+    requiredDate.setHours(0, 0, 0, 0);
+    // 입고요구일이 지났는데 아직 미입고
+    return today > requiredDate;
   });
   
   // KPI 계산
@@ -161,11 +164,15 @@ function processData(orders) {
   const pendingQty = DataUtils.sumBy(pendingOrders, 'qty');
   const delayedQty = DataUtils.sumBy(delayedOrders, 'qty');
   
+  // 정시 입고 발주 (입고요구일 vs 실제입고일 비교)
   const onTimeOrders = completedOrders.filter(order => {
     const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
-    if (!arrivalProcess?.targetDate || !arrivalProcess?.actualDate) return false;
-    const delayDays = DateUtils.diffInDays(arrivalProcess.targetDate, arrivalProcess.actualDate);
-    return delayDays <= 0;
+    if (!order.requiredDelivery || !arrivalProcess?.actualDate) return false;
+    
+    const requiredDate = new Date(order.requiredDelivery);
+    const actualDate = new Date(arrivalProcess.actualDate);
+    // 입고요구일 이전 또는 당일에 입고 완료
+    return actualDate <= requiredDate;
   }).length;
   
   const kpi = {
@@ -177,8 +184,10 @@ function processData(orders) {
     completedOrders: completedOrders.length,
     pendingOrders: pendingOrders.length,
     delayedOrders: delayedOrders.length,
-    onTimeRate: completedOrders.length > 0 ? Math.round((onTimeOrders / completedOrders.length) * 100) : 0,
-    progressRate: totalQty > 0 ? Math.round((completedQty / totalQty) * 100) : 0
+    // 전체 발주 대비 정시 입고율
+    onTimeRate: totalOrders > 0 ? Math.round((onTimeOrders / totalOrders) * 100) : 0,
+    progressRate: totalQty > 0 ? Math.round((completedQty / totalQty) * 100) : 0,
+    onTimeOrders: onTimeOrders
   };
   
   return {
@@ -197,74 +206,105 @@ function renderKPICards() {
   
   container.innerHTML = `
     <!-- 납기 준수율 -->
-    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg transition-shadow"
+         title="전체 발주 대비 입고요구일 내 입고 완료">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-green-600 font-medium mb-1">납기 준수율</p>
-          <p class="text-2xl font-bold text-green-700">${kpi.onTimeRate}%</p>
+          <p class="text-xs text-green-600 font-medium mb-0.5">납기 준수율</p>
+          <p class="text-xl font-bold text-green-700">${kpi.onTimeRate}%</p>
+          <p class="text-xxs text-green-600 mt-1">정시: ${kpi.onTimeOrders}건 / 전체: ${kpi.totalOrders}건</p>
         </div>
-        <div class="bg-green-200 rounded-full p-2">
-          <i class="fas fa-check-circle text-lg text-green-600"></i>
+        <div class="bg-green-200 rounded-full p-1.5">
+          <i class="fas fa-check-circle text-base text-green-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 입고 진행률 -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg transition-shadow"
+         title="총 발주량 대비 입고 완료량">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-blue-600 font-medium mb-1">입고 진행률</p>
-          <p class="text-2xl font-bold text-blue-700">${kpi.progressRate}%</p>
+          <p class="text-xs text-blue-600 font-medium mb-0.5">입고 진행률</p>
+          <p class="text-xl font-bold text-blue-700">${kpi.progressRate}%</p>
+          <p class="text-xxs text-blue-600 mt-1">완료: ${kpi.completedQty.toLocaleString()}개 / 총: ${kpi.totalQty.toLocaleString()}개</p>
         </div>
-        <div class="bg-blue-200 rounded-full p-2">
-          <i class="fas fa-truck text-lg text-blue-600"></i>
+        <div class="bg-blue-200 rounded-full p-1.5">
+          <i class="fas fa-truck text-base text-blue-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 지연 물량 -->
-    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg transition-shadow"
+         title="입고요구일이 지난 미입고 물량">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-red-600 font-medium mb-1">지연 물량</p>
-          <p class="text-2xl font-bold text-red-700">${kpi.delayedQty.toLocaleString()}개</p>
+          <p class="text-xs text-red-600 font-medium mb-0.5">지연 물량</p>
+          <p class="text-xl font-bold text-red-700">${kpi.delayedQty.toLocaleString()}개</p>
+          <p class="text-xxs text-red-600 mt-1">지연: ${kpi.delayedOrders}건</p>
         </div>
-        <div class="bg-red-200 rounded-full p-2">
-          <i class="fas fa-exclamation-triangle text-lg text-red-600"></i>
+        <div class="bg-red-200 rounded-full p-1.5">
+          <i class="fas fa-exclamation-triangle text-base text-red-600"></i>
         </div>
       </div>
     </div>
     
     <!-- 총 발주량 -->
-    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-4">
+    <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg transition-shadow"
+         title="필터 적용된 전체 발주량">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-purple-600 font-medium mb-1">총 발주량</p>
-          <p class="text-2xl font-bold text-purple-700">${kpi.totalQty.toLocaleString()}개</p>
+          <p class="text-xs text-purple-600 font-medium mb-0.5">총 발주량</p>
+          <p class="text-xl font-bold text-purple-700">${kpi.totalQty.toLocaleString()}개</p>
+          <p class="text-xxs text-purple-600 mt-1">총: ${kpi.totalOrders}건</p>
         </div>
-        <div class="bg-purple-200 rounded-full p-2">
-          <i class="fas fa-boxes text-lg text-purple-600"></i>
+        <div class="bg-purple-200 rounded-full p-1.5">
+          <i class="fas fa-boxes text-base text-purple-600"></i>
         </div>
       </div>
     </div>
   `;
 }
 
-// 공정률 계산 함수
+// 공정률 계산 함수 (가중치 기반)
 function calculateProcessRate(order) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
-  const allProcesses = [...productionProcesses, ...shippingProcesses];
-  const totalProcesses = PROCESS_CONFIG.production.length + PROCESS_CONFIG.shipping.length;
-  const completedProcesses = allProcesses.filter(p => p.actualDate).length;
-  return totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0;
+  
+  // 각 공정 설정과 실제 데이터 매칭
+  const allProcessConfigs = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      config,
+      actual: productionProcesses.find(p => p.processKey === config.key)
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      config,
+      actual: shippingProcesses.find(p => p.processKey === config.key)
+    }))
+  ];
+  
+  // 리드타임 기반 가중치 계산
+  let totalWeight = 0;
+  let completedWeight = 0;
+  
+  allProcessConfigs.forEach(({ config, actual }) => {
+    const weight = config.defaultLeadTime || 1; // 리드타임을 가중치로 사용
+    totalWeight += weight;
+    
+    if (actual?.actualDate) {
+      completedWeight += weight;
+    }
+  });
+  
+  return totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
 }
 
 // 발주/공정 현황 차트 렌더링 (세로형 누적 막대)
 function renderDeliveryStatusChart() {
   const container = document.getElementById('delivery-status-chart');
   
-  // 날짜 범위 내의 주문 필터링 (입고요구일 기준)
+  // 날짜 범위 내의 발주 필터링 (입고요구일 기준)
   const filteredOrders = dashboardData.orders.filter(order => {
     if (!order.requiredDelivery) return false;
     return order.requiredDelivery >= currentStartDate && order.requiredDelivery <= currentEndDate;
@@ -474,32 +514,34 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
   if (orders.length === 0) {
     container.innerHTML = `
       <div class="text-center py-8 text-gray-500">
-        <i class="fas fa-mouse-pointer text-3xl mb-2"></i>
-        <p>미완료 수량을 클릭하면 상세 내역이 표시됩니다.</p>
+        <i class="fas fa-check-circle text-3xl mb-2 text-green-500"></i>
+        <p class="font-medium">현재 입고 지연 스타일은 없습니다.</p>
+        <p class="text-xs mt-1">차트의 막대를 클릭하면 해당 일자의 미완료 발주을 볼 수 있습니다.</p>
       </div>
     `;
     return;
   }
   
-  const title = selectedDate ? `${selectedDate} 미완료 상세` : '미완료 상세';
+  const title = selectedDate ? `${selectedDate} 미완료 상세` : `입고 지연 스타일 (총 ${orders.length}건)`;
   
   container.innerHTML = `
-    <div class="mb-3">
-      <p class="text-sm font-bold text-gray-700">${title} (${orders.length}건)</p>
+    <div class="mb-3 flex justify-between items-center">
+      <p class="text-sm font-bold text-gray-700">${title}</p>
+      ${orders.length > 0 ? `<p class="text-xs text-gray-500">총 물량: ${orders.reduce((sum, o) => sum + (parseInt(o.qty) || 0), 0).toLocaleString()}개</p>` : ''}
     </div>
     <div class="overflow-x-auto">
-      <table class="w-full text-xs">
-        <thead class="bg-gray-100 sticky top-0">
-          <tr class="border-b-2 border-gray-300">
-            <th class="px-2 py-2 text-center border-r">채널</th>
-            <th class="px-2 py-2 text-center border-r">스타일</th>
-            <th class="px-2 py-2 text-center border-r">생산지</th>
-            <th class="px-2 py-2 text-center border-r">컬러</th>
-            <th class="px-2 py-2 text-center border-r">사이즈</th>
-            <th class="px-2 py-2 text-center border-r">수량</th>
-            <th class="px-2 py-2 text-center border-r">차이일수</th>
-            <th class="px-2 py-2 text-center border-r">입고요구일</th>
-            <th class="px-2 py-2 text-center">물류입고<br>예정일</th>
+      <table class="w-full text-xs border-collapse">
+        <thead class="bg-gray-50 text-xs uppercase sticky top-0">
+          <tr>
+            <th class="px-2 py-2 border">채널</th>
+            <th class="px-2 py-2 border">스타일</th>
+            <th class="px-2 py-2 border">생산지</th>
+            <th class="px-2 py-2 border">컬러</th>
+            <th class="px-2 py-2 border">사이즈</th>
+            <th class="px-2 py-2 border">수량</th>
+            <th class="px-2 py-2 border">지연일수</th>
+            <th class="px-2 py-2 border">입고요구일</th>
+            <th class="px-2 py-2 border">예상입고일</th>
           </tr>
         </thead>
         <tbody>
@@ -528,15 +570,15 @@ function renderPendingOrdersTable(orders, selectedDate = null) {
             
             return `
               <tr class="border-b hover:bg-gray-50">
-                <td class="px-2 py-2 text-center border-r">${order.channel || '-'}</td>
-                <td class="px-2 py-2 text-center border-r font-medium">${order.style || '-'}</td>
-                <td class="px-2 py-2 text-center border-r">${order.supplier || '-'}</td>
-                <td class="px-2 py-2 text-center border-r">${order.color || '-'}</td>
-                <td class="px-2 py-2 text-center border-r">${order.size || '-'}</td>
-                <td class="px-2 py-2 text-right border-r">${(order.qty || 0).toLocaleString()}</td>
-                <td class="px-2 py-2 text-center border-r ${diffClass}">${diffDays}</td>
-                <td class="px-2 py-2 text-center border-r">${order.requiredDelivery || '-'}</td>
-                <td class="px-2 py-2 text-center">${expectedArrival}</td>
+                <td class="px-2 py-2 border">${order.channel || '-'}</td>
+                <td class="px-2 py-2 border font-medium">${order.style || '-'}</td>
+                <td class="px-2 py-2 border">${order.supplier || '-'}</td>
+                <td class="px-2 py-2 border">${order.color || '-'}</td>
+                <td class="px-2 py-2 border">${order.size || '-'}</td>
+                <td class="px-2 py-2 border text-right">${(order.qty || 0).toLocaleString()}</td>
+                <td class="px-2 py-2 border text-center ${diffClass}">${diffDays}</td>
+                <td class="px-2 py-2 border">${order.requiredDelivery || '-'}</td>
+                <td class="px-2 py-2 border">${expectedArrival}</td>
               </tr>
             `;
           }).join('')}

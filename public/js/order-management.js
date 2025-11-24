@@ -25,31 +25,37 @@ export async function renderOrderManagement(container) {
     });
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <h2 class="text-2xl font-bold text-gray-800">생산 목표일정 수립</h2>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
+          <p class="text-xs text-gray-500 mt-0.5">승인된 발주 정보를 기준으로 생산 공정별 목표 일정을 수립합니다. 입고요구일과 입고예정일 차이를 확인해 주세요</p>
+        </div>     
           <div class="space-x-2">
-            <button id="template-btn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-              <i class="fas fa-file-download mr-2"></i>템플릿 다운로드
+            <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
+              <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>
-            <button id="upload-btn" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">
-              <i class="fas fa-file-excel mr-2"></i>엑셀 업로드
+            <button id="upload-btn" class="bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm">
+              <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
             </button>
             <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
-            <button id="add-row-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-              <i class="fas fa-plus mr-2"></i>행 추가
+            <button id="download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+              <i class="fas fa-download mr-1"></i>엑셀 다운로드
             </button>
-            <button id="save-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-save mr-2"></i>저장
+            <button id="add-row-btn" class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 text-sm">
+              <i class="fas fa-plus mr-1"></i>행 추가
             </button>
-            <button id="delete-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-trash mr-2"></i>삭제
+            <button id="save-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-save mr-1"></i>저장
+            </button>
+            <button id="delete-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-trash mr-1"></i>삭제
             </button>
           </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div id="orders-table"></div>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
         </div>
       </div>
     `;
@@ -69,9 +75,8 @@ function renderOrdersTable() {
   const headers = createProcessTableHeaders();
   
   tableContainer.innerHTML = `
-    <div class="overflow-x-auto">
-      <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
-        <thead class="bg-gray-50 text-xs uppercase sticky top-0">
+    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
@@ -109,7 +114,6 @@ function renderOrdersTable() {
           ` : orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
         </tbody>
       </table>
-    </div>
   `;
 }
 
@@ -435,6 +439,7 @@ function setupEventListeners() {
   document.getElementById('upload-btn')?.addEventListener('click', () => {
     document.getElementById('excel-uploader').click();
   });
+  document.getElementById('download-excel-btn')?.addEventListener('click', downloadCurrentDataAsExcel);
   document.getElementById('add-row-btn')?.addEventListener('click', addNewRow);
   document.getElementById('save-btn')?.addEventListener('click', saveAllChanges);
   document.getElementById('delete-btn')?.addEventListener('click', deleteSelectedOrders);
@@ -478,17 +483,17 @@ async function handleRouteChangeInline(routeSelect) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     
     // 새로운 일정 재계산 (선적경로에 따라 입항 리드타임 변경)
     const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       route: newRoute,
       schedule: newSchedule
@@ -533,7 +538,7 @@ async function handleRouteChangeInline(routeSelect) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -552,18 +557,18 @@ async function handleOrderDateChange(orderId, newOrderDate) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     console.log('🚢 경로:', order.route);
     
     // 발주일 변경 시 전체 공정 일정 재계산
     const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       orderDate: newOrderDate,
       schedule: newSchedule
@@ -601,7 +606,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -682,7 +687,7 @@ function addNewRow() {
   const tempId = 'new_' + Date.now();
   console.log('🆔 새 행 ID:', tempId);
   
-  // 빈 주문 객체 생성
+  // 빈 발주 객체 생성
   const newOrder = {
     id: tempId,
     channel: MASTER_DATA.channels[0],
@@ -699,7 +704,7 @@ function addNewRow() {
     notes: ''
   };
   
-  console.log('📝 새 주문 객체:', newOrder);
+  console.log('📝 새 발주 객체:', newOrder);
   
   // 기본 일정 계산
   newOrder.schedule = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);
@@ -813,6 +818,85 @@ function downloadTemplate() {
   
   ExcelUtils.downloadTemplate(basicColumns, 'elcanto_order_template.xlsx');
   UIUtils.showAlert('템플릿 다운로드 완료! 필수 항목만 입력하면 공정 날짜가 자동 계산됩니다.', 'success');
+}
+
+function downloadCurrentDataAsExcel() {
+  try {
+    if (orders.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    // 헤더 생성
+    const headers = createProcessTableHeaders();
+    const excelHeaders = [
+      '채널', '스타일', '색상', '사이즈', '수량',
+      '국가', '생산업체', '발주일', '입고요구일'
+    ];
+    
+    // 생산 공정 헤더 추가
+    headers.production.forEach(h => {
+      excelHeaders.push(h.name);
+    });
+    
+    // 운송 헤더 추가
+    excelHeaders.push('선적', '선적경로', '입항', '물류입고', '입고기준 예상차이', '비고');
+    
+    // 데이터 변환
+    const excelData = orders.map(order => {
+      const row = {
+        '채널': order.channel || '',
+        '스타일': order.style || '',
+        '색상': order.color || '',
+        '사이즈': order.size || '',
+        '수량': order.qty || 0,
+        '국가': order.country || '',
+        '생산업체': order.supplier || '',
+        '발주일': order.orderDate || '',
+        '입고요구일': order.requiredDelivery || ''
+      };
+      
+      // 생산 공정 데이터 추가
+      headers.production.forEach(h => {
+        const process = order.schedule.production.find(p => p.processKey === h.key);
+        row[h.name] = process?.targetDate || '';
+      });
+      
+      // 운송 데이터 추가
+      const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
+      const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
+      
+      row['선적'] = shippingProcess?.targetDate || '';
+      row['선적경로'] = order.route || '';
+      row['입항'] = arrivalProcess?.targetDate || '';
+      
+      // 물류입고일 계산
+      const logisticsArrival = arrivalProcess?.targetDate 
+        ? DateUtils.addDays(arrivalProcess.targetDate, 2)
+        : '';
+      row['물류입고'] = logisticsArrival;
+      
+      // 입고기준 예상차이 계산
+      if (order.requiredDelivery && logisticsArrival) {
+        const diff = DateUtils.getDaysDifference(order.requiredDelivery, logisticsArrival);
+        row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+      } else {
+        row['입고기준 예상차이'] = '';
+      }
+      
+      row['비고'] = order.notes || '';
+      
+      return row;
+    });
+    
+    // 엑셀 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산목표일정_${timestamp}.xlsx`);
+    UIUtils.showAlert('엑셀 다운로드 완료!', 'success');
+  } catch (error) {
+    console.error('Excel download error:', error);
+    UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
 }
 
 async function handleExcelUpload(e) {

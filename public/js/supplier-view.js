@@ -3,7 +3,8 @@ import { getOrdersWithProcesses, updateProcess, uploadEvidence } from './firesto
 import { getCurrentUser } from './auth.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils } from './utils.js';
-import { PROCESS_CONFIG } from './process-config.js';
+import { PROCESS_CONFIG, getProcessName } from './process-config.js';
+import { t, getCurrentLanguage } from './i18n.js';
 
 let supplierOrders = [];
 
@@ -21,14 +22,14 @@ async function renderSupplierDashboard(container, user) {
   try {
     UIUtils.showLoading();
     
-    // 모든 주문 가져와서 필터링
+    // 모든 발주 가져와서 필터링
     const allOrders = await getOrdersWithProcesses();
     const orders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
     
     // 통계 계산
     const totalQty = orders.reduce((sum, o) => sum + (o.qty || 0), 0);
     
-    // 완료율 계산 (모든 생산공정이 완료된 주문 비율)
+    // 완료율 계산 (모든 생산공정이 완료된 발주 비율)
     const completedOrders = orders.filter(order => {
       const productionProcesses = order.schedule?.production || [];
       return productionProcesses.every(p => p.actualDate);
@@ -39,41 +40,41 @@ async function renderSupplierDashboard(container, user) {
     
     container.innerHTML = `
       <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-gray-800">${user.name} 대시보드</h2>
+        <h2 class="text-2xl font-bold text-gray-800">${user.name} ${t('supplierDashboard')}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">진행중인 발주</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">${orders.length}건</p>
+            <p class="text-sm text-gray-500 font-medium">${t('inProgress')}</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">${orders.length} ${t('件')}</p>
           </div>
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">총 발주 수량</p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">${totalQty.toLocaleString()}개</p>
+            <p class="text-sm text-gray-500 font-medium">${t('totalQty')}</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">${totalQty.toLocaleString()} ${t('pieces')}</p>
           </div>
           <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">완료율</p>
+            <p class="text-sm text-gray-500 font-medium">${t('completionRate')}</p>
             <p class="text-3xl font-bold text-green-600 mt-2">${completionRate}%</p>
           </div>
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-lg font-bold mb-4">최근 발주 현황</h3>
+          <h3 class="text-lg font-bold mb-4">${t('recentOrders')}</h3>
           ${orders.length === 0 ? `
             <div class="text-center text-gray-500 py-8">
               <i class="fas fa-inbox text-4xl mb-2"></i>
-              <p>할당된 발주가 없습니다.</p>
+              <p>${t('noData')}</p>
             </div>
           ` : `
             <div class="overflow-x-auto">
               <table class="min-w-full">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">스타일</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">색상</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">수량</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">발주일</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">입고요구일</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">진행상태</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('style')}</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Color</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('quantity')}</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('orderDate')}</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('requiredDelivery')}</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('processRate')}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -84,7 +85,13 @@ async function renderSupplierDashboard(container, user) {
                     
                     return `
                       <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">${order.style || '-'}</td>
+                        <td class="px-4 py-3 text-sm">
+                          <button class="text-blue-600 hover:text-blue-800 font-medium hover:underline dashboard-style-link"
+                                  data-order-id="${order.id}"
+                                  data-style="${order.style || '-'}">
+                            ${order.style || '-'}
+                          </button>
+                        </td>
                         <td class="px-4 py-3 text-sm">${order.color || '-'}</td>
                         <td class="px-4 py-3 text-sm">${order.qty || 0}</td>
                         <td class="px-4 py-3 text-sm">${order.orderDate || '-'}</td>
@@ -108,6 +115,9 @@ async function renderSupplierDashboard(container, user) {
       </div>
     `;
     
+    // 스타일 클릭 이벤트 리스너 등록
+    setupDashboardEventListeners();
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
@@ -116,23 +126,48 @@ async function renderSupplierDashboard(container, user) {
   }
 }
 
+// 대시보드 이벤트 리스너
+function setupDashboardEventListeners() {
+  document.querySelectorAll('.dashboard-style-link').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const orderId = e.currentTarget.dataset.orderId;
+      const style = e.currentTarget.dataset.style;
+      
+      console.log(`📝 스타일 클릭: ${style} (Order ID: ${orderId})`);
+      
+      // 실적입력 페이지로 이동하면서 해당 발주 ID 저장
+      window.selectedOrderId = orderId;
+      
+      // 실적입력 페이지��� 내비게이션 (app.js의 navigateTo 함수 사용)
+      if (window.navigateTo) {
+        window.navigateTo('supplier-orders');
+      } else {
+        // Fallback: 직접 렌더링
+        const container = document.getElementById('main-content');
+        const user = getCurrentUser();
+        await renderSupplierOrders(container, user);
+      }
+    });
+  });
+}
+
 async function renderSupplierOrders(container, user) {
   try {
     UIUtils.showLoading();
     
-    // 모든 주문 가져와서 필터링
+    // 모든 발주 가져와서 필터링
     const allOrders = await getOrdersWithProcesses();
     supplierOrders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
     
     container.innerHTML = `
       <div class="space-y-6">
-        <h2 class="text-2xl font-bold text-gray-800">실적 입력</h2>
+        <h2 class="text-2xl font-bold text-gray-800">${t('performanceInput')}</h2>
         
         <div id="orders-accordion" class="space-y-4">
           ${supplierOrders.length === 0 ? `
             <div class="bg-white rounded-xl shadow-lg p-8 text-center text-gray-500">
               <i class="fas fa-inbox text-4xl mb-2"></i>
-              <p>할당된 발주가 없습니다.</p>
+              <p>${t('noData')}</p>
             </div>
           ` : supplierOrders.map((order, index) => renderOrderCard(order, index)).join('')}
         </div>
@@ -141,24 +176,24 @@ async function renderSupplierOrders(container, user) {
       <!-- 이미지 업로드 모달 -->
       <div id="supplier-photo-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-lg">
-          <h3 class="text-xl font-bold mb-4">증빙 사진 업로드</h3>
+          <h3 class="text-xl font-bold mb-4">${t('uploadPhoto')}</h3>
           <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">공정: <span id="modal-process-name" class="font-bold"></span></label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">${t('processName')}: <span id="modal-process-name" class="font-bold"></span></label>
               <input type="file" id="supplier-photo-input" accept="image/*" 
                      class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
             </div>
             <div id="supplier-photo-preview" class="hidden">
-              <p class="text-sm text-gray-500 mb-2">미리보기</p>
+              <p class="text-sm text-gray-500 mb-2">Preview</p>
               <img id="supplier-photo-preview-img" src="" alt="Preview" class="w-full h-auto rounded-lg max-h-64 object-contain">
             </div>
           </div>
           <div class="mt-6 flex justify-end space-x-3">
             <button type="button" id="supplier-photo-cancel-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
-              취소
+              ${t('cancel')}
             </button>
             <button type="button" id="supplier-photo-upload-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-              업로드
+              ${t('uploadPhoto')}
             </button>
           </div>
         </div>
@@ -166,6 +201,30 @@ async function renderSupplierOrders(container, user) {
     `;
     
     setupEventListeners();
+    
+    // 대시보드에서 선택된 발주이 있으면 자동으로 펼치기
+    if (window.selectedOrderId) {
+      const selectedIndex = supplierOrders.findIndex(o => o.id === window.selectedOrderId);
+      if (selectedIndex !== -1) {
+        // 약간의 지연 후 펼치기 (DOM이 완전히 로드된 후)
+        setTimeout(() => {
+          toggleOrderDetail(selectedIndex);
+          
+          // 해당 요소로 스크롤
+          const orderCard = document.querySelector(`#order-detail-${selectedIndex}`);
+          if (orderCard) {
+            orderCard.closest('.bg-white').scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start' 
+            });
+          }
+          
+          // 선택 상태 초기화
+          window.selectedOrderId = null;
+        }, 300);
+      }
+    }
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
@@ -189,16 +248,16 @@ function renderOrderCard(order, index) {
   let statusDetail = '';
   
   if (completedProcesses === 0) {
-    statusText = '미등록';
+    statusText = t('notRegistered');
     statusColor = 'text-red-600';
     statusIcon = '🔴'; // 빨간색 신호등
   } else if (completedProcesses === totalProcesses) {
-    statusText = '등록완료';
+    statusText = t('registrationComplete');
     statusColor = 'text-green-600';
     statusIcon = '🟢'; // 녹색 신호등
   } else {
     // 등록중 - 마지막으로 완료된 공정 찾기
-    statusText = '등록중';
+    statusText = t('registering');
     statusColor = 'text-yellow-600';
     statusIcon = '🟡'; // 노란색 신호등
     
@@ -220,7 +279,7 @@ function renderOrderCard(order, index) {
         const foundProcess = allConfigProcesses.find(p => p.key === lastCompletedProcess.processKey);
         processName = foundProcess ? foundProcess.name : lastCompletedProcess.processKey;
       }
-      statusDetail = ` (${processName} 완료)`;
+      statusDetail = ` (${processName} ${t('completed')})`;
     }
   }
   
@@ -234,11 +293,11 @@ function renderOrderCard(order, index) {
           <div class="flex items-center space-x-6">
             <h3 class="text-lg font-bold text-gray-800 min-w-[120px]">${order.style || '-'}</h3>
             <div class="flex items-center space-x-4 text-sm text-gray-600">
-              <span>색상: <strong>${order.color || '-'}</strong></span>
-              <span>수량: <strong>${order.qty || 0}개</strong></span>
-              <span>사이즈: <strong>${order.size || '-'}</strong></span>
-              <span>발주일: <strong>${order.orderDate || '-'}</strong></span>
-              <span>입고요구일: <strong>${order.requiredDelivery || '-'}</strong></span>
+              <span>Color: <strong>${order.color || '-'}</strong></span>
+              <span>${t('quantity')}: <strong>${order.qty || 0} ${t('pieces')}</strong></span>
+              <span>Size: <strong>${order.size || '-'}</strong></span>
+              <span>${t('orderDate')}: <strong>${order.orderDate || '-'}</strong></span>
+              <span>${t('requiredDelivery')}: <strong>${order.requiredDelivery || '-'}</strong></span>
             </div>
           </div>
           
@@ -260,17 +319,17 @@ function renderOrderCard(order, index) {
       <div id="order-detail-${index}" class="hidden">
         <!-- 생산 공정 실적 입력 섹션 -->
         <div class="px-6 py-4">
-          <h4 class="text-sm font-bold text-gray-700 mb-3">🏭 생산 공정 실적</h4>
+          <h4 class="text-sm font-bold text-gray-700 mb-3">🏭 ${t('production')}</h4>
           <div class="overflow-x-auto">
             <table class="min-w-full">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">실제 완료일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">차이일수</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">차이원인</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">${t('processName')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('targetDate')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('actualDate')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">Days</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">${t('proofPhoto')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">Reason</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -282,17 +341,17 @@ function renderOrderCard(order, index) {
         
         <!-- 운송 공정 실적 입력 섹션 -->
         <div class="px-6 py-4 border-t bg-green-50">
-          <h4 class="text-sm font-bold text-gray-700 mb-3">🚢 운송 공정 실적</h4>
+          <h4 class="text-sm font-bold text-gray-700 mb-3">🚢 ${t('shipping')}</h4>
           <div class="overflow-x-auto">
             <table class="min-w-full">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">공정</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">목표일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">실제 완료일</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">차이일수</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">증빙</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">차이원인</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">${t('processName')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('targetDate')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('actualDate')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">Days</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">${t('proofPhoto')}</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">Reason</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -309,13 +368,16 @@ function renderOrderCard(order, index) {
 function renderProcessRow(order, process, category) {
   const hasActualDate = !!process.actualDate;
   const hasPhoto = !!(process.photo || process.evidenceUrl);
+  const currentLang = getCurrentLanguage();
   
-  // 공정명 가져오기 (process.name이 없으면 processKey로 찾기)
-  let processName = process.name;
-  if (!processName && process.processKey) {
+  // 공정명 가져오기 (언어에 따라)
+  let processName = '';
+  if (process.processKey) {
     const allProcesses = PROCESS_CONFIG[category] || [];
     const foundProcess = allProcesses.find(p => p.key === process.processKey);
-    processName = foundProcess ? foundProcess.name : process.processKey;
+    processName = foundProcess ? getProcessName(foundProcess, currentLang) : process.processKey;
+  } else if (process.name) {
+    processName = currentLang === 'en' ? (process.name_en || process.name) : process.name;
   }
   if (!processName) {
     processName = 'undefined';
@@ -367,7 +429,7 @@ function renderProcessRow(order, process, category) {
                     data-photo-url="${process.photo || process.evidenceUrl}">
               <i class="fas fa-camera text-lg"></i>
             </button>
-            <span class="text-xs text-green-600 font-medium">등록</span>
+            <span class="text-xs text-green-600 font-medium">${t('registered')}</span>
           </div>
         ` : `
           <div class="flex items-center justify-center space-x-1">
@@ -375,10 +437,10 @@ function renderProcessRow(order, process, category) {
                     data-order-id="${order.id}"
                     data-process-id="${process.id}"
                     data-process-name="${processName}"
-                    ${!hasActualDate ? 'disabled title="실제 완료일을 먼저 입력하세요"' : ''}>
+                    ${!hasActualDate ? `disabled title="${t('uploadFirst')}"` : ''}>
               <i class="fas fa-camera text-lg"></i>
             </button>
-            <span class="text-xs text-gray-400">미등록</span>
+            <span class="text-xs text-gray-400">${t('notUploaded')}</span>
           </div>
         `}
       </td>
@@ -388,13 +450,13 @@ function renderProcessRow(order, process, category) {
                data-order-id="${order.id}"
                data-process-id="${process.id}"
                value="${process.delayReason || ''}"
-               placeholder="차이원인 등 필요사항 기재">
+               placeholder="${t('reason')}">
       </td>
     </tr>
   `;
 }
 
-// 주문 상세 토글
+// 발주 상세 토글
 window.toggleOrderDetail = function(index) {
   const detailDiv = document.getElementById(`order-detail-${index}`);
   const icon = document.getElementById(`toggle-icon-${index}`);

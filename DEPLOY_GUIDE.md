@@ -293,7 +293,7 @@ npx firebase hosting:clone SOURCE_SITE_ID:SOURCE_VERSION_ID TARGET_SITE_ID
 1. ✅ 배포 완료
 2. ✅ 초기 데이터 설정
 3. ✅ 로그인 테스트
-4. 📸 실제 주문 데이터 입력
+4. 📸 실제 발주 데이터 입력
 5. 📊 대시보드 데이터 확인
 6. 🔐 비밀번호 변경 기능 추가 (향후 개선)
 7. 📧 이메일 인증 기능 추가 (향후 개선)

@@ -9,6 +9,8 @@ import { renderSupplierView } from './supplier-view.js';
 import { renderManufacturerManagement } from './manufacturer-management.js';
 import { renderWeeklyReport } from './weekly-report.js';
 import { renderUserManagement } from './user-management.js';
+import { renderUserManual } from './user-manual.js';
+import { initI18n, setLanguage, getCurrentLanguage, t } from './i18n.js';
 
 // 전역 상태
 let currentView = null;
@@ -16,6 +18,26 @@ let currentView = null;
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('🚀 ELCANTO SCM Portal 시작');
+  
+  // 다국어 초기화
+  initI18n();
+  updateLoginPageLanguage();
+  
+  // 언어 선택 버튼 이벤트 리스너
+  document.getElementById('lang-ko')?.addEventListener('click', () => {
+    setLanguage('ko');
+    updateLoginPageLanguage();
+    updateLanguageButtons();
+  });
+  
+  document.getElementById('lang-en')?.addEventListener('click', () => {
+    setLanguage('en');
+    updateLoginPageLanguage();
+    updateLanguageButtons();
+  });
+  
+  // 초기 언어 버튼 상태 설정
+  updateLanguageButtons();
   
   // 테스트 사용자 초기화 (개발 환경)
   if (window.isDevelopment) {
@@ -116,16 +138,41 @@ function showLoginView() {
   document.getElementById('login-form').reset();
 }
 
+// 언어 변경 핸들러 (한 번만 등록)
+let languageChangeHandler = null;
+
 // 앱 화면 표시
 function showAppView(user) {
   document.getElementById('login-view').classList.add('hidden');
   document.getElementById('app-view').classList.remove('hidden');
   
   // 사용자 정보 표시
-  document.getElementById('user-display').textContent = `${user.name}님`;
+  document.getElementById('user-display').textContent = `${user.name}`;
+  
+  // 앱 타이틀 업데이트
+  updateAppTitle();
+  
+  // 로그아웃 버튼 텍스트 업데이트
+  updateLogoutButton();
   
   // 사이드바 렌더링
   renderSidebar(user.role);
+  
+  // 언어 변경 이벤트 리스너 (중복 방지)
+  if (!languageChangeHandler) {
+    languageChangeHandler = () => {
+      updateAppTitle();
+      renderSidebar(user.role);
+      updateLogoutButton();
+      // 현재 뷰 다시 렌더링
+      if (currentView) {
+        const tempView = currentView;
+        currentView = null; // 중복 방지
+        navigateTo(tempView);
+      }
+    };
+    window.addEventListener('languageChanged', languageChangeHandler);
+  }
   
   // 초기 뷰 로드
   if (isAdmin()) {
@@ -174,6 +221,9 @@ function navigateTo(view) {
       case 'user-management':
         renderUserManagement(mainContent);
         break;
+      case 'user-manual':
+        renderUserManual();
+        break;
       case 'supplier-dashboard':
         renderSupplierView(mainContent, 'dashboard');
         break;
@@ -192,6 +242,56 @@ function navigateTo(view) {
         <p class="text-sm mt-2">${error.message}</p>
       </div>
     `;
+  }
+}
+
+// 로그인 페이지 언어 업데이트
+function updateLoginPageLanguage() {
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  
+  document.getElementById('login-title').textContent = t('loginTitle');
+  document.getElementById('login-subtitle').textContent = t('loginSubtitle');
+  document.getElementById('label-username').textContent = t('username');
+  document.getElementById('label-password').textContent = t('password');
+  document.getElementById('login-button').textContent = t('loginButton');
+  document.getElementById('account-inquiry-title').textContent = t('accountInquiry');
+  document.getElementById('account-inquiry-text1').textContent = t('accountInquiryText1');
+  document.getElementById('account-inquiry-text2').textContent = t('accountInquiryText2');
+  
+  // Placeholder 업데이트
+  if (usernameInput) usernameInput.placeholder = t('username');
+  if (passwordInput) passwordInput.placeholder = t('password');
+}
+
+// 언어 버튼 상태 업데이트
+function updateLanguageButtons() {
+  const currentLang = getCurrentLanguage();
+  const koBtn = document.getElementById('lang-ko');
+  const enBtn = document.getElementById('lang-en');
+  
+  if (currentLang === 'ko') {
+    koBtn?.classList.add('active');
+    enBtn?.classList.remove('active');
+  } else {
+    koBtn?.classList.remove('active');
+    enBtn?.classList.add('active');
+  }
+}
+
+// 앱 타이틀 업데이트
+function updateAppTitle() {
+  const appTitle = document.getElementById('app-title');
+  if (appTitle) {
+    appTitle.textContent = t('appTitle');
+  }
+}
+
+// 로그아웃 버튼 업데이트
+function updateLogoutButton() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.innerHTML = `<i class="fa-solid fa-right-from-bracket mr-1"></i>${t('logout')}`;
   }
 }
 

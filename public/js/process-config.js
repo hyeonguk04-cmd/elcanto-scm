@@ -76,6 +76,12 @@ function getProcessByName(name) {
   return allProcesses.find(p => p.name === name);
 }
 
+// 언어에 따른 공정명 가져오기
+function getProcessName(process, lang = 'ko') {
+  if (!process) return '';
+  return lang === 'en' ? (process.name_en || process.name) : process.name;
+}
+
 // 날짜 계산 유틸리티
 function addDays(dateStr, days) {
   if (!dateStr || days === null || days === undefined) return null;
@@ -159,6 +165,7 @@ export {
   getAllProcesses,
   getProcessByKey,
   getProcessByName,
+  getProcessName,
   addDays,
   dateDiffInDays,
   calculateProcessSchedule
