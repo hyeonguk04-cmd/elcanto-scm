@@ -28,9 +28,11 @@ service cloud.firestore {
     match /users/{userId} {
       // 로그인을 위해 users 컬렉션은 누구나 읽을 수 있어야 함
       allow read, list: if true;
-      allow create: if isAdmin();
-      // lastLogin 필드만 업데이트 가능하도록 허용 (로그인 시간 기록용)
-      allow update: if isOwnerOrAdmin(userId) || 
+      // 생성: 관리자 또는 본인의 UID로 생성하는 경우 (로그인 시 문서 동기화용)
+      allow create: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      // 업데이트: 본인 또는 관리자, 또는 로그인 시간 기록만 업데이트하는 경우
+      allow update: if (isAuthenticated() && request.auth.uid == userId) || 
+                      isAdmin() ||
                       (isAuthenticated() && 
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']));
       allow delete: if isAdmin();
