@@ -32,14 +32,45 @@ export async function login(username, password) {
     // 사용자 정보 저장
     currentUser = authResult.user;
     currentUserData = {
-      uid: authResult.user.uid, // Firebase Auth UID 사용 (Custom UID와 일치!)
+      uid: authResult.user.uid, // Firebase Auth UID 사용
       ...userData
     };
     
-    // 로그인 시간 업데이트 (이제 UID가 일치해서 권한 문제 해결!)
-    await window.db.collection('users').doc(authResult.user.uid).update({
-      lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // Firestore 문서 동기화 및 로그인 시간 업데이트
+    // Auth UID와 Firestore 문서 ID가 일치하도록 보장
+    const authUid = authResult.user.uid;
+    const firestoreDocId = userDoc.id;
+    
+    try {
+      if (authUid === firestoreDocId) {
+        // 문서 ID가 일치하면 업데이트
+        await window.db.collection('users').doc(authUid).update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        // 문서 ID가 불일치하면 Auth UID로 새 문서 생성/병합
+        console.log(`📝 Firestore 문서 ID 동기화: ${firestoreDocId} → ${authUid}`);
+        await window.db.collection('users').doc(authUid).set({
+          ...userData,
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        
+        // 필요시 이전 문서 삭제 (선택적)
+        if (firestoreDocId !== authUid) {
+          console.log(`🗑️ 이전 Firestore 문서 삭제: ${firestoreDocId}`);
+          // await window.db.collection('users').doc(firestoreDocId).delete();
+          // 주석 처리: 수동으로 확인 후 삭제하는 것이 안전
+        }
+      }
+    } catch (updateError) {
+      // 업데이트 실패해도 로그인은 계속 진행
+      console.warn('⚠️ Firestore 업데이트 실패 (로그인은 성공):', updateError);
+      // set()으로 재시도
+      await window.db.collection('users').doc(authUid).set({
+        ...userData,
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
     
     // 세션 스토리지에 저장
     sessionStorage.setItem('currentUser', JSON.stringify(currentUserData));
