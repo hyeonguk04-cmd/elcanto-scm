@@ -57,6 +57,62 @@ const translations = {
     deleteSuccess: '삭제되었습니다.',
     errorOccurred: '오류가 발생했습니다.',
     noData: '데이터가 없습니다.',
+    
+    // 생산업체 대시보드
+    myOrders: '배정된 발주',
+    completionRate: '완료율',
+    inProgress: '진행 중',
+    delayedOrders: '지연 발주',
+    recentOrders: '최근 발주 현황',
+    style: '스타일',
+    requiredDelivery: '입고요구일',
+    processRate: '공정률',
+    processProgress: '공정 진행률',
+    
+    // 실적 입력
+    performanceInput: '실적 입력',
+    orderDetails: '발주 상세',
+    processName: '공정명',
+    targetDate: '목표일',
+    actualDate: '실제 완료일',
+    proofPhoto: '증빙 사진',
+    uploadPhoto: '사진 업로드',
+    enterDate: '날짜 입력',
+    addPhoto: '사진 추가',
+    
+    // 공정 관련
+    production: '생산',
+    shipping: '운송',
+    materialUpper: '원단(갑피)',
+    materialSole: '원단(창)',
+    handoConfirm: '핸도 컨펌',
+    cutting: '재단',
+    upperMaking: '갑피 제작',
+    assembly: '조립',
+    selfInspection: '자체 검품',
+    factoryShipment: '공장 출하',
+    shippingProcess: '출하',
+    arrival: '입고',
+    
+    // 상태
+    completed: '완료',
+    pending: '대기',
+    delayed: '지연',
+    onTime: '정상',
+    notRegistered: '미등록',
+    registrationComplete: '등록완료',
+    registering: '등록중',
+    
+    // 발주 관리
+    orders: '발주',
+    orderNumber: '발주번호',
+    quantity: '수량',
+    orderDate: '발주일',
+    
+    // 기타
+    total: '총',
+    件: '건',
+    pieces: '개',
   },
   
   en: {
@@ -116,6 +172,62 @@ const translations = {
     deleteSuccess: 'Deleted successfully.',
     errorOccurred: 'An error occurred.',
     noData: 'No data available.',
+    
+    // Supplier Dashboard
+    myOrders: 'Assigned Orders',
+    completionRate: 'Completion Rate',
+    inProgress: 'In Progress',
+    delayedOrders: 'Delayed Orders',
+    recentOrders: 'Recent Orders',
+    style: 'Style',
+    requiredDelivery: 'Required Delivery',
+    processRate: 'Process Rate',
+    processProgress: 'Process Progress',
+    
+    // Performance Input
+    performanceInput: 'Performance Input',
+    orderDetails: 'Order Details',
+    processName: 'Process',
+    targetDate: 'Target Date',
+    actualDate: 'Actual Date',
+    proofPhoto: 'Proof Photo',
+    uploadPhoto: 'Upload Photo',
+    enterDate: 'Enter Date',
+    addPhoto: 'Add Photo',
+    
+    // Process Related
+    production: 'Production',
+    shipping: 'Shipping',
+    materialUpper: 'Material (Upper)',
+    materialSole: 'Material (Sole)',
+    handoConfirm: 'Hando Confirm',
+    cutting: 'Cutting',
+    upperMaking: 'Upper Making',
+    assembly: 'Assembly',
+    selfInspection: 'Self Inspection',
+    factoryShipment: 'Factory Shipment',
+    shippingProcess: 'Shipping',
+    arrival: 'Arrival',
+    
+    // Status
+    completed: 'Completed',
+    pending: 'Pending',
+    delayed: 'Delayed',
+    onTime: 'On Time',
+    notRegistered: 'Not Registered',
+    registrationComplete: 'Registration Complete',
+    registering: 'In Progress',
+    
+    // Order Management
+    orders: 'Orders',
+    orderNumber: 'Order No.',
+    quantity: 'Quantity',
+    orderDate: 'Order Date',
+    
+    // Others
+    total: 'Total',
+    件: 'items',
+    pieces: 'pcs',
   }
 };
 

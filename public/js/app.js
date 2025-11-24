@@ -144,10 +144,23 @@ function showAppView(user) {
   document.getElementById('app-view').classList.remove('hidden');
   
   // 사용자 정보 표시
-  document.getElementById('user-display').textContent = `${user.name}님`;
+  document.getElementById('user-display').textContent = `${user.name}`;
+  
+  // 로그아웃 버튼 텍스트 업데이트
+  updateLogoutButton();
   
   // 사이드바 렌더링
   renderSidebar(user.role);
+  
+  // 언어 변경 이벤트 리스너
+  window.addEventListener('languageChanged', () => {
+    renderSidebar(user.role);
+    updateLogoutButton();
+    // 현재 뷰 다시 렌더링
+    if (currentView) {
+      navigateTo(currentView);
+    }
+  });
   
   // 초기 뷰 로드
   if (isAdmin()) {
@@ -244,6 +257,17 @@ function updateLanguageButtons() {
   } else {
     koBtn?.classList.remove('active');
     enBtn?.classList.add('active');
+  }
+}
+
+// 로그아웃 버튼 업데이트
+function updateLogoutButton() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    const icon = logoutBtn.querySelector('i');
+    logoutBtn.innerHTML = '';
+    logoutBtn.appendChild(icon);
+    logoutBtn.appendChild(document.createTextNode(t('logout')));
   }
 }
 

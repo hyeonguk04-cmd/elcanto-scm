@@ -1,22 +1,23 @@
 // UI 컴포넌트 생성 함수들
 import { UIUtils, DateUtils, FormatUtils } from './utils.js';
 import { getAllProcesses } from './process-config.js';
+import { t } from './i18n.js';
 
 // 사이드바 렌더링
 export function renderSidebar(role) {
   const sidebar = document.getElementById('sidebar-container');
   
   const menuItems = role === 'admin' ? [
-    { id: 'dashboard', emoji: '📊', text: '종합 현황' },
-    { id: 'order-management', emoji: '📋', text: '생산 목표일정 수립' },
-    { id: 'analytics', emoji: '📈', text: '공정 입고진척 현황' },
-    { id: 'weekly-report', emoji: '📅', text: '주간 리포트' },
-    { id: 'manufacturer-management', emoji: '🏭', text: '생산업체 관리' },
-    { id: 'user-management', emoji: '👥', text: '사용자 관리' },
-    { id: 'user-manual', emoji: '📖', text: '사용 메뉴얼' }
+    { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
+    { id: 'order-management', emoji: '📋', textKey: 'orderManagement' },
+    { id: 'analytics', emoji: '📈', textKey: 'analytics' },
+    { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
+    { id: 'manufacturer-management', emoji: '🏭', textKey: 'manufacturerManagement' },
+    { id: 'user-management', emoji: '👥', textKey: 'userManagement' },
+    { id: 'user-manual', emoji: '📖', textKey: 'userManual' }
   ] : [
-    { id: 'supplier-dashboard', emoji: '📊', text: '내 대시보드' },
-    { id: 'supplier-orders', emoji: '✅', text: '실적 입력' }
+    { id: 'supplier-dashboard', emoji: '📊', textKey: 'supplierDashboard' },
+    { id: 'supplier-orders', emoji: '✅', textKey: 'supplierOrders' }
   ];
   
   sidebar.innerHTML = `
@@ -24,7 +25,7 @@ export function renderSidebar(role) {
       ${menuItems.map(item => `
         <div class="sidebar-btn" data-view="${item.id}">
           <span class="text-xl mr-2">${item.emoji}</span>
-          <span>${item.text}</span>
+          <span data-i18n="${item.textKey}">${t(item.textKey)}</span>
         </div>
       `).join('')}
     </div>
