@@ -2,13 +2,10 @@
 // 새로운 공정 구조 정의
 const PROCESS_CONFIG = {
   production: [
-    { name: '자재(어퍼)', name_en: 'Material (Upper)', key: 'material_upper', defaultLeadTime: 7 },
-    { name: '자재(저부)', name_en: 'Material (Sole)', key: 'material_sole', defaultLeadTime: 7 },
+    { name: '자재', name_en: 'Material', key: 'material', defaultLeadTime: 7 },
     { name: '한도CFM', name_en: 'Hando CFM', key: 'hando_cfm', defaultLeadTime: 2 },
-    { name: '재단', name_en: 'Cutting', key: 'cutting', defaultLeadTime: 3 },
-    { name: '제갑', name_en: 'Upper Making', key: 'upper_making', defaultLeadTime: 10 },
+    { name: '재단재갑', name_en: 'Cutting & Upper Making', key: 'cutting_upper', defaultLeadTime: 13 },
     { name: '조립', name_en: 'Assembly (Lasting)', key: 'assembly', defaultLeadTime: 7 },
-    { name: '자체검사', name_en: 'Self Inspection', key: 'self_inspection', defaultLeadTime: 2 },
     { name: '공장출고', name_en: 'Factory Shipment', key: 'factory_shipment', defaultLeadTime: 3 }
   ],
   shipping: [
