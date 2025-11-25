@@ -80,7 +80,7 @@ function renderOrdersTable() {
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
-            <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="8" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">물류입고</th>
@@ -91,7 +91,6 @@ function renderOrdersTable() {
             <th class="px-2 py-2 border">채널</th>
             <th class="px-2 py-2 border">스타일</th>
             <th class="px-2 py-2 border">색상</th>
-            <th class="px-2 py-2 border">사이즈</th>
             <th class="px-2 py-2 border">수량</th>
             <th class="px-2 py-2 border">국가</th>
             <th class="px-2 py-2 border">생산업체</th>
@@ -164,13 +163,6 @@ function renderOrderRow(order, rowNum, headers) {
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 50px;" 
                data-order-id="${order.id}" data-field="color" value="${order.color || ''}" 
                placeholder="색상">
-      </td>
-      
-      <!-- 사이즈 (직접입력) -->
-      <td class="px-2 py-2 border">
-        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 50px;" 
-               data-order-id="${order.id}" data-field="size" value="${order.size || ''}" 
-               placeholder="사이즈">
       </td>
       
       <!-- 수량 (직접입력) -->
@@ -693,7 +685,6 @@ function addNewRow() {
     channel: MASTER_DATA.channels[0],
     style: '',
     color: '',
-    size: '',
     qty: 0,
     country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
     supplier: SUPPLIERS_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
@@ -756,7 +747,6 @@ async function saveAllChanges() {
           channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
           style: row.querySelector('[data-field="style"]')?.value || order.style || '',
           color: row.querySelector('[data-field="color"]')?.value || order.color || '',
-          size: row.querySelector('[data-field="size"]')?.value || order.size || '',
           qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty || 0,
           country: row.querySelector('[data-field="country"]')?.value || order.country || '',
           supplier: row.querySelector('[data-field="supplier"]')?.value || order.supplier || '',
@@ -812,7 +802,7 @@ async function saveAllChanges() {
 function downloadTemplate() {
   // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
   const basicColumns = [
-    '채널', '스타일', '색상', '사이즈', '수량',
+    '채널', '스타일', '색상', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
   
@@ -830,7 +820,7 @@ function downloadCurrentDataAsExcel() {
     // 헤더 생성
     const headers = createProcessTableHeaders();
     const excelHeaders = [
-      '채널', '스타일', '색상', '사이즈', '수량',
+      '채널', '스타일', '색상', '수량',
       '국가', '생산업체', '발주일', '입고요구일'
     ];
     
@@ -848,7 +838,6 @@ function downloadCurrentDataAsExcel() {
         '채널': order.channel || '',
         '스타일': order.style || '',
         '색상': order.color || '',
-        '사이즈': order.size || '',
         '수량': order.qty || 0,
         '국가': order.country || '',
         '생산업체': order.supplier || '',
@@ -944,7 +933,6 @@ async function handleExcelUpload(e) {
           channel: row['채널'] || '',
           style: row['스타일'] || '',
           color: row['색상'] || '',
-          size: row['사이즈'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
           supplier: row['생산업체'] || '',
