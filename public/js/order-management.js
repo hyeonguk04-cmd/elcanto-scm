@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess } from './firestore-service.js';
+import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
@@ -952,13 +952,35 @@ async function handleExcelUpload(e) {
   
   try {
     UIUtils.showLoading();
-    const data = await ExcelUtils.readExcel(file);
+    
+    // 엑셀 데이터와 이미지를 함께 읽기
+    const { data, images } = await ExcelUtils.readExcelWithImages(file);
     
     console.log('📊 읽어온 데이터:', data);
     console.log('📊 데이터 행 수:', data?.length);
+    console.log('🖼️ 추출된 이미지 수:', images?.length);
     
     if (!data || data.length === 0) {
       throw new Error('엑셀 파일이 비어있습니다.');
+    }
+    
+    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성
+    const imageUrlMap = {};
+    if (images && images.length > 0) {
+      console.log('🖼️ 이미지 업로드 시작...');
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        try {
+          // 이미지를 업로드하고 URL 받기
+          // 이미지는 순서대로 매핑 (image1 -> row 1, image2 -> row 2, ...)
+          const style = data[i]?.['스타일'] || `style_${i + 1}`;
+          const imageUrl = await uploadStyleImage(style, image.file);
+          imageUrlMap[i] = imageUrl;
+          console.log(`✅ 이미지 ${i + 1} 업로드 완료: ${imageUrl}`);
+        } catch (error) {
+          console.error(`이미지 ${i + 1} 업로드 실패:`, error);
+        }
+      }
     }
     
     let successCount = 0;
@@ -981,10 +1003,16 @@ async function handleExcelUpload(e) {
           route
         );
         
+        // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
+        let styleImageUrl = row['스타일이미지'] || '';
+        if (!styleImageUrl && imageUrlMap[i]) {
+          styleImageUrl = imageUrlMap[i];
+        }
+        
         const orderData = {
           channel: row['채널'] || '',
           style: row['스타일'] || '',
-          styleImage: row['스타일이미지'] || '',
+          styleImage: styleImageUrl,
           color: row['색상'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
@@ -1007,7 +1035,7 @@ async function handleExcelUpload(e) {
     }
     
     if (errorCount === 0) {
-      UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!`, 'success');
+      UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!${images.length > 0 ? ` (이미지 ${images.length}개 업로드)` : ''}`, 'success');
     } else {
       const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
       UIUtils.showAlert(message, 'warning');

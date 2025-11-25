@@ -384,6 +384,26 @@ export async function uploadEvidence(orderId, processId, file) {
   }
 }
 
+// 스타일 이미지 업로드 (엑셀에서 추출된 이미지)
+export async function uploadStyleImage(style, imageFile) {
+  try {
+    const timestamp = Date.now();
+    const fileName = `${style}_${timestamp}_${imageFile.name}`;
+    const storageRef = window.storage.ref(`style-images/${fileName}`);
+    
+    // 파일 업로드
+    const uploadTask = await storageRef.put(imageFile);
+    const downloadURL = await uploadTask.ref.getDownloadURL();
+    
+    console.log(`✅ 스타일 이미지 업로드 성공: ${style} -> ${downloadURL}`);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading style image:', error);
+    throw error;
+  }
+}
+
 export async function getEvidencesByOrder(orderId) {
   try {
     const snapshot = await window.db.collection('evidences')
@@ -473,6 +493,7 @@ export default {
   getProcessesByOrder,
   updateProcess,
   uploadEvidence,
+  uploadStyleImage,
   getEvidencesByOrder,
   getOrdersWithProcesses,
   listenToOrders,
