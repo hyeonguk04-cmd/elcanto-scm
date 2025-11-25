@@ -68,28 +68,40 @@ export async function addSupplier(supplierData) {
   try {
     // 현재 로그인한 사용자의 username을 문서 ID로 사용
     const currentUser = getCurrentUser();
+    console.log('🔍 addSupplier - currentUser:', currentUser);
+    
     if (!currentUser || !currentUser.username) {
+      console.error('❌ 로그인 정보 없음:', currentUser);
       throw new Error('로그인 정보를 찾을 수 없습니다.');
     }
     
     const supplierId = currentUser.username;
+    console.log('📝 Supplier ID (username):', supplierId);
     
     // 중복 확인 (한 사용자당 하나의 업체만 등록 가능)
     const existingDoc = await window.db.collection('suppliers').doc(supplierId).get();
+    console.log('🔍 중복 확인:', existingDoc.exists);
+    
     if (existingDoc.exists) {
       throw new Error('이미 등록된 업체가 있습니다. 한 계정당 하나의 업체만 등록할 수 있습니다.');
     }
     
-    await window.db.collection('suppliers').doc(supplierId).set({
+    const dataToSave = {
       ...supplierData,
       username: currentUser.username, // username 필드 명시적 저장
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
     
+    console.log('💾 저장할 데이터:', dataToSave);
+    console.log('📍 저장 경로: suppliers/' + supplierId);
+    
+    await window.db.collection('suppliers').doc(supplierId).set(dataToSave);
+    
+    console.log('✅ 업체 등록 완료:', supplierId);
     return supplierId;
   } catch (error) {
-    console.error('Error adding supplier:', error);
+    console.error('❌ Error adding supplier:', error);
     throw error;
   }
 }
