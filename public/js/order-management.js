@@ -57,6 +57,14 @@ export async function renderOrderManagement(container) {
         <div class="bg-white rounded-xl shadow-lg p-3">
           <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
         </div>
+        
+        <!-- 이미지 확대 팝업 -->
+        <div id="image-popup" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" style="display: none;">
+          <div class="relative max-w-4xl max-h-full">
+            <button id="close-popup" class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300">&times;</button>
+            <img id="popup-image" src="" alt="확대 이미지" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+          </div>
+        </div>
       </div>
     `;
     
@@ -80,7 +88,7 @@ function renderOrdersTable() {
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
-            <th colspan="8" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">물류입고</th>
@@ -90,6 +98,7 @@ function renderOrdersTable() {
           <tr>
             <th class="px-2 py-2 border">채널</th>
             <th class="px-2 py-2 border">스타일</th>
+            <th class="px-2 py-2 border">이미지</th>
             <th class="px-2 py-2 border">색상</th>
             <th class="px-2 py-2 border">수량</th>
             <th class="px-2 py-2 border">국가</th>
@@ -156,6 +165,16 @@ function renderOrderRow(order, rowNum, headers) {
                data-order-id="${order.id}" data-field="style" value="${order.style || ''}" 
                maxlength="10" minlength="10" pattern=".{10}" 
                placeholder="10자리">
+      </td>
+      
+      <!-- 스타일 이미지 -->
+      <td class="px-2 py-2 border text-center">
+        ${order.styleImage ? `
+          <div class="style-image-container relative inline-block">
+            <img src="${order.styleImage}" alt="Style" class="style-image-thumb w-12 h-12 object-cover cursor-pointer rounded border border-gray-300"
+                 data-image-url="${order.styleImage}">
+          </div>
+        ` : '<span class="text-gray-400 text-xs">-</span>'}
       </td>
       
       <!-- 색상 (직접입력) -->
@@ -262,8 +281,12 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       })()}
       
-      <!-- 물류입고 (자동 계산 또는 수동 입력) -->
-      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 80px;">${logisticsArrival}</td>
+      <!-- 물류입고 (수동 입력 가능) -->
+      <td class="px-2 py-2 border text-center" style="min-width: 80px;">
+        <input type="date" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs text-center" 
+               data-order-id="${order.id}" data-field="logisticsArrival" value="${logisticsArrival || ''}"
+               style="min-width: 95px;">
+      </td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
@@ -438,6 +461,33 @@ function setupEventListeners() {
   
   // Excel uploader
   document.getElementById('excel-uploader')?.addEventListener('change', handleExcelUpload);
+  
+  // 스타일 이미지 확대 팝업
+  document.querySelectorAll('.style-image-thumb').forEach(img => {
+    img.addEventListener('click', (e) => {
+      const imageUrl = e.target.dataset.imageUrl;
+      const popup = document.getElementById('image-popup');
+      const popupImage = document.getElementById('popup-image');
+      popupImage.src = imageUrl;
+      popup.style.display = 'flex';
+      popup.classList.remove('hidden');
+    });
+  });
+  
+  // 팝업 닫기
+  document.getElementById('close-popup')?.addEventListener('click', () => {
+    const popup = document.getElementById('image-popup');
+    popup.style.display = 'none';
+    popup.classList.add('hidden');
+  });
+  
+  // 팝업 배경 클릭 시 닫기
+  document.getElementById('image-popup')?.addEventListener('click', (e) => {
+    if (e.target.id === 'image-popup') {
+      e.target.style.display = 'none';
+      e.target.classList.add('hidden');
+    }
+  });
 }
 
 function handleCountryChange(countrySelect) {
