@@ -174,7 +174,7 @@ export async function renderManufacturerManagement(container) {
                 <input type="number" id="leadTime_material" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">핸도컨펌</label>
+                <label class="block text-xs font-medium text-gray-700 mb-1">한도CFM</label>
                 <input type="number" id="leadTime_hando_cfm" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
@@ -487,7 +487,7 @@ function downloadTemplate() {
   const columns = [
     'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
-    '리드타임_자재', '리드타임_핸도컨펌', '리드타임_재단재갑',
+    '리드타임_자재', '리드타임_한도CFM', '리드타임_재단재갑',
     '리드타임_조립', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
   ];
   
@@ -517,7 +517,7 @@ function downloadSuppliersAsExcel() {
       '주요품목': supplier.mainItem || '',
       '결제조건': supplier.paymentTerms || '',
       '리드타임_자재': supplier.leadTimes?.material || 0,
-      '리드타임_핸도컨펌': supplier.leadTimes?.hando_cfm || 0,
+      '리드타임_한도CFM': supplier.leadTimes?.hando_cfm || 0,
       '리드타임_재단재갑': supplier.leadTimes?.cutting_upper || 0,
       '리드타임_조립': supplier.leadTimes?.assembly || 0,
       '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
@@ -578,7 +578,7 @@ async function handleExcelUpload(e) {
           paymentTerms: row['결제조건'] || '',
           leadTimes: {
             material: parseInt(row['리드타임_자재']) || 0,
-            hando_cfm: parseInt(row['리드타임_핸도컨펌']) || 0,
+            hando_cfm: parseInt(row['리드타임_한도CFM']) || 0,
             cutting_upper: parseInt(row['리드타임_재단재갑']) || 0,
             assembly: parseInt(row['리드타임_조립']) || 0,
             factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
