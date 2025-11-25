@@ -734,6 +734,7 @@ function addNewRow() {
     id: tempId,
     channel: MASTER_DATA.channels[0],
     style: '',
+    styleImage: '',
     color: '',
     qty: 0,
     country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
@@ -852,7 +853,7 @@ async function saveAllChanges() {
 function downloadTemplate() {
   // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
   const basicColumns = [
-    '채널', '스타일', '색상', '수량',
+    '채널', '스타일', '스타일이미지', '색상', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
   
@@ -870,7 +871,7 @@ function downloadCurrentDataAsExcel() {
     // 헤더 생성
     const headers = createProcessTableHeaders();
     const excelHeaders = [
-      '채널', '스타일', '색상', '수량',
+      '채널', '스타일', '스타일이미지', '색상', '수량',
       '국가', '생산업체', '발주일', '입고요구일'
     ];
     
@@ -887,6 +888,7 @@ function downloadCurrentDataAsExcel() {
       const row = {
         '채널': order.channel || '',
         '스타일': order.style || '',
+        '스타일이미지': order.styleImage || '',
         '색상': order.color || '',
         '수량': order.qty || 0,
         '국가': order.country || '',
@@ -982,6 +984,7 @@ async function handleExcelUpload(e) {
         const orderData = {
           channel: row['채널'] || '',
           style: row['스타일'] || '',
+          styleImage: row['스타일이미지'] || '',
           color: row['색상'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
