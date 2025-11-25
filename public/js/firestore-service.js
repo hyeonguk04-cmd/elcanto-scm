@@ -66,14 +66,59 @@ export async function getSupplierByName(supplierName) {
 
 export async function addSupplier(supplierData) {
   try {
-    const docRef = await window.db.collection('suppliers').add({
+    // 현재 로그인한 사용자의 username을 문서 ID로 사용
+    const currentUser = getCurrentUser();
+    if (!currentUser || !currentUser.username) {
+      throw new Error('로그인 정보를 찾을 수 없습니다.');
+    }
+    
+    const supplierId = currentUser.username;
+    
+    // 중복 확인 (한 사용자당 하나의 업체만 등록 가능)
+    const existingDoc = await window.db.collection('suppliers').doc(supplierId).get();
+    if (existingDoc.exists) {
+      throw new Error('이미 등록된 업체가 있습니다. 한 계정당 하나의 업체만 등록할 수 있습니다.');
+    }
+    
+    await window.db.collection('suppliers').doc(supplierId).set({
       ...supplierData,
+      username: currentUser.username, // username 필드 명시적 저장
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    return docRef.id;
+    
+    return supplierId;
   } catch (error) {
     console.error('Error adding supplier:', error);
+    throw error;
+  }
+}
+
+export async function addSupplierWithUsername(supplierData, username) {
+  try {
+    // 엑셀 업로드용: 관리자가 특정 username으로 업체 등록
+    if (!username) {
+      throw new Error('username이 필요합니다.');
+    }
+    
+    const supplierId = username;
+    
+    // 중복 확인
+    const existingDoc = await window.db.collection('suppliers').doc(supplierId).get();
+    if (existingDoc.exists) {
+      throw new Error(`사용자 ${username}의 업체가 이미 등록되어 있습니다.`);
+    }
+    
+    await window.db.collection('suppliers').doc(supplierId).set({
+      ...supplierData,
+      username: username,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    return supplierId;
+  } catch (error) {
+    console.error('Error adding supplier with username:', error);
     throw error;
   }
 }
@@ -406,6 +451,7 @@ export default {
   getSupplierById,
   getSupplierByName,
   addSupplier,
+  addSupplierWithUsername,
   updateSupplier,
   getAllOrders,
   getOrdersBySupplier,

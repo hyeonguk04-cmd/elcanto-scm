@@ -2,7 +2,8 @@
 import { UIUtils, ExcelUtils } from './utils.js';
 import { 
   getAllSuppliers, 
-  addSupplier, 
+  addSupplier,
+  addSupplierWithUsername,
   updateSupplier
 } from './firestore-service.js';
 
@@ -367,6 +368,7 @@ function openModal(id = null) {
 
     const supplier = suppliers.find(s => s.id === id);
     if (supplier) {
+      // 수정 모드에서도 업체명 변경 가능 (문서 ID는 username이므로)
       document.getElementById('name').value = supplier.name || '';
       document.getElementById('location').value = supplier.location || supplier.country || '';
       document.getElementById('contact').value = supplier.contact || '';
@@ -462,7 +464,12 @@ async function saveSupplier() {
     await loadSuppliers();
   } catch (error) {
     console.error('생산업체 저장 실패:', error);
-    UIUtils.showAlert('저장에 실패했습니다.', 'error');
+    // 중복 등록 오류 처리
+    if (error.message && error.message.includes('이미 등록된 업체')) {
+      UIUtils.showAlert('이미 등록된 업체가 있습니다. 한 계정당 하나의 업체만 등록할 수 있습니다.', 'warning');
+    } else {
+      UIUtils.showAlert('저장에 실패했습니다: ' + error.message, 'error');
+    }
   } finally {
     UIUtils.hideLoading();
   }
@@ -496,14 +503,14 @@ async function deleteCurrentSupplier() {
 // 템플릿 다운로드
 function downloadTemplate() {
   const columns = [
-    '업체명', '국가', '담당자', '이메일', '연락처', '상태',
+    'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
     '리드타임_원단어퍼', '리드타임_원단솔', '리드타임_핸도컨펌', '리드타임_단절', '리드타임_갑피제작',
     '리드타임_조립', '리드타임_자체검수', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
   ];
   
   ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
-  UIUtils.showAlert('템플릿 다운로드 완료!', 'success');
+  UIUtils.showAlert('템플릿 다운로드 완료! (username 컬럼은 users 컬렉션의 사용자명을 입력하세요)', 'success');
 }
 
 // 엑셀 다운로드
@@ -515,6 +522,7 @@ function downloadSuppliersAsExcel() {
     }
     
     const excelData = suppliers.map(supplier => ({
+      'username': supplier.username || supplier.id || '',
       '업체명': supplier.name || '',
       '국가': supplier.location || supplier.country || '',
       '담당자': supplier.contact || '',
@@ -573,8 +581,8 @@ async function handleExcelUpload(e) {
       console.log(`🔍 처리 중 행 ${i + 2}:`, row);
       
       try {
-        if (!row['업체명'] || !row['국가'] || !row['담당자']) {
-          throw new Error('업체명, 국가, 담당자는 필수입니다.');
+        if (!row['username'] || !row['업체명'] || !row['국가'] || !row['담당자']) {
+          throw new Error('username, 업체명, 국가, 담당자는 필수입니다.');
         }
         
         const supplierData = {
@@ -603,7 +611,8 @@ async function handleExcelUpload(e) {
           }
         };
         
-        await addSupplier(supplierData);
+        const username = row['username'];
+        await addSupplierWithUsername(supplierData, username);
         successCount++;
       } catch (error) {
         errorCount++;
