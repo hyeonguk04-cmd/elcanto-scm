@@ -168,34 +168,22 @@ export async function renderManufacturerManagement(container) {
           <!-- 공정 리드타임 (일수) -->
           <div class="border-b pb-4">
             <h4 class="text-md font-semibold text-gray-700 mb-4">공정별 리드타임 (일수)</h4>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">원단 어퍼</label>
-                <input type="number" id="leadTime_material_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">원단 솔</label>
-                <input type="number" id="leadTime_material_sole" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <label class="block text-xs font-medium text-gray-700 mb-1">자재</label>
+                <input type="number" id="leadTime_material" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">핸도컨펌</label>
                 <input type="number" id="leadTime_hando_cfm" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">단절</label>
-                <input type="number" id="leadTime_cutting" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">갑피제작</label>
-                <input type="number" id="leadTime_upper_making" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <label class="block text-xs font-medium text-gray-700 mb-1">재단재갑</label>
+                <input type="number" id="leadTime_cutting_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">조립</label>
                 <input type="number" id="leadTime_assembly" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">자체검수</label>
-                <input type="number" id="leadTime_self_inspection" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">공장출고</label>
@@ -385,13 +373,10 @@ function openModal(id = null) {
 
       // 리드타임 값 설정
       if (supplier.leadTimes) {
-        document.getElementById('leadTime_material_upper').value = supplier.leadTimes.material_upper || '';
-        document.getElementById('leadTime_material_sole').value = supplier.leadTimes.material_sole || '';
+        document.getElementById('leadTime_material').value = supplier.leadTimes.material || '';
         document.getElementById('leadTime_hando_cfm').value = supplier.leadTimes.hando_cfm || '';
-        document.getElementById('leadTime_cutting').value = supplier.leadTimes.cutting || '';
-        document.getElementById('leadTime_upper_making').value = supplier.leadTimes.upper_making || '';
+        document.getElementById('leadTime_cutting_upper').value = supplier.leadTimes.cutting_upper || '';
         document.getElementById('leadTime_assembly').value = supplier.leadTimes.assembly || '';
-        document.getElementById('leadTime_self_inspection').value = supplier.leadTimes.self_inspection || '';
         document.getElementById('leadTime_factory_shipment').value = supplier.leadTimes.factory_shipment || '';
         document.getElementById('leadTime_shipping').value = supplier.leadTimes.shipping || '';
         document.getElementById('leadTime_arrival').value = supplier.leadTimes.arrival || '';
@@ -429,13 +414,10 @@ async function saveSupplier() {
       mainItem: document.getElementById('mainItem').value.trim(),
       paymentTerms: document.getElementById('paymentTerms').value.trim(),
       leadTimes: {
-        material_upper: parseInt(document.getElementById('leadTime_material_upper').value) || 0,
-        material_sole: parseInt(document.getElementById('leadTime_material_sole').value) || 0,
+        material: parseInt(document.getElementById('leadTime_material').value) || 0,
         hando_cfm: parseInt(document.getElementById('leadTime_hando_cfm').value) || 0,
-        cutting: parseInt(document.getElementById('leadTime_cutting').value) || 0,
-        upper_making: parseInt(document.getElementById('leadTime_upper_making').value) || 0,
+        cutting_upper: parseInt(document.getElementById('leadTime_cutting_upper').value) || 0,
         assembly: parseInt(document.getElementById('leadTime_assembly').value) || 0,
-        self_inspection: parseInt(document.getElementById('leadTime_self_inspection').value) || 0,
         factory_shipment: parseInt(document.getElementById('leadTime_factory_shipment').value) || 0,
         shipping: parseInt(document.getElementById('leadTime_shipping').value) || 0,
         arrival: parseInt(document.getElementById('leadTime_arrival').value) || 0
@@ -505,8 +487,8 @@ function downloadTemplate() {
   const columns = [
     'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
-    '리드타임_원단어퍼', '리드타임_원단솔', '리드타임_핸도컨펌', '리드타임_단절', '리드타임_갑피제작',
-    '리드타임_조립', '리드타임_자체검수', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
+    '리드타임_자재', '리드타임_핸도컨펌', '리드타임_재단재갑',
+    '리드타임_조립', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
   ];
   
   ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
@@ -534,13 +516,10 @@ function downloadSuppliersAsExcel() {
       '주요채널': supplier.mainChannel || '',
       '주요품목': supplier.mainItem || '',
       '결제조건': supplier.paymentTerms || '',
-      '리드타임_원단어퍼': supplier.leadTimes?.material_upper || 0,
-      '리드타임_원단솔': supplier.leadTimes?.material_sole || 0,
+      '리드타임_자재': supplier.leadTimes?.material || 0,
       '리드타임_핸도컨펌': supplier.leadTimes?.hando_cfm || 0,
-      '리드타임_단절': supplier.leadTimes?.cutting || 0,
-      '리드타임_갑피제작': supplier.leadTimes?.upper_making || 0,
+      '리드타임_재단재갑': supplier.leadTimes?.cutting_upper || 0,
       '리드타임_조립': supplier.leadTimes?.assembly || 0,
-      '리드타임_자체검수': supplier.leadTimes?.self_inspection || 0,
       '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
       '리드타임_선적': supplier.leadTimes?.shipping || 0,
       '리드타임_입고': supplier.leadTimes?.arrival || 0
@@ -598,13 +577,10 @@ async function handleExcelUpload(e) {
           mainItem: row['주요품목'] || '',
           paymentTerms: row['결제조건'] || '',
           leadTimes: {
-            material_upper: parseInt(row['리드타임_원단어퍼']) || 0,
-            material_sole: parseInt(row['리드타임_원단솔']) || 0,
+            material: parseInt(row['리드타임_자재']) || 0,
             hando_cfm: parseInt(row['리드타임_핸도컨펌']) || 0,
-            cutting: parseInt(row['리드타임_단절']) || 0,
-            upper_making: parseInt(row['리드타임_갑피제작']) || 0,
+            cutting_upper: parseInt(row['리드타임_재단재갑']) || 0,
             assembly: parseInt(row['리드타임_조립']) || 0,
-            self_inspection: parseInt(row['리드타임_자체검수']) || 0,
             factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
             shipping: parseInt(row['리드타임_선적']) || 0,
             arrival: parseInt(row['리드타임_입고']) || 0
