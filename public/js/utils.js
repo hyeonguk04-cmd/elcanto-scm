@@ -213,6 +213,66 @@ export const ExcelUtils = {
     });
   },
 
+  // 엑셀 파일에서 이미지 추출
+  async extractImagesFromExcel(file) {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const images = [];
+      const drawingsFolder = zip.folder('xl/drawings');
+      const mediaFolder = zip.folder('xl/media');
+      
+      if (!mediaFolder) {
+        console.log('엑셀 파일에 이미지가 없습니다.');
+        return images;
+      }
+
+      // 이미지 파일 추출
+      const imagePromises = [];
+      mediaFolder.forEach((relativePath, file) => {
+        if (!file.dir) {
+          imagePromises.push(
+            file.async('blob').then(blob => {
+              const ext = relativePath.split('.').pop().toLowerCase();
+              const mimeType = ext === 'png' ? 'image/png' : 
+                              ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 
+                              ext === 'gif' ? 'image/gif' : 'image/png';
+              return {
+                name: relativePath,
+                blob: new Blob([blob], { type: mimeType }),
+                file: new File([blob], relativePath, { type: mimeType })
+              };
+            })
+          );
+        }
+      });
+
+      const extractedImages = await Promise.all(imagePromises);
+      console.log(`엑셀에서 ${extractedImages.length}개의 이미지를 추출했습니다.`);
+      return extractedImages;
+    } catch (error) {
+      console.error('이미지 추출 오류:', error);
+      return [];
+    }
+  },
+
+  // 엑셀 파일과 이미지를 함께 읽기
+  async readExcelWithImages(file) {
+    try {
+      const [data, images] = await Promise.all([
+        this.readExcel(file),
+        this.extractImagesFromExcel(file)
+      ]);
+      
+      return {
+        data,
+        images
+      };
+    } catch (error) {
+      console.error('엑셀 읽기 오류:', error);
+      throw error;
+    }
+  },
+
   // 엑셀 파일 생성 및 다운로드
   downloadExcel(data, filename) {
     const worksheet = XLSX.utils.json_to_sheet(data);
