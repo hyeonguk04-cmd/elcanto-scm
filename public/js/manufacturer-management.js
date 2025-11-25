@@ -1,5 +1,5 @@
 // 생산업체 관리 페이지 (Suppliers 컬렉션 사용)
-import { UIUtils } from './utils.js';
+import { UIUtils, ExcelUtils } from './utils.js';
 import { 
   getAllSuppliers, 
   addSupplier, 
@@ -19,9 +19,21 @@ export async function renderManufacturerManagement(container) {
           <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
           <p class="text-xs text-gray-500 mt-0.5">생산업체 정보를 등록하고 관리합니다</p>
         </div>
-        <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition duration-200 text-sm">
-          <i class="fas fa-plus mr-1"></i>업체 추가
-        </button>
+        <div class="space-x-2">
+          <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
+            <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
+          </button>
+          <button id="upload-btn" class="bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm">
+            <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
+          </button>
+          <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
+          <button id="download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+            <i class="fas fa-download mr-1"></i>엑셀 다운로드
+          </button>
+          <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition duration-200 text-sm">
+            <i class="fas fa-plus mr-1"></i>업체 추가
+          </button>
+        </div>
       </div>
 
       <!-- 테이블 -->
@@ -225,6 +237,20 @@ export async function renderManufacturerManagement(container) {
 
 // 이벤트 리스너 등록
 function attachEventListeners() {
+  // 템플릿 다운로드 버튼
+  document.getElementById('template-btn')?.addEventListener('click', downloadTemplate);
+  
+  // 엑셀 업로드 버튼
+  document.getElementById('upload-btn')?.addEventListener('click', () => {
+    document.getElementById('excel-uploader').click();
+  });
+  
+  // 엑셀 다운로드 버튼
+  document.getElementById('download-excel-btn')?.addEventListener('click', downloadSuppliersAsExcel);
+  
+  // 엑셀 업로더
+  document.getElementById('excel-uploader')?.addEventListener('change', handleExcelUpload);
+  
   // 업체 추가 버튼
   document.getElementById('add-manufacturer-btn').addEventListener('click', () => {
     openModal();
@@ -464,6 +490,144 @@ async function deleteCurrentSupplier() {
     UIUtils.showAlert('삭제에 실패했습니다.', 'error');
   } finally {
     UIUtils.hideLoading();
+  }
+}
+
+// 템플릿 다운로드
+function downloadTemplate() {
+  const columns = [
+    '업체명', '국가', '담당자', '이메일', '연락처', '상태',
+    '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
+    '리드타임_원단어퍼', '리드타임_원단솔', '리드타임_핸도컨펌', '리드타임_단절', '리드타임_갑피제작',
+    '리드타임_조립', '리드타임_자체검수', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
+  ];
+  
+  ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
+  UIUtils.showAlert('템플릿 다운로드 완료!', 'success');
+}
+
+// 엑셀 다운로드
+function downloadSuppliersAsExcel() {
+  try {
+    if (suppliers.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    const excelData = suppliers.map(supplier => ({
+      '업체명': supplier.name || '',
+      '국가': supplier.location || supplier.country || '',
+      '담당자': supplier.contact || '',
+      '이메일': supplier.email || '',
+      '연락처': supplier.phone || '',
+      '상태': supplier.status || '활성',
+      '인도조건': supplier.deliveryTerms || '',
+      '포워딩업체': supplier.forwarder || '',
+      '주요채널': supplier.mainChannel || '',
+      '주요품목': supplier.mainItem || '',
+      '결제조건': supplier.paymentTerms || '',
+      '리드타임_원단어퍼': supplier.leadTimes?.material_upper || 0,
+      '리드타임_원단솔': supplier.leadTimes?.material_sole || 0,
+      '리드타임_핸도컨펌': supplier.leadTimes?.hando_cfm || 0,
+      '리드타임_단절': supplier.leadTimes?.cutting || 0,
+      '리드타임_갑피제작': supplier.leadTimes?.upper_making || 0,
+      '리드타임_조립': supplier.leadTimes?.assembly || 0,
+      '리드타임_자체검수': supplier.leadTimes?.self_inspection || 0,
+      '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
+      '리드타임_선적': supplier.leadTimes?.shipping || 0,
+      '리드타임_입고': supplier.leadTimes?.arrival || 0
+    }));
+    
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산업체목록_${timestamp}.xlsx`);
+    UIUtils.showAlert('엑셀 다운로드 완료!', 'success');
+  } catch (error) {
+    console.error('Excel download error:', error);
+    UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// 엑셀 업로드
+async function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  console.log('📤 엑셀 업로드 시작:', file.name);
+  
+  try {
+    UIUtils.showLoading();
+    const data = await ExcelUtils.readExcel(file);
+    
+    console.log('📊 읽어온 데이터:', data);
+    
+    if (!data || data.length === 0) {
+      throw new Error('엑셀 파일이 비어있습니다.');
+    }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      console.log(`🔍 처리 중 행 ${i + 2}:`, row);
+      
+      try {
+        if (!row['업체명'] || !row['국가'] || !row['담당자']) {
+          throw new Error('업체명, 국가, 담당자는 필수입니다.');
+        }
+        
+        const supplierData = {
+          name: row['업체명'] || '',
+          location: row['국가'] || '',
+          contact: row['담당자'] || '',
+          email: row['이메일'] || '',
+          phone: row['연락처'] || '',
+          status: row['상태'] || '활성',
+          deliveryTerms: row['인도조건'] || '',
+          forwarder: row['포워딩업체'] || '',
+          mainChannel: row['주요채널'] || '',
+          mainItem: row['주요품목'] || '',
+          paymentTerms: row['결제조건'] || '',
+          leadTimes: {
+            material_upper: parseInt(row['리드타임_원단어퍼']) || 0,
+            material_sole: parseInt(row['리드타임_원단솔']) || 0,
+            hando_cfm: parseInt(row['리드타임_핸도컨펌']) || 0,
+            cutting: parseInt(row['리드타임_단절']) || 0,
+            upper_making: parseInt(row['리드타임_갑피제작']) || 0,
+            assembly: parseInt(row['리드타임_조립']) || 0,
+            self_inspection: parseInt(row['리드타임_자체검수']) || 0,
+            factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
+            shipping: parseInt(row['리드타임_선적']) || 0,
+            arrival: parseInt(row['리드타임_입고']) || 0
+          }
+        };
+        
+        await addSupplier(supplierData);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        errors.push(`행 ${i + 2}: ${error.message}`);
+        console.error(`Row ${i + 2} error:`, error);
+      }
+    }
+    
+    if (errorCount === 0) {
+      UIUtils.showAlert(`${successCount}건의 생산업체가 성공적으로 등록되었습니다!`, 'success');
+    } else {
+      const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+      UIUtils.showAlert(message, 'warning');
+    }
+    
+    await loadSuppliers();
+    
+    UIUtils.hideLoading();
+    e.target.value = '';
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('Excel upload error:', error);
+    UIUtils.showAlert(`엑셀 업로드 실패: ${error.message}`, 'error');
+    e.target.value = '';
   }
 }
 
