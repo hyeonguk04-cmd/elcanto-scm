@@ -168,7 +168,7 @@ function renderOrderRow(order, rowNum, headers) {
       </td>
       
       <!-- 스타일 이미지 -->
-      <td class="px-2 py-2 border text-center">
+      <td class="px-2 py-2 border text-center" style="min-width: 50px;">
         ${order.styleImage ? `
           <div class="style-image-container relative inline-block">
             <img src="${order.styleImage}" alt="Style" class="style-image-thumb w-12 h-12 object-cover cursor-pointer rounded border border-gray-300"
