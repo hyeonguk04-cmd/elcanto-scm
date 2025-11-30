@@ -283,8 +283,9 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 물류입고 (수동 입력 가능) -->
       <td class="px-2 py-2 border text-center" style="min-width: 80px;">
-        <input type="date" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs text-center" 
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs text-center" 
                data-order-id="${order.id}" data-field="logisticsArrival" value="${logisticsArrival || ''}"
+               placeholder="YYYY-MM-DD"
                style="min-width: 95px;">
       </td>
       
