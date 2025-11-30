@@ -93,8 +93,8 @@ export function renderTableRow(data, columns, actions = []) {
 export function createProcessTableHeaders() {
   const processes = getAllProcesses();
   
-  // 생산 공정과 운송 공정을 명확히 구분
-  const productionKeys = ['material_upper', 'material_sole', 'hando_cfm', 'cutting', 'upper_making', 'assembly', 'self_inspection', 'factory_shipment'];
+  // 새로운 공정 구조에 맞게 업데이트
+  const productionKeys = ['material', 'hando_cfm', 'cutting_upper', 'assembly', 'factory_shipment'];
   const shippingKeys = ['shipping', 'arrival'];
   
   const production = processes.filter(p => productionKeys.includes(p.key));

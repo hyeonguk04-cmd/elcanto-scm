@@ -967,20 +967,33 @@ async function handleExcelUpload(e) {
     // 이미지가 있으면 먼저 업로드하고 URL 맵 생성
     const imageUrlMap = {};
     if (images && images.length > 0) {
-      console.log('🖼️ 이미지 업로드 시작...');
+      console.log(`🖼️ 이미지 업로드 시작... (총 ${images.length}개)`);
+      console.log(`📊 데이터 행 수: ${data.length}`);
+      
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
+        console.log(`\n📤 이미지 ${i + 1}/${images.length} 업로드 중...`);
+        console.log(`  - 파일명: ${image.name}`);
+        console.log(`  - 크기: ${image.file.size} bytes`);
+        console.log(`  - 타입: ${image.file.type}`);
+        
         try {
           // 이미지를 업로드하고 URL 받기
           // 이미지는 순서대로 매핑 (image1 -> row 1, image2 -> row 2, ...)
           const style = data[i]?.['스타일'] || `style_${i + 1}`;
+          console.log(`  - 연결 스타일: ${style} (행 ${i + 1})`);
+          
           const imageUrl = await uploadStyleImage(style, image.file);
           imageUrlMap[i] = imageUrl;
-          console.log(`✅ 이미지 ${i + 1} 업로드 완료: ${imageUrl}`);
+          console.log(`  ✅ 업로드 완료: ${imageUrl}`);
         } catch (error) {
-          console.error(`이미지 ${i + 1} 업로드 실패:`, error);
+          console.error(`  ❌ 이미지 ${i + 1} 업로드 실패:`, error);
         }
       }
+      
+      console.log(`\n✅ 이미지 업로드 완료. 매핑된 이미지 수: ${Object.keys(imageUrlMap).length}`);
+    } else {
+      console.log('ℹ️ 업로드할 이미지가 없습니다.');
     }
     
     let successCount = 0;
@@ -1007,6 +1020,11 @@ async function handleExcelUpload(e) {
         let styleImageUrl = row['스타일이미지'] || '';
         if (!styleImageUrl && imageUrlMap[i]) {
           styleImageUrl = imageUrlMap[i];
+          console.log(`  🔗 행 ${i + 2}에 추출된 이미지 연결: ${styleImageUrl}`);
+        } else if (styleImageUrl) {
+          console.log(`  🔗 행 ${i + 2}에 URL 이미지 사용: ${styleImageUrl}`);
+        } else {
+          console.log(`  ⚠️ 행 ${i + 2}에 이미지 없음`);
         }
         
         const orderData = {

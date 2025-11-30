@@ -216,30 +216,58 @@ export const ExcelUtils = {
   // 엑셀 파일에서 이미지 추출
   async extractImagesFromExcel(file) {
     try {
+      console.log('🔍 ZIP 파일 로딩 시작...');
       const zip = await JSZip.loadAsync(file);
+      
+      // ZIP 파일 구조 확인 (디버깅용)
+      console.log('📦 ZIP 파일 내용:');
+      zip.forEach((relativePath, zipEntry) => {
+        console.log(`  - ${relativePath} (dir: ${zipEntry.dir})`);
+      });
+      
       const images = [];
-      const drawingsFolder = zip.folder('xl/drawings');
       const mediaFolder = zip.folder('xl/media');
       
       if (!mediaFolder) {
-        console.log('엑셀 파일에 이미지가 없습니다.');
+        console.warn('⚠️ xl/media 폴더가 없습니다. 엑셀 파일에 이미지가 포함되지 않았을 수 있습니다.');
+        // 대체 경로 확인
+        const altPaths = ['xl/media/', 'media/', 'images/'];
+        for (const altPath of altPaths) {
+          const altFolder = zip.folder(altPath);
+          if (altFolder) {
+            console.log(`✅ 대체 경로 발견: ${altPath}`);
+            break;
+          }
+        }
         return images;
       }
 
+      console.log('📁 xl/media 폴더 발견, 이미지 추출 시작...');
+      
       // 이미지 파일 추출
       const imagePromises = [];
-      mediaFolder.forEach((relativePath, file) => {
-        if (!file.dir) {
+      let imageCount = 0;
+      
+      mediaFolder.forEach((relativePath, zipEntry) => {
+        if (!zipEntry.dir) {
+          imageCount++;
+          console.log(`  🖼️ 이미지 발견: ${relativePath}`);
           imagePromises.push(
-            file.async('blob').then(blob => {
+            zipEntry.async('blob').then(blob => {
               const ext = relativePath.split('.').pop().toLowerCase();
               const mimeType = ext === 'png' ? 'image/png' : 
                               ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 
-                              ext === 'gif' ? 'image/gif' : 'image/png';
+                              ext === 'gif' ? 'image/gif' : 
+                              ext === 'bmp' ? 'image/bmp' : 'image/png';
+              
+              const fileName = relativePath.split('/').pop();
+              console.log(`    ✓ 변환: ${fileName} (${mimeType})`);
+              
               return {
-                name: relativePath,
+                name: fileName,
+                relativePath: relativePath,
                 blob: new Blob([blob], { type: mimeType }),
-                file: new File([blob], relativePath, { type: mimeType })
+                file: new File([blob], fileName, { type: mimeType })
               };
             })
           );
@@ -247,10 +275,14 @@ export const ExcelUtils = {
       });
 
       const extractedImages = await Promise.all(imagePromises);
-      console.log(`엑셀에서 ${extractedImages.length}개의 이미지를 추출했습니다.`);
+      console.log(`✅ 총 ${extractedImages.length}개의 이미지 추출 완료`);
+      extractedImages.forEach((img, idx) => {
+        console.log(`  ${idx + 1}. ${img.name} (크기: ${img.file.size} bytes)`);
+      });
+      
       return extractedImages;
     } catch (error) {
-      console.error('이미지 추출 오류:', error);
+      console.error('❌ 이미지 추출 오류:', error);
       return [];
     }
   },
