@@ -88,7 +88,7 @@ function renderOrdersTable() {
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
-            <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="10" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">물류입고</th>
@@ -97,6 +97,7 @@ function renderOrdersTable() {
           </tr>
           <tr>
             <th class="px-2 py-2 border">채널</th>
+            <th class="px-2 py-2 border">연도시즌+차수</th>
             <th class="px-2 py-2 border">스타일</th>
             <th class="px-2 py-2 border">이미지</th>
             <th class="px-2 py-2 border">색상</th>
@@ -157,6 +158,13 @@ function renderOrderRow(order, rowNum, headers) {
             `<option value="${ch}" ${order.channel === ch ? 'selected' : ''}>${ch}</option>`
           ).join('')}
         </select>
+      </td>
+      
+      <!-- 연도시즌+차수 (직접입력) -->
+      <td class="px-2 py-2 border">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 90px;" 
+               data-order-id="${order.id}" data-field="seasonOrder" value="${order.seasonOrder || ''}" 
+               placeholder="예: 25FW1">
       </td>
       
       <!-- 스타일 (직접입력 - 정확히 10자리) -->
@@ -735,6 +743,7 @@ function addNewRow() {
   const newOrder = {
     id: tempId,
     channel: MASTER_DATA.channels[0],
+    seasonOrder: '',
     style: '',
     styleImage: '',
     color: '',
@@ -798,6 +807,7 @@ async function saveAllChanges() {
         
         const updatedData = {
           channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
+          seasonOrder: row.querySelector('[data-field="seasonOrder"]')?.value || order.seasonOrder || '',
           style: row.querySelector('[data-field="style"]')?.value || order.style || '',
           color: row.querySelector('[data-field="color"]')?.value || order.color || '',
           qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty || 0,
@@ -855,7 +865,7 @@ async function saveAllChanges() {
 function downloadTemplate() {
   // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
   const basicColumns = [
-    '채널', '스타일', '스타일이미지', '색상', '수량',
+    '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
   
@@ -873,7 +883,7 @@ function downloadCurrentDataAsExcel() {
     // 헤더 생성
     const headers = createProcessTableHeaders();
     const excelHeaders = [
-      '채널', '스타일', '스타일이미지', '색상', '수량',
+      '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
       '국가', '생산업체', '발주일', '입고요구일'
     ];
     
@@ -889,6 +899,7 @@ function downloadCurrentDataAsExcel() {
     const excelData = orders.map(order => {
       const row = {
         '채널': order.channel || '',
+        '연도시즌+차수': order.seasonOrder || '',
         '스타일': order.style || '',
         '스타일이미지': order.styleImage || '',
         '색상': order.color || '',
@@ -1031,6 +1042,7 @@ async function handleExcelUpload(e) {
         
         const orderData = {
           channel: row['채널'] || '',
+          seasonOrder: row['연도시즌+차수'] || '',
           style: row['스타일'] || '',
           styleImage: styleImageUrl,
           color: row['색상'] || '',
