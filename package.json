@@ -17,6 +17,6 @@
   "license": "ISC",
   "devDependencies": {
     "firebase-admin": "^13.6.0",
-    "firebase-tools": "^14.24.2"
+    "firebase-tools": "^14.26.0"
   }
 }
