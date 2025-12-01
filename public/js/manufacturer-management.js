@@ -81,6 +81,13 @@ export async function renderManufacturerManagement(container) {
           <div class="border-b pb-4">
             <h4 class="text-md font-semibold text-gray-700 mb-4">기본 정보</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Username (사용자 ID) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Username (사용자 ID) <span class="text-red-500">*</span></label>
+                <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="예: shengan">
+                <p class="text-xs text-gray-500 mt-1">users 컬렉션에 등록된 username과 일치해야 합니다</p>
+              </div>
+
               <!-- 업체명 -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">업체명 <span class="text-red-500">*</span></label>
@@ -352,7 +359,12 @@ function openModal(id = null) {
 
     const supplier = suppliers.find(s => s.id === id);
     if (supplier) {
-      // 수정 모드에서도 업체명 변경 가능 (문서 ID는 username이므로)
+      // 수정 모드에서 username은 읽기 전용 (문서 ID이므로 변경 불가)
+      const usernameField = document.getElementById('username');
+      usernameField.value = supplier.username || supplier.id || '';
+      usernameField.readOnly = true;
+      usernameField.classList.add('bg-gray-100', 'cursor-not-allowed');
+      
       document.getElementById('name').value = supplier.name || '';
       document.getElementById('location').value = supplier.location || supplier.country || '';
       document.getElementById('contact').value = supplier.contact || '';
@@ -382,6 +394,11 @@ function openModal(id = null) {
     // 추가 모드
     modalTitle.textContent = '새 생산업체 등록';
     deleteBtn.classList.add('hidden');
+    
+    // 추가 모드에서 username 필드 활성화
+    const usernameField = document.getElementById('username');
+    usernameField.readOnly = false;
+    usernameField.classList.remove('bg-gray-100', 'cursor-not-allowed');
   }
 
   modal.classList.remove('hidden');
@@ -397,6 +414,7 @@ function closeModal() {
 // 생산업체 저장
 async function saveSupplier() {
   try {
+    const username = document.getElementById('username').value.trim();
     const supplierData = {
       name: document.getElementById('name').value.trim(),
       location: document.getElementById('location').value,
@@ -420,8 +438,8 @@ async function saveSupplier() {
     };
 
     // 필수 필드 검증
-    if (!supplierData.name || !supplierData.location || !supplierData.contact) {
-      UIUtils.showAlert('필수 항목을 모두 입력해주세요.', 'warning');
+    if (!username || !supplierData.name || !supplierData.location || !supplierData.contact) {
+      UIUtils.showAlert('필수 항목을 모두 입력해주세요. (Username, 업체명, 국가, 담당자명)', 'warning');
       return;
     }
 
@@ -432,8 +450,8 @@ async function saveSupplier() {
       await updateSupplier(currentEditId, supplierData);
       UIUtils.showAlert('생산업체 정보가 수정되었습니다.', 'success');
     } else {
-      // 추가
-      await addSupplier(supplierData);
+      // 추가 - addSupplierWithUsername 사용
+      await addSupplierWithUsername(supplierData, username);
       UIUtils.showAlert('생산업체가 추가되었습니다.', 'success');
     }
 
