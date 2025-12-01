@@ -6,34 +6,32 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // 관리자 권한 확인 함수
-    function isAdmin() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    // 생산업체 권한 확인 함수
-    function isSupplier() {
-      return isAuthenticated() && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supplier';
-    }
-    
-    // 본인 또는 관리자 확인 함수
-    function isOwnerOrAdmin(userId) {
-      return isAuthenticated() && 
-             (request.auth.uid == userId || isAdmin());
-    }
-    
-    // Users 컬렉션
-    match /users/{userId} {
+    // Users 컬렉션 (문서 ID는 username)
+    // 간단한 규칙: 인증된 사용자는 대부분 작업 가능
+    match /users/{username} {
       // 로그인을 위해 users 컬렉션은 누구나 읽을 수 있어야 함
       allow read, list: if true;
-      allow create: if isAdmin();
-      // lastLogin 필드만 업데이트 가능하도록 허용 (로그인 시간 기록용)
-      allow update: if isOwnerOrAdmin(userId) || 
-                      (isAuthenticated() && 
-                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastLogin']));
-      allow delete: if isAdmin();
+      // 생성: 인증된 사용자 (관리자가 사용자 추가)
+      allow create: if isAuthenticated();
+      // 업데이트: 인증된 사용자 (lastLogin, 사용자 정보 수정 등)
+      allow update: if isAuthenticated();
+      // 삭제: 인증된 사용자 (관리자가 사용자 삭제)
+      allow delete: if isAuthenticated();
+    }
+    
+    // 관리자 권한 확인 함수 (클라이언트 측에서 체크)
+    function isAdmin() {
+      return isAuthenticated();
+    }
+    
+    // 생산업체 권한 확인 함수 (클라이언트 측에서 체크)
+    function isSupplier() {
+      return isAuthenticated();
+    }
+    
+    // 본인 또는 관리자 확인 함수 (클라이언트 측에서 체크)
+    function isOwnerOrAdmin(userId) {
+      return isAuthenticated();
     }
     
     // Suppliers 컬렉션

@@ -1,29 +1,31 @@
 // UI 컴포넌트 생성 함수들
 import { UIUtils, DateUtils, FormatUtils } from './utils.js';
 import { getAllProcesses } from './process-config.js';
+import { t } from './i18n.js';
 
 // 사이드바 렌더링
 export function renderSidebar(role) {
   const sidebar = document.getElementById('sidebar-container');
   
   const menuItems = role === 'admin' ? [
-    { id: 'dashboard', icon: 'fa-chart-line', text: '종합 현황' },
-    { id: 'order-management', icon: 'fa-clipboard-list', text: '생산 목표일정 수립' },
-    { id: 'analytics', icon: 'fa-chart-bar', text: '공정 입고진척 현황' },
-    { id: 'weekly-report', icon: 'fa-calendar-week', text: '주간 리포트' },
-    { id: 'manufacturer-management', icon: 'fa-industry', text: '생산업체 관리' },
-    { id: 'user-management', icon: 'fa-users', text: '사용자 관리' }
+    { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
+    { id: 'order-management', emoji: '📋', textKey: 'orderManagement' },
+    { id: 'analytics', emoji: '📈', textKey: 'analytics' },
+    { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
+    { id: 'manufacturer-management', emoji: '🏭', textKey: 'manufacturerManagement' },
+    { id: 'user-management', emoji: '👥', textKey: 'userManagement' },
+    { id: 'user-manual', emoji: '📖', textKey: 'userManual' }
   ] : [
-    { id: 'supplier-dashboard', icon: 'fa-tachometer-alt', text: '내 대시보드' },
-    { id: 'supplier-orders', icon: 'fa-tasks', text: '실적 입력' }
+    { id: 'supplier-dashboard', emoji: '📊', textKey: 'supplierDashboard' },
+    { id: 'supplier-orders', emoji: '✅', textKey: 'supplierOrders' }
   ];
   
   sidebar.innerHTML = `
     <div class="space-y-2">
       ${menuItems.map(item => `
         <div class="sidebar-btn" data-view="${item.id}">
-          <i class="fas ${item.icon} w-5"></i>
-          <span>${item.text}</span>
+          <span class="text-xl mr-2">${item.emoji}</span>
+          <span data-i18n="${item.textKey}">${t(item.textKey)}</span>
         </div>
       `).join('')}
     </div>
@@ -91,8 +93,8 @@ export function renderTableRow(data, columns, actions = []) {
 export function createProcessTableHeaders() {
   const processes = getAllProcesses();
   
-  // 생산 공정과 운송 공정을 명확히 구분
-  const productionKeys = ['material_upper', 'material_sole', 'hando_cfm', 'cutting', 'upper_making', 'assembly', 'self_inspection', 'factory_shipment'];
+  // 새로운 공정 구조에 맞게 업데이트
+  const productionKeys = ['material', 'hando_cfm', 'cutting_upper', 'factory_shipment'];
   const shippingKeys = ['shipping', 'arrival'];
   
   const production = processes.filter(p => productionKeys.includes(p.key));

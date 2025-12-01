@@ -11,19 +11,22 @@ export async function renderUserManagement(container) {
     users = await getUsers();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">사용자 관리</h2>
-          <button id="add-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            <i class="fas fa-plus mr-2"></i>사용자 추가
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">사용자 관리</h2>
+          <p class="text-xs text-gray-500 mt-0.5">사용자 아이디 추가 및 패스워드 재설정을 관리합니다</p>
+        </div>     
+          <button id="add-user-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm">
+            <i class="fas fa-plus mr-1"></i>사용자 추가
           </button>
         </div>
         
         <!-- 사용자 목록 테이블 -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div class="overflow-x-auto">
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div class="overflow-auto" style="max-height: calc(100vh - 180px);">
             <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
-              <thead class="bg-gray-50 border-b border-gray-200">
+              <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                 <tr>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">아이디</th>
                   <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">이름</th>
@@ -194,8 +197,11 @@ function renderUserRow(user) {
         <button class="text-blue-600 hover:text-blue-900 mr-2 edit-user-btn" data-user-id="${user.id}" title="수정">
           <i class="fas fa-edit"></i>
         </button>
-        <button class="text-green-600 hover:text-green-900 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
+        <button class="text-green-600 hover:text-green-900 mr-2 reset-password-btn" data-user-id="${user.id}" title="비밀번호 재설정">
           <i class="fas fa-key"></i>
+        </button>
+        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" title="삭제">
+          <i class="fas fa-trash"></i>
         </button>
       </td>
     </tr>
@@ -236,6 +242,15 @@ function setupEventListeners() {
     btn.addEventListener('click', (e) => {
       const userId = e.currentTarget.dataset.userId;
       openPasswordModal(userId);
+    });
+  });
+  
+  // 삭제 버튼들
+  document.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const userId = e.currentTarget.dataset.userId;
+      const username = e.currentTarget.dataset.username;
+      await handleDeleteUser(userId, username);
     });
   });
 }
@@ -391,8 +406,9 @@ async function createUser(userData) {
       userData.password
     );
     
-    // Firestore에 사용자 정보 저장 (Auth UID를 문서 ID로 사용)
-    await window.db.collection('users').doc(authResult.user.uid).set({
+    // Firestore에 사용자 정보 저장 (username을 문서 ID로 사용 - 기존 시스템과 일관성 유지)
+    await window.db.collection('users').doc(userData.username).set({
+      uid: authResult.user.uid,  // Firebase Auth UID 저장 (참조용)
       username: userData.username,
       name: userData.name,
       email: userData.email,
@@ -400,6 +416,8 @@ async function createUser(userData) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastLogin: null
     });
+    
+    console.log(`✅ 사용자 생성 완료: ${userData.username} (Auth UID: ${authResult.user.uid})`);
     
     // 현재 사용자로 다시 로그인 (관리자)
     // Note: createUserWithEmailAndPassword는 자동으로 새 사용자로 로그인하므로
@@ -461,6 +479,34 @@ async function resetUserPassword(userId, newPassword) {
     }
     
     throw error;
+  }
+}
+
+async function handleDeleteUser(userId, username) {
+  try {
+    const confirmed = await UIUtils.confirm(
+      `사용자 "${username}"를 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.\n⚠️ Firestore 문서만 삭제되며, Firebase Auth 계정은 수동으로 삭제해야 합니다.`
+    );
+    
+    if (!confirmed) return;
+    
+    UIUtils.showLoading();
+    
+    // Firestore에서 사용자 문서 삭제
+    await window.db.collection('users').doc(userId).delete();
+    
+    UIUtils.showAlert('사용자가 삭제되었습니다.', 'success');
+    
+    // 목록 새로고침
+    users = await getUsers();
+    const container = document.getElementById('main-content');
+    await renderUserManagement(container);
+    
+  } catch (error) {
+    console.error('Delete user error:', error);
+    UIUtils.showAlert(error.message || '사용자 삭제에 실패했습니다.', 'error');
+  } finally {
+    UIUtils.hideLoading();
   }
 }
 

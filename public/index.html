@@ -16,6 +16,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- JSZip for Excel image extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <!-- SheetJS for Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -35,26 +38,38 @@
     <!-- Login View -->
     <div id="login-view" class="w-full max-w-md">
         <div class="bg-white shadow-lg rounded-xl p-8">
+            <!-- 언어 선택 버튼 -->
+            <div class="flex justify-end mb-4">
+                <div class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                    <button id="lang-ko" class="lang-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 active">
+                        한국어
+                    </button>
+                    <button id="lang-en" class="lang-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200">
+                        English
+                    </button>
+                </div>
+            </div>
+            
             <div class="text-center mb-8">
                 <div class="bg-blue-900 px-6 py-4 rounded-lg mb-4">
                     <h1 class="text-2xl font-bold text-white text-center">
                         <i class="fa-solid fa-shoe-prints text-white mr-3"></i>
-                        <span>ELCANTO SCM PORTAL</span>
+                        <span id="login-title">ELCANTO SCM PORTAL</span>
                     </h1>
                 </div>
-                <p class="text-gray-500 mt-2">로그인하여 생산 현황을 관리하세요.</p>
+                <p id="login-subtitle" class="text-gray-500 mt-2">로그인하여 생산 현황을 관리하세요.</p>
             </div>
             <form id="login-form">
                 <div class="mb-4">
-                    <label for="username" class="block text-sm font-medium text-gray-700">아이디</label>
+                    <label for="username" id="label-username" class="block text-sm font-medium text-gray-700">아이디</label>
                     <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="ID" required>
                 </div>
                 <div class="mb-6">
-                    <label for="password" class="block text-sm font-medium text-gray-700">비밀번호</label>
+                    <label for="password" id="label-password" class="block text-sm font-medium text-gray-700">비밀번호</label>
                     <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Password" required>
                 </div>
                 <p id="login-error" class="text-red-500 text-sm text-center mb-4 hidden"></p>
-                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-md transition duration-300">
+                <button type="submit" id="login-button" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded-md transition duration-300">
                     로그인
                 </button>
             </form>
@@ -62,11 +77,11 @@
             <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p class="text-xs text-blue-800 text-center mb-2">
                     <i class="fas fa-info-circle mr-1"></i>
-                    <span class="font-semibold">계정 관련 문의</span>
+                    <span id="account-inquiry-title" class="font-semibold">계정 관련 문의</span>
                 </p>
                 <div class="text-xs text-blue-700 text-center space-y-1">
-                    <p>엘칸토 IT팀에 문의하여</p>
-                    <p>계정 정보를 받으세요.</p>
+                    <p id="account-inquiry-text1">엘칸토 IT팀에 문의하여</p>
+                    <p id="account-inquiry-text2">계정 정보를 받으세요.</p>
                 </div>
             </div>
 
@@ -80,7 +95,7 @@
         <div class="bg-blue-900 px-6 py-3 shadow-lg flex justify-between items-center flex-wrap gap-4 shrink-0 z-20">
             <h1 class="text-xl font-bold text-white">
                 <i class="fa-solid fa-shoe-prints text-white mr-2"></i>
-                <span>엘칸토 SCM 포털</span>
+                <span id="app-title">엘칸토 SCM 포털</span>
             </h1>
             <div class="flex items-center">
                 <span id="status-message" class="text-green-300 font-bold text-xs mr-3"></span>
@@ -169,6 +184,7 @@
     <input type="file" id="excel-uploader" class="hidden" accept=".xlsx, .xls, .csv">
 
     <!-- Scripts -->
+    <script type="module" src="js/i18n.js"></script>
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/utils.js"></script>
     <script type="module" src="js/process-config.js"></script>
@@ -182,6 +198,7 @@
     <script type="module" src="js/manufacturer-management.js"></script>
     <script type="module" src="js/weekly-report.js"></script>
     <script type="module" src="js/user-management.js"></script>
+    <script type="module" src="js/user-manual.js"></script>
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

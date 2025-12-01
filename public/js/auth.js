@@ -10,17 +10,13 @@ export async function login(username, password) {
   try {
     UIUtils.showLoading();
     
-    // Firestore에서 사용자 정보 찾기 (이메일 확인용)
-    const usersSnapshot = await window.db.collection('users')
-      .where('username', '==', username)
-      .limit(1)
-      .get();
+    // Firestore에서 사용자 정보 찾기 (username을 문서 ID로 직접 조회)
+    const userDoc = await window.db.collection('users').doc(username).get();
     
-    if (usersSnapshot.empty) {
+    if (!userDoc.exists) {
       throw new Error('사용자를 찾을 수 없습니다.');
     }
     
-    const userDoc = usersSnapshot.docs[0];
     const userData = userDoc.data();
     
     // Firebase Authentication으로 이메일/비밀번호 로그인
@@ -32,14 +28,26 @@ export async function login(username, password) {
     // 사용자 정보 저장
     currentUser = authResult.user;
     currentUserData = {
-      uid: authResult.user.uid, // Firebase Auth UID 사용 (Custom UID와 일치!)
+      uid: authResult.user.uid, // Firebase Auth UID
       ...userData
     };
     
-    // 로그인 시간 업데이트 (이제 UID가 일치해서 권한 문제 해결!)
-    await window.db.collection('users').doc(authResult.user.uid).update({
-      lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // 로그인 시간 업데이트 (username을 문서 ID로 사용)
+    try {
+      await window.db.collection('users').doc(username).update({
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log(`✅ 로그인 성공: ${username} (Auth UID: ${authResult.user.uid})`);
+    } catch (updateError) {
+      // 업데이트 실패해도 로그인은 계속 진행
+      console.warn('⚠️ lastLogin 업데이트 실패 (로그인은 성공):', updateError);
+      // set()으로 재시도
+      await window.db.collection('users').doc(username).set({
+        ...userData,
+        uid: authResult.user.uid,
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
     
     // 세션 스토리지에 저장
     sessionStorage.setItem('currentUser', JSON.stringify(currentUserData));

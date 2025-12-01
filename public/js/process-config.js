@@ -2,13 +2,9 @@
 // 새로운 공정 구조 정의
 const PROCESS_CONFIG = {
   production: [
-    { name: '자재(어퍼)', name_en: 'Material (Upper)', key: 'material_upper', defaultLeadTime: 7 },
-    { name: '자재(저부)', name_en: 'Material (Sole)', key: 'material_sole', defaultLeadTime: 7 },
+    { name: '자재', name_en: 'Material', key: 'material', defaultLeadTime: 7 },
     { name: '한도CFM', name_en: 'Hando CFM', key: 'hando_cfm', defaultLeadTime: 2 },
-    { name: '재단', name_en: 'Cutting', key: 'cutting', defaultLeadTime: 3 },
-    { name: '제갑', name_en: 'Upper Making', key: 'upper_making', defaultLeadTime: 10 },
-    { name: '조립', name_en: 'Assembly (Lasting)', key: 'assembly', defaultLeadTime: 7 },
-    { name: '자체검사', name_en: 'Self Inspection', key: 'self_inspection', defaultLeadTime: 2 },
+    { name: '제갑&조립', name_en: 'Upper Making & Assembly', key: 'cutting_upper', defaultLeadTime: 20 },
     { name: '공장출고', name_en: 'Factory Shipment', key: 'factory_shipment', defaultLeadTime: 3 }
   ],
   shipping: [
@@ -27,14 +23,16 @@ const SHIPPING_LEAD_TIMES = {
   '닝보-인천': 5,
   '닝보-부산': 3,
   '호치민-인천': 7,
-  '나바사바-부산': 28
+  '나바사바-부산': 28,
+  '국내운송': 1
 };
 
 // 국가별 선적 경로
 const ROUTES_BY_COUNTRY = {
   "중국": ["웨이하이-인천", "연태-인천", "쉐코우-인천", "닝보-부산", "닝보-인천", "청도-인천", "단동-인천"],
   "베트남": ["호치민-인천"],
-  "인도": ["나바사바-부산"]
+  "인도": ["나바사바-부산"],
+  "한국": ["국내운송"]
 };
 
 // 색상 코드 데이터
@@ -58,7 +56,8 @@ const COLOR_CODE_DATA = {
 const SUPPLIERS_BY_COUNTRY = {
   "중국": ["성안", "메이하오", "차오란", "리청", "한이", "아마존", "주딩", "태영", "봉연", "삼명", "가온", "수창", "키미"],
   "베트남": ["AAU", "티앤팟", "스타원", "마코토"],
-  "인도": ["루트라", "SKS", "디로드", "샤이안", "엑스포", "프루티"]
+  "인도": ["루트라", "SKS", "디로드", "샤이안", "엑스포", "프루티"],
+  "한국": ["모프"]
 };
 
 // 공정 프로세스를 위한 헬퍼 함수들
@@ -74,6 +73,12 @@ function getProcessByKey(key) {
 function getProcessByName(name) {
   const allProcesses = getAllProcesses();
   return allProcesses.find(p => p.name === name);
+}
+
+// 언어에 따른 공정명 가져오기
+function getProcessName(process, lang = 'ko') {
+  if (!process) return '';
+  return lang === 'en' ? (process.name_en || process.name) : process.name;
 }
 
 // 날짜 계산 유틸리티
@@ -159,6 +164,7 @@ export {
   getAllProcesses,
   getProcessByKey,
   getProcessByName,
+  getProcessName,
   addDays,
   dateDiffInDays,
   calculateProcessSchedule

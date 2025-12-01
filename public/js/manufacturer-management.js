@@ -1,8 +1,9 @@
 // 생산업체 관리 페이지 (Suppliers 컬렉션 사용)
-import { UIUtils } from './utils.js';
+import { UIUtils, ExcelUtils } from './utils.js';
 import { 
   getAllSuppliers, 
-  addSupplier, 
+  addSupplier,
+  addSupplierWithUsername,
   updateSupplier
 } from './firestore-service.js';
 
@@ -14,21 +15,33 @@ export async function renderManufacturerManagement(container) {
   container.innerHTML = `
     <div class="manufacturer-management">
       <!-- 헤더 -->
-      <div class="flex justify-between items-center mb-6">
+      <div class="flex justify-between items-center mb-3">
         <div>
-          <h2 class="text-2xl font-bold text-gray-800">생산업체 관리</h2>
-          <p class="text-sm text-gray-500 mt-1">생산업체 정보를 등록하고 관리합니다</p>
+          <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
+          <p class="text-xs text-gray-500 mt-0.5">생산업체 정보를 등록하고 관리합니다</p>
         </div>
-        <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200">
-          <i class="fas fa-plus mr-2"></i>업체 추가
-        </button>
+        <div class="space-x-2">
+          <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
+            <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
+          </button>
+          <button id="upload-btn" class="bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm">
+            <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
+          </button>
+          <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
+          <button id="download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+            <i class="fas fa-download mr-1"></i>엑셀 다운로드
+          </button>
+          <button id="add-manufacturer-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition duration-200 text-sm">
+            <i class="fas fa-plus mr-1"></i>업체 추가
+          </button>
+        </div>
       </div>
 
       <!-- 테이블 -->
-      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div class="overflow-x-auto">
+      <div class="bg-white rounded-xl shadow-lg p-3">
+        <div class="overflow-auto" style="max-height: calc(100vh - 180px);">
           <table class="w-full text-xs border-collapse" style="white-space: nowrap;">
-            <thead class="bg-gray-50 border-b border-gray-200">
+            <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 40px;">NO.</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 120px;">업체명</th>
@@ -155,34 +168,18 @@ export async function renderManufacturerManagement(container) {
           <!-- 공정 리드타임 (일수) -->
           <div class="border-b pb-4">
             <h4 class="text-md font-semibold text-gray-700 mb-4">공정별 리드타임 (일수)</h4>
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">원단 어퍼</label>
-                <input type="number" id="leadTime_material_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <label class="block text-xs font-medium text-gray-700 mb-1">자재</label>
+                <input type="number" id="leadTime_material" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">원단 솔</label>
-                <input type="number" id="leadTime_material_sole" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">핸도컨펌</label>
+                <label class="block text-xs font-medium text-gray-700 mb-1">한도CFM</label>
                 <input type="number" id="leadTime_hando_cfm" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">단절</label>
-                <input type="number" id="leadTime_cutting" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">갑피제작</label>
-                <input type="number" id="leadTime_upper_making" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">조립</label>
-                <input type="number" id="leadTime_assembly" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">자체검수</label>
-                <input type="number" id="leadTime_self_inspection" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <label class="block text-xs font-medium text-gray-700 mb-1">제갑&조립</label>
+                <input type="number" id="leadTime_cutting_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">공장출고</label>
@@ -225,6 +222,20 @@ export async function renderManufacturerManagement(container) {
 
 // 이벤트 리스너 등록
 function attachEventListeners() {
+  // 템플릿 다운로드 버튼
+  document.getElementById('template-btn')?.addEventListener('click', downloadTemplate);
+  
+  // 엑셀 업로드 버튼
+  document.getElementById('upload-btn')?.addEventListener('click', () => {
+    document.getElementById('excel-uploader').click();
+  });
+  
+  // 엑셀 다운로드 버튼
+  document.getElementById('download-excel-btn')?.addEventListener('click', downloadSuppliersAsExcel);
+  
+  // 엑셀 업로더
+  document.getElementById('excel-uploader')?.addEventListener('change', handleExcelUpload);
+  
   // 업체 추가 버튼
   document.getElementById('add-manufacturer-btn').addEventListener('click', () => {
     openModal();
@@ -341,6 +352,7 @@ function openModal(id = null) {
 
     const supplier = suppliers.find(s => s.id === id);
     if (supplier) {
+      // 수정 모드에서도 업체명 변경 가능 (문서 ID는 username이므로)
       document.getElementById('name').value = supplier.name || '';
       document.getElementById('location').value = supplier.location || supplier.country || '';
       document.getElementById('contact').value = supplier.contact || '';
@@ -357,13 +369,10 @@ function openModal(id = null) {
 
       // 리드타임 값 설정
       if (supplier.leadTimes) {
-        document.getElementById('leadTime_material_upper').value = supplier.leadTimes.material_upper || '';
-        document.getElementById('leadTime_material_sole').value = supplier.leadTimes.material_sole || '';
+        document.getElementById('leadTime_material').value = supplier.leadTimes.material || '';
         document.getElementById('leadTime_hando_cfm').value = supplier.leadTimes.hando_cfm || '';
-        document.getElementById('leadTime_cutting').value = supplier.leadTimes.cutting || '';
-        document.getElementById('leadTime_upper_making').value = supplier.leadTimes.upper_making || '';
-        document.getElementById('leadTime_assembly').value = supplier.leadTimes.assembly || '';
-        document.getElementById('leadTime_self_inspection').value = supplier.leadTimes.self_inspection || '';
+        document.getElementById('leadTime_cutting_upper').value = supplier.leadTimes.cutting_upper || '';
+
         document.getElementById('leadTime_factory_shipment').value = supplier.leadTimes.factory_shipment || '';
         document.getElementById('leadTime_shipping').value = supplier.leadTimes.shipping || '';
         document.getElementById('leadTime_arrival').value = supplier.leadTimes.arrival || '';
@@ -401,13 +410,9 @@ async function saveSupplier() {
       mainItem: document.getElementById('mainItem').value.trim(),
       paymentTerms: document.getElementById('paymentTerms').value.trim(),
       leadTimes: {
-        material_upper: parseInt(document.getElementById('leadTime_material_upper').value) || 0,
-        material_sole: parseInt(document.getElementById('leadTime_material_sole').value) || 0,
+        material: parseInt(document.getElementById('leadTime_material').value) || 0,
         hando_cfm: parseInt(document.getElementById('leadTime_hando_cfm').value) || 0,
-        cutting: parseInt(document.getElementById('leadTime_cutting').value) || 0,
-        upper_making: parseInt(document.getElementById('leadTime_upper_making').value) || 0,
-        assembly: parseInt(document.getElementById('leadTime_assembly').value) || 0,
-        self_inspection: parseInt(document.getElementById('leadTime_self_inspection').value) || 0,
+        cutting_upper: parseInt(document.getElementById('leadTime_cutting_upper').value) || 0,
         factory_shipment: parseInt(document.getElementById('leadTime_factory_shipment').value) || 0,
         shipping: parseInt(document.getElementById('leadTime_shipping').value) || 0,
         arrival: parseInt(document.getElementById('leadTime_arrival').value) || 0
@@ -436,7 +441,12 @@ async function saveSupplier() {
     await loadSuppliers();
   } catch (error) {
     console.error('생산업체 저장 실패:', error);
-    UIUtils.showAlert('저장에 실패했습니다.', 'error');
+    // 중복 등록 오류 처리
+    if (error.message && error.message.includes('이미 등록된 업체')) {
+      UIUtils.showAlert('이미 등록된 업체가 있습니다. 한 계정당 하나의 업체만 등록할 수 있습니다.', 'warning');
+    } else {
+      UIUtils.showAlert('저장에 실패했습니다: ' + error.message, 'error');
+    }
   } finally {
     UIUtils.hideLoading();
   }
@@ -464,6 +474,138 @@ async function deleteCurrentSupplier() {
     UIUtils.showAlert('삭제에 실패했습니다.', 'error');
   } finally {
     UIUtils.hideLoading();
+  }
+}
+
+// 템플릿 다운로드
+function downloadTemplate() {
+  const columns = [
+    'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
+    '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
+    '리드타임_자재', '리드타임_한도CFM', '리드타임_제갑&조립',
+    '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
+  ];
+  
+  ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
+  UIUtils.showAlert('템플릿 다운로드 완료! (username 컬럼은 users 컬렉션의 사용자명을 입력하세요)', 'success');
+}
+
+// 엑셀 다운로드
+function downloadSuppliersAsExcel() {
+  try {
+    if (suppliers.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    const excelData = suppliers.map(supplier => ({
+      'username': supplier.username || supplier.id || '',
+      '업체명': supplier.name || '',
+      '국가': supplier.location || supplier.country || '',
+      '담당자': supplier.contact || '',
+      '이메일': supplier.email || '',
+      '연락처': supplier.phone || '',
+      '상태': supplier.status || '활성',
+      '인도조건': supplier.deliveryTerms || '',
+      '포워딩업체': supplier.forwarder || '',
+      '주요채널': supplier.mainChannel || '',
+      '주요품목': supplier.mainItem || '',
+      '결제조건': supplier.paymentTerms || '',
+      '리드타임_자재': supplier.leadTimes?.material || 0,
+      '리드타임_한도CFM': supplier.leadTimes?.hando_cfm || 0,
+      '리드타임_제갑&조립': supplier.leadTimes?.cutting_upper || 0,
+      '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
+      '리드타임_선적': supplier.leadTimes?.shipping || 0,
+      '리드타임_입고': supplier.leadTimes?.arrival || 0
+    }));
+    
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산업체목록_${timestamp}.xlsx`);
+    UIUtils.showAlert('엑셀 다운로드 완료!', 'success');
+  } catch (error) {
+    console.error('Excel download error:', error);
+    UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// 엑셀 업로드
+async function handleExcelUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  console.log('📤 엑셀 업로드 시작:', file.name);
+  
+  try {
+    UIUtils.showLoading();
+    const data = await ExcelUtils.readExcel(file);
+    
+    console.log('📊 읽어온 데이터:', data);
+    
+    if (!data || data.length === 0) {
+      throw new Error('엑셀 파일이 비어있습니다.');
+    }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    for (let i = 0; i < data.length; i++) {
+      const row = data[i];
+      console.log(`🔍 처리 중 행 ${i + 2}:`, row);
+      
+      try {
+        if (!row['username'] || !row['업체명'] || !row['국가'] || !row['담당자']) {
+          throw new Error('username, 업체명, 국가, 담당자는 필수입니다.');
+        }
+        
+        const supplierData = {
+          name: row['업체명'] || '',
+          location: row['국가'] || '',
+          contact: row['담당자'] || '',
+          email: row['이메일'] || '',
+          phone: row['연락처'] || '',
+          status: row['상태'] || '활성',
+          deliveryTerms: row['인도조건'] || '',
+          forwarder: row['포워딩업체'] || '',
+          mainChannel: row['주요채널'] || '',
+          mainItem: row['주요품목'] || '',
+          paymentTerms: row['결제조건'] || '',
+          leadTimes: {
+            material: parseInt(row['리드타임_자재']) || 0,
+            hando_cfm: parseInt(row['리드타임_한도CFM']) || 0,
+            cutting_upper: parseInt(row['리드타임_제갑&조립']) || parseInt(row['리드타임_재단재갑']) || 0,
+            factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
+            shipping: parseInt(row['리드타임_선적']) || 0,
+            arrival: parseInt(row['리드타임_입고']) || 0
+          }
+        };
+        
+        const username = row['username'];
+        await addSupplierWithUsername(supplierData, username);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        errors.push(`행 ${i + 2}: ${error.message}`);
+        console.error(`Row ${i + 2} error:`, error);
+      }
+    }
+    
+    if (errorCount === 0) {
+      UIUtils.showAlert(`${successCount}건의 생산업체가 성공적으로 등록되었습니다!`, 'success');
+    } else {
+      const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
+      UIUtils.showAlert(message, 'warning');
+    }
+    
+    await loadSuppliers();
+    
+    UIUtils.hideLoading();
+    e.target.value = '';
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('Excel upload error:', error);
+    UIUtils.showAlert(`엑셀 업로드 실패: ${error.message}`, 'error');
+    e.target.value = '';
   }
 }
 

@@ -12,16 +12,19 @@ export async function renderAnalytics(container) {
     allOrders = await getOrdersWithProcesses();
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-800">공정 입고진척 현황</h2>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
+          <p class="text-xs text-gray-500 mt-0.5">생산업체가 등록한 공정별 실제 완료일을 기준으로 각 공정별 목표대비 실적차이 확인을 통해 납기 리스크를 관리합니다</p>
+        </div>           
           <div class="flex space-x-2">
-            <select id="analytics-channel-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 채널</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
             </select>
-            <select id="analytics-status-filter" class="px-3 py-2 border rounded-lg text-sm">
+            <select id="analytics-status-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 상태</option>
               <option value="진행중">진행중</option>
               <option value="지연">지연 발생</option>
@@ -30,8 +33,8 @@ export async function renderAnalytics(container) {
           </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div id="analytics-table-container" class="overflow-x-auto"></div>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 110px);"></div>
         </div>
       </div>
       
@@ -130,42 +133,42 @@ function renderAnalyticsTable(orders) {
   const shippingHeaders = PROCESS_CONFIG.shipping.map(p => p.name);
   
   container.innerHTML = `
-    <table class="w-full text-xs">
-      <thead class="bg-gray-100 sticky top-0">
+    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
         <!-- 메인 헤더 -->
-        <tr class="border-b-2 border-gray-300">
-          <th rowspan="2" class="px-2 py-2 border-r text-center" style="min-width: 40px;">NO.</th>
-          <th colspan="8" class="px-2 py-2 border-r bg-blue-50 text-center">발주 정보</th>
-          <th colspan="${productionHeaders.length}" class="px-2 py-2 border-r bg-green-50 text-center">생산 공정 (일)</th>
-          <th colspan="${shippingHeaders.length}" class="px-2 py-2 border-r bg-yellow-50 text-center">운송 상황 (일)</th>
-          <th colspan="2" class="px-2 py-2 bg-purple-50 text-center">최종 현황</th>
+        <tr>
+          <th rowspan="2" class="px-3 py-2 border" style="min-width: 40px;">NO.</th>
+          <th colspan="8" class="px-3 py-2 border bg-blue-100">발주 정보</th>
+          <th colspan="${productionHeaders.length}" class="px-3 py-2 border bg-green-100">생산 공정 (일)</th>
+          <th colspan="${shippingHeaders.length}" class="px-3 py-2 border bg-yellow-100">운송 상황 (일)</th>
+          <th colspan="2" class="px-3 py-2 bg-purple-100">최종 현황</th>
         </tr>
         
         <!-- 서브 헤더 -->
-        <tr class="border-b-2 border-gray-300">
+        <tr>
           <!-- 발주 정보 -->
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 60px;">채널</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 80px;">생산업체</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 100px;">스타일</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">색상</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 50px;">사이즈</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 60px;">수량</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 90px;">발주일</th>
-          <th class="px-2 py-2 border-r bg-blue-50" style="min-width: 90px;">입고요구일</th>
+          <th class="px-3 py-2 border" style="min-width: 60px;">채널</th>
+          <th class="px-3 py-2 border" style="min-width: 80px;">생산업체</th>
+          <th class="px-3 py-2 border" style="min-width: 100px;">스타일</th>
+          <th class="px-3 py-2 border" style="min-width: 50px;">색상</th>
+          <th class="px-3 py-2 border" style="min-width: 50px;">사이즈</th>
+          <th class="px-3 py-2 border" style="min-width: 60px;">수량</th>
+          <th class="px-3 py-2 border" style="min-width: 90px;">발주일</th>
+          <th class="px-3 py-2 border" style="min-width: 90px;">입고요구일</th>
           
           <!-- 생산 공정 -->
           ${productionHeaders.map(name => `
-            <th class="px-2 py-2 border-r bg-green-50 text-center" style="min-width: 70px;">${name}</th>
+            <th class="px-3 py-2 border" style="min-width: 70px;">${name}</th>
           `).join('')}
           
           <!-- 운송 상황 -->
           ${shippingHeaders.map(name => `
-            <th class="px-2 py-2 border-r bg-yellow-50 text-center" style="min-width: 70px;">${name}</th>
+            <th class="px-3 py-2 border" style="min-width: 70px;">${name}</th>
           `).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-2 py-2 border-r bg-purple-50 text-center" style="min-width: 80px;">최종<br>지연일수</th>
-          <th class="px-2 py-2 bg-purple-50 text-center" style="min-width: 90px;">물류입고<br>예정일</th>
+          <th class="px-3 py-2 border" style="min-width: 80px;">최종<br>지연일수</th>
+          <th class="px-3 py-2" style="min-width: 90px;">물류입고<br>예정일</th>
         </tr>
       </thead>
       <tbody>
@@ -204,17 +207,17 @@ function renderOrderRow(order, rowNum) {
   
   return `
     <tr class="border-b hover:bg-gray-50">
-      <td class="px-2 py-2 text-center border-r">${rowNum}</td>
+      <td class="px-3 py-2 text-center border">${rowNum}</td>
       
       <!-- 발주 정보 -->
-      <td class="px-2 py-2 border-r">${order.channel || '-'}</td>
-      <td class="px-2 py-2 border-r">${order.supplier || '-'}</td>
-      <td class="px-2 py-2 border-r font-medium">${order.style || '-'}</td>
-      <td class="px-2 py-2 border-r">${order.color || '-'}</td>
-      <td class="px-2 py-2 border-r">${order.size || '-'}</td>
-      <td class="px-2 py-2 border-r text-right">${order.qty || 0}</td>
-      <td class="px-2 py-2 border-r">${order.orderDate || '-'}</td>
-      <td class="px-2 py-2 border-r">${order.requiredDelivery || '-'}</td>
+      <td class="px-3 py-2 border">${order.channel || '-'}</td>
+      <td class="px-3 py-2 border">${order.supplier || '-'}</td>
+      <td class="px-3 py-2 border font-medium">${order.style || '-'}</td>
+      <td class="px-3 py-2 border">${order.color || '-'}</td>
+      <td class="px-3 py-2 border">${order.size || '-'}</td>
+      <td class="px-3 py-2 border text-right">${order.qty || 0}</td>
+      <td class="px-3 py-2 border">${order.orderDate || '-'}</td>
+      <td class="px-3 py-2 border">${order.requiredDelivery || '-'}</td>
       
       <!-- 생산 공정 지연일수 -->
       ${PROCESS_CONFIG.production.map(processConfig => {
@@ -229,8 +232,8 @@ function renderOrderRow(order, rowNum) {
       }).join('')}
       
       <!-- 최종 현황 -->
-      <td class="px-2 py-2 border-r text-center ${finalDelayClass}">${finalDelayDays}</td>
-      <td class="px-2 py-2 text-center">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-3 py-2 border text-center ${finalDelayClass}">${finalDelayDays}</td>
+      <td class="px-3 py-2 text-center">${expectedArrivalInfo.date || '-'}</td>
     </tr>
   `;
 }
@@ -297,7 +300,7 @@ function calculateExpectedArrival(order, productionProcesses, shippingProcesses)
 
 function renderProcessCell(order, process, processConfig, category) {
   if (!process) {
-    return `<td class="px-2 py-2 border-r text-center">-</td>`;
+    return `<td class="px-3 py-2 border text-center">-</td>`;
   }
   
   // 지연일수 계산
@@ -340,7 +343,7 @@ function renderProcessCell(order, process, processConfig, category) {
     : '';
   
   return `
-    <td class="px-2 py-2 border-r text-center ${cellClass}" ${clickHandler}>
+    <td class="px-3 py-2 border text-center ${cellClass}" ${clickHandler}>
       ${cellContent}
     </td>
   `;
@@ -388,7 +391,7 @@ window.showProcessDetail = async function(orderId, processId, processKey, catego
   modalContent.innerHTML = `
     <div class="space-y-6">
       <!-- 발주 기본 정보 -->
-      <div class="bg-blue-50 rounded-lg p-4">
+      <div class="bg-blue-100 rounded-lg p-4">
         <h4 class="font-bold text-gray-800 mb-3">📦 발주 정보</h4>
         <div class="grid grid-cols-2 gap-3 text-sm">
           <div>

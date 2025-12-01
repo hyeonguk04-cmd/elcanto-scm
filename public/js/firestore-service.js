@@ -66,14 +66,71 @@ export async function getSupplierByName(supplierName) {
 
 export async function addSupplier(supplierData) {
   try {
-    const docRef = await window.db.collection('suppliers').add({
+    // 현재 로그인한 사용자의 username을 문서 ID로 사용
+    const currentUser = getCurrentUser();
+    console.log('🔍 addSupplier - currentUser:', currentUser);
+    
+    if (!currentUser || !currentUser.username) {
+      console.error('❌ 로그인 정보 없음:', currentUser);
+      throw new Error('로그인 정보를 찾을 수 없습니다.');
+    }
+    
+    const supplierId = currentUser.username;
+    console.log('📝 Supplier ID (username):', supplierId);
+    
+    // 중복 확인 (한 사용자당 하나의 업체만 등록 가능)
+    const existingDoc = await window.db.collection('suppliers').doc(supplierId).get();
+    console.log('🔍 중복 확인:', existingDoc.exists);
+    
+    if (existingDoc.exists) {
+      throw new Error('이미 등록된 업체가 있습니다. 한 계정당 하나의 업체만 등록할 수 있습니다.');
+    }
+    
+    const dataToSave = {
       ...supplierData,
+      username: currentUser.username, // username 필드 명시적 저장
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    console.log('💾 저장할 데이터:', dataToSave);
+    console.log('📍 저장 경로: suppliers/' + supplierId);
+    
+    await window.db.collection('suppliers').doc(supplierId).set(dataToSave);
+    
+    console.log('✅ 업체 등록 완료:', supplierId);
+    return supplierId;
+  } catch (error) {
+    console.error('❌ Error adding supplier:', error);
+    throw error;
+  }
+}
+
+export async function addSupplierWithUsername(supplierData, username) {
+  try {
+    // 엑셀 업로드용: 관리자가 특정 username으로 업체 등록
+    if (!username) {
+      throw new Error('username이 필요합니다.');
+    }
+    
+    const supplierId = username;
+    
+    // 중복 확인
+    const existingDoc = await window.db.collection('suppliers').doc(supplierId).get();
+    if (existingDoc.exists) {
+      throw new Error(`사용자 ${username}의 업체가 이미 등록되어 있습니다.`);
+    }
+    
+    await window.db.collection('suppliers').doc(supplierId).set({
+      ...supplierData,
+      username: username,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    return docRef.id;
+    
+    return supplierId;
   } catch (error) {
-    console.error('Error adding supplier:', error);
+    console.error('Error adding supplier with username:', error);
     throw error;
   }
 }
@@ -130,7 +187,7 @@ export async function addOrder(orderData) {
     const user = getCurrentUser();
     const batch = window.db.batch();
     
-    // 주문 추가
+    // 발주 추가
     const orderRef = window.db.collection('orders').doc();
     batch.set(orderRef, {
       ...orderData,
@@ -240,7 +297,7 @@ export async function deleteOrder(orderId) {
       batch.delete(doc.ref);
     });
     
-    // 주문 삭제
+    // 발주 삭제
     batch.delete(window.db.collection('orders').doc(orderId));
     
     await batch.commit();
@@ -327,6 +384,26 @@ export async function uploadEvidence(orderId, processId, file) {
   }
 }
 
+// 스타일 이미지 업로드 (엑셀에서 추출된 이미지)
+export async function uploadStyleImage(style, imageFile) {
+  try {
+    const timestamp = Date.now();
+    const fileName = `${style}_${timestamp}_${imageFile.name}`;
+    const storageRef = window.storage.ref(`style-images/${fileName}`);
+    
+    // 파일 업로드
+    const uploadTask = await storageRef.put(imageFile);
+    const downloadURL = await uploadTask.ref.getDownloadURL();
+    
+    console.log(`✅ 스타일 이미지 업로드 성공: ${style} -> ${downloadURL}`);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading style image:', error);
+    throw error;
+  }
+}
+
 export async function getEvidencesByOrder(orderId) {
   try {
     const snapshot = await window.db.collection('evidences')
@@ -406,6 +483,7 @@ export default {
   getSupplierById,
   getSupplierByName,
   addSupplier,
+  addSupplierWithUsername,
   updateSupplier,
   getAllOrders,
   getOrdersBySupplier,
@@ -415,6 +493,7 @@ export default {
   getProcessesByOrder,
   updateProcess,
   uploadEvidence,
+  uploadStyleImage,
   getEvidencesByOrder,
   getOrdersWithProcesses,
   listenToOrders,

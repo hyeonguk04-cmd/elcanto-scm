@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess } from './firestore-service.js';
+import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
@@ -25,31 +25,45 @@ export async function renderOrderManagement(container) {
     });
     
     container.innerHTML = `
-      <div class="space-y-6">
+      <div class="space-y-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <h2 class="text-2xl font-bold text-gray-800">생산 목표일정 수립</h2>
+        <div>
+          <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
+          <p class="text-xs text-gray-500 mt-0.5">승인된 발주 정보를 기준으로 생산 공정별 목표 일정을 수립합니다. 입고요구일과 입고예정일 차이를 확인해 주세요</p>
+        </div>     
           <div class="space-x-2">
-            <button id="template-btn" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
-              <i class="fas fa-file-download mr-2"></i>템플릿 다운로드
+            <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
+              <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>
-            <button id="upload-btn" class="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700">
-              <i class="fas fa-file-excel mr-2"></i>엑셀 업로드
+            <button id="upload-btn" class="bg-teal-600 text-white px-3 py-1.5 rounded-md hover:bg-teal-700 text-sm">
+              <i class="fas fa-file-excel mr-1"></i>엑셀 업로드
             </button>
             <input type="file" id="excel-uploader" accept=".xlsx,.xls" class="hidden">
-            <button id="add-row-btn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
-              <i class="fas fa-plus mr-2"></i>행 추가
+            <button id="download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+              <i class="fas fa-download mr-1"></i>엑셀 다운로드
             </button>
-            <button id="save-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-save mr-2"></i>저장
+            <button id="add-row-btn" class="bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 text-sm">
+              <i class="fas fa-plus mr-1"></i>행 추가
             </button>
-            <button id="delete-btn" class="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500 disabled:opacity-50" disabled>
-              <i class="fas fa-trash mr-2"></i>삭제
+            <button id="save-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-save mr-1"></i>저장
+            </button>
+            <button id="delete-btn" class="bg-gray-400 text-white px-3 py-1.5 rounded-md hover:bg-gray-500 disabled:opacity-50 text-sm" disabled>
+              <i class="fas fa-trash mr-1"></i>삭제
             </button>
           </div>
         </div>
         
-        <div class="bg-white rounded-xl shadow-lg p-6">
-          <div id="orders-table"></div>
+        <div class="bg-white rounded-xl shadow-lg p-3">
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
+        </div>
+        
+        <!-- 이미지 확대 팝업 -->
+        <div id="image-popup" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4" style="display: none;">
+          <div class="relative max-w-4xl max-h-full">
+            <button id="close-popup" class="absolute -top-10 right-0 text-white text-2xl hover:text-gray-300">&times;</button>
+            <img id="popup-image" src="" alt="확대 이미지" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
+          </div>
         </div>
       </div>
     `;
@@ -69,13 +83,12 @@ function renderOrdersTable() {
   const headers = createProcessTableHeaders();
   
   tableContainer.innerHTML = `
-    <div class="overflow-x-auto">
-      <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
-        <thead class="bg-gray-50 text-xs uppercase sticky top-0">
+    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
           <tr>
             <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
             <th rowspan="2" class="px-2 py-2 border">번호</th>
-            <th colspan="9" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="10" class="px-2 py-2 border bg-blue-100">발주 정보</th>
             <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">물류입고</th>
@@ -84,9 +97,10 @@ function renderOrdersTable() {
           </tr>
           <tr>
             <th class="px-2 py-2 border">채널</th>
+            <th class="px-2 py-2 border">연도시즌+차수</th>
             <th class="px-2 py-2 border">스타일</th>
+            <th class="px-2 py-2 border">이미지</th>
             <th class="px-2 py-2 border">색상</th>
-            <th class="px-2 py-2 border">사이즈</th>
             <th class="px-2 py-2 border">수량</th>
             <th class="px-2 py-2 border">국가</th>
             <th class="px-2 py-2 border">생산업체</th>
@@ -109,7 +123,6 @@ function renderOrdersTable() {
           ` : orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
         </tbody>
       </table>
-    </div>
   `;
 }
 
@@ -147,6 +160,13 @@ function renderOrderRow(order, rowNum, headers) {
         </select>
       </td>
       
+      <!-- 연도시즌+차수 (직접입력) -->
+      <td class="px-2 py-2 border">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 90px;" 
+               data-order-id="${order.id}" data-field="seasonOrder" value="${order.seasonOrder || ''}" 
+               placeholder="예: 25FW1">
+      </td>
+      
       <!-- 스타일 (직접입력 - 정확히 10자리) -->
       <td class="px-2 py-2 border">
         <input type="text" class="editable-field style-input w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 90px;" 
@@ -155,18 +175,22 @@ function renderOrderRow(order, rowNum, headers) {
                placeholder="10자리">
       </td>
       
+      <!-- 스타일 이미지 -->
+      <td class="px-2 py-2 border text-center">
+        ${order.styleImage ? `
+          <div class="style-image-container relative inline-block">
+            <img src="${order.styleImage}" alt="Style" class="style-image-thumb cursor-pointer rounded border border-gray-300"
+                 style="height: 48px; width: auto; max-width: 200px;"
+                 data-image-url="${order.styleImage}">
+          </div>
+        ` : '<span class="text-gray-400 text-xs">-</span>'}
+      </td>
+      
       <!-- 색상 (직접입력) -->
       <td class="px-2 py-2 border">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 50px;" 
                data-order-id="${order.id}" data-field="color" value="${order.color || ''}" 
                placeholder="색상">
-      </td>
-      
-      <!-- 사이즈 (직접입력) -->
-      <td class="px-2 py-2 border">
-        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 50px;" 
-               data-order-id="${order.id}" data-field="size" value="${order.size || ''}" 
-               placeholder="사이즈">
       </td>
       
       <!-- 수량 (직접입력) -->
@@ -266,8 +290,13 @@ function renderOrderRow(order, rowNum, headers) {
         </td>`;
       })()}
       
-      <!-- 물류입고 (자동 계산 또는 수동 입력) -->
-      <td class="px-2 py-2 border text-center text-xs font-bold" style="min-width: 80px;">${logisticsArrival}</td>
+      <!-- 물류입고 (수동 입력 가능) -->
+      <td class="px-2 py-2 border text-center" style="min-width: 80px;">
+        <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs text-center" 
+               data-order-id="${order.id}" data-field="logisticsArrival" value="${logisticsArrival || ''}"
+               placeholder="YYYY-MM-DD"
+               style="min-width: 95px;">
+      </td>
       
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
@@ -435,12 +464,40 @@ function setupEventListeners() {
   document.getElementById('upload-btn')?.addEventListener('click', () => {
     document.getElementById('excel-uploader').click();
   });
+  document.getElementById('download-excel-btn')?.addEventListener('click', downloadCurrentDataAsExcel);
   document.getElementById('add-row-btn')?.addEventListener('click', addNewRow);
   document.getElementById('save-btn')?.addEventListener('click', saveAllChanges);
   document.getElementById('delete-btn')?.addEventListener('click', deleteSelectedOrders);
   
   // Excel uploader
   document.getElementById('excel-uploader')?.addEventListener('change', handleExcelUpload);
+  
+  // 스타일 이미지 확대 팝업
+  document.querySelectorAll('.style-image-thumb').forEach(img => {
+    img.addEventListener('click', (e) => {
+      const imageUrl = e.target.dataset.imageUrl;
+      const popup = document.getElementById('image-popup');
+      const popupImage = document.getElementById('popup-image');
+      popupImage.src = imageUrl;
+      popup.style.display = 'flex';
+      popup.classList.remove('hidden');
+    });
+  });
+  
+  // 팝업 닫기
+  document.getElementById('close-popup')?.addEventListener('click', () => {
+    const popup = document.getElementById('image-popup');
+    popup.style.display = 'none';
+    popup.classList.add('hidden');
+  });
+  
+  // 팝업 배경 클릭 시 닫기
+  document.getElementById('image-popup')?.addEventListener('click', (e) => {
+    if (e.target.id === 'image-popup') {
+      e.target.style.display = 'none';
+      e.target.classList.add('hidden');
+    }
+  });
 }
 
 function handleCountryChange(countrySelect) {
@@ -478,17 +535,17 @@ async function handleRouteChangeInline(routeSelect) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     
     // 새로운 일정 재계산 (선적경로에 따라 입항 리드타임 변경)
     const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       route: newRoute,
       schedule: newSchedule
@@ -533,7 +590,7 @@ async function handleRouteChangeInline(routeSelect) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -552,18 +609,18 @@ async function handleOrderDateChange(orderId, newOrderDate) {
   try {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      console.error('❌ 주문을 찾을 수 없음:', orderId);
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
       return;
     }
     
-    console.log('📦 기존 주문:', order);
+    console.log('📦 기존 발주:', order);
     console.log('🚢 경로:', order.route);
     
     // 발주일 변경 시 전체 공정 일정 재계산
     const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 주문 업데이트
+    // 발주 업데이트
     await updateOrder(orderId, {
       orderDate: newOrderDate,
       schedule: newSchedule
@@ -601,7 +658,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
-    console.log('🔄 주문 목록 새로고침 완료');
+    console.log('🔄 발주 목록 새로고침 완료');
     
     renderOrdersTable();
     setupEventListeners();
@@ -682,13 +739,14 @@ function addNewRow() {
   const tempId = 'new_' + Date.now();
   console.log('🆔 새 행 ID:', tempId);
   
-  // 빈 주문 객체 생성
+  // 빈 발주 객체 생성
   const newOrder = {
     id: tempId,
     channel: MASTER_DATA.channels[0],
+    seasonOrder: '',
     style: '',
+    styleImage: '',
     color: '',
-    size: '',
     qty: 0,
     country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
     supplier: SUPPLIERS_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
@@ -699,7 +757,7 @@ function addNewRow() {
     notes: ''
   };
   
-  console.log('📝 새 주문 객체:', newOrder);
+  console.log('📝 새 발주 객체:', newOrder);
   
   // 기본 일정 계산
   newOrder.schedule = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);
@@ -749,9 +807,9 @@ async function saveAllChanges() {
         
         const updatedData = {
           channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
+          seasonOrder: row.querySelector('[data-field="seasonOrder"]')?.value || order.seasonOrder || '',
           style: row.querySelector('[data-field="style"]')?.value || order.style || '',
           color: row.querySelector('[data-field="color"]')?.value || order.color || '',
-          size: row.querySelector('[data-field="size"]')?.value || order.size || '',
           qty: parseInt(row.querySelector('[data-field="qty"]')?.value) || order.qty || 0,
           country: row.querySelector('[data-field="country"]')?.value || order.country || '',
           supplier: row.querySelector('[data-field="supplier"]')?.value || order.supplier || '',
@@ -807,12 +865,96 @@ async function saveAllChanges() {
 function downloadTemplate() {
   // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
   const basicColumns = [
-    '채널', '스타일', '색상', '사이즈', '수량',
+    '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
     '국가', '생산업체', '발주일', '입고요구일', '선적경로'
   ];
   
   ExcelUtils.downloadTemplate(basicColumns, 'elcanto_order_template.xlsx');
   UIUtils.showAlert('템플릿 다운로드 완료! 필수 항목만 입력하면 공정 날짜가 자동 계산됩니다.', 'success');
+}
+
+function downloadCurrentDataAsExcel() {
+  try {
+    if (orders.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    // 헤더 생성
+    const headers = createProcessTableHeaders();
+    const excelHeaders = [
+      '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
+      '국가', '생산업체', '발주일', '입고요구일'
+    ];
+    
+    // 생산 공정 헤더 추가
+    headers.production.forEach(h => {
+      excelHeaders.push(h.name);
+    });
+    
+    // 운송 헤더 추가
+    excelHeaders.push('선적', '선적경로', '입항', '물류입고', '입고기준 예상차이', '비고');
+    
+    // 데이터 변환
+    const excelData = orders.map(order => {
+      const row = {
+        '채널': order.channel || '',
+        '연도시즌+차수': order.seasonOrder || '',
+        '스타일': order.style || '',
+        '스타일이미지': order.styleImage || '',
+        '색상': order.color || '',
+        '수량': order.qty || 0,
+        '국가': order.country || '',
+        '생산업체': order.supplier || '',
+        '발주일': order.orderDate || '',
+        '입고요구일': order.requiredDelivery || ''
+      };
+      
+      // 생산 공정 데이터 추가
+      headers.production.forEach(h => {
+        const process = order.schedule.production.find(p => p.processKey === h.key);
+        row[h.name] = process?.targetDate || '';
+      });
+      
+      // 운송 데이터 추가
+      const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
+      const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
+      
+      row['선적'] = shippingProcess?.targetDate || '';
+      row['선적경로'] = order.route || '';
+      row['입항'] = arrivalProcess?.targetDate || '';
+      
+      // 물류입고일 계산
+      const logisticsArrival = arrivalProcess?.targetDate 
+        ? DateUtils.addDays(arrivalProcess.targetDate, 2)
+        : '';
+      row['물류입고'] = logisticsArrival;
+      
+      // 입고기준 예상차이 계산
+      if (order.requiredDelivery && logisticsArrival) {
+        const diff = DateUtils.diffInDays(order.requiredDelivery, logisticsArrival);
+        if (diff !== null) {
+          row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+        } else {
+          row['입고기준 예상차이'] = '';
+        }
+      } else {
+        row['입고기준 예상차이'] = '';
+      }
+      
+      row['비고'] = order.notes || '';
+      
+      return row;
+    });
+    
+    // 엑셀 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산목표일정_${timestamp}.xlsx`);
+    UIUtils.showAlert('엑셀 다운로드 완료!', 'success');
+  } catch (error) {
+    console.error('Excel download error:', error);
+    UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
 }
 
 async function handleExcelUpload(e) {
@@ -823,13 +965,48 @@ async function handleExcelUpload(e) {
   
   try {
     UIUtils.showLoading();
-    const data = await ExcelUtils.readExcel(file);
+    
+    // 엑셀 데이터와 이미지를 함께 읽기
+    const { data, images } = await ExcelUtils.readExcelWithImages(file);
     
     console.log('📊 읽어온 데이터:', data);
     console.log('📊 데이터 행 수:', data?.length);
+    console.log('🖼️ 추출된 이미지 수:', images?.length);
     
     if (!data || data.length === 0) {
       throw new Error('엑셀 파일이 비어있습니다.');
+    }
+    
+    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성
+    const imageUrlMap = {};
+    if (images && images.length > 0) {
+      console.log(`🖼️ 이미지 업로드 시작... (총 ${images.length}개)`);
+      console.log(`📊 데이터 행 수: ${data.length}`);
+      
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        console.log(`\n📤 이미지 ${i + 1}/${images.length} 업로드 중...`);
+        console.log(`  - 파일명: ${image.name}`);
+        console.log(`  - 크기: ${image.file.size} bytes`);
+        console.log(`  - 타입: ${image.file.type}`);
+        
+        try {
+          // 이미지를 업로드하고 URL 받기
+          // 이미지는 순서대로 매핑 (image1 -> row 1, image2 -> row 2, ...)
+          const style = data[i]?.['스타일'] || `style_${i + 1}`;
+          console.log(`  - 연결 스타일: ${style} (행 ${i + 1})`);
+          
+          const imageUrl = await uploadStyleImage(style, image.file);
+          imageUrlMap[i] = imageUrl;
+          console.log(`  ✅ 업로드 완료: ${imageUrl}`);
+        } catch (error) {
+          console.error(`  ❌ 이미지 ${i + 1} 업로드 실패:`, error);
+        }
+      }
+      
+      console.log(`\n✅ 이미지 업로드 완료. 매핑된 이미지 수: ${Object.keys(imageUrlMap).length}`);
+    } else {
+      console.log('ℹ️ 업로드할 이미지가 없습니다.');
     }
     
     let successCount = 0;
@@ -852,11 +1029,23 @@ async function handleExcelUpload(e) {
           route
         );
         
+        // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
+        let styleImageUrl = row['스타일이미지'] || '';
+        if (!styleImageUrl && imageUrlMap[i]) {
+          styleImageUrl = imageUrlMap[i];
+          console.log(`  🔗 행 ${i + 2}에 추출된 이미지 연결: ${styleImageUrl}`);
+        } else if (styleImageUrl) {
+          console.log(`  🔗 행 ${i + 2}에 URL 이미지 사용: ${styleImageUrl}`);
+        } else {
+          console.log(`  ⚠️ 행 ${i + 2}에 이미지 없음`);
+        }
+        
         const orderData = {
           channel: row['채널'] || '',
+          seasonOrder: row['연도시즌+차수'] || '',
           style: row['스타일'] || '',
+          styleImage: styleImageUrl,
           color: row['색상'] || '',
-          size: row['사이즈'] || '',
           qty: row['수량'] || 0,
           country: row['국가'] || '',
           supplier: row['생산업체'] || '',
@@ -878,7 +1067,7 @@ async function handleExcelUpload(e) {
     }
     
     if (errorCount === 0) {
-      UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!`, 'success');
+      UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!${images.length > 0 ? ` (이미지 ${images.length}개 업로드)` : ''}`, 'success');
     } else {
       const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
       UIUtils.showAlert(message, 'warning');
