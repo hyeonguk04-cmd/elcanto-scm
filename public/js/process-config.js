@@ -4,8 +4,7 @@ const PROCESS_CONFIG = {
   production: [
     { name: '자재', name_en: 'Material', key: 'material', defaultLeadTime: 7 },
     { name: '한도CFM', name_en: 'Hando CFM', key: 'hando_cfm', defaultLeadTime: 2 },
-    { name: '재단재갑', name_en: 'Cutting & Upper Making', key: 'cutting_upper', defaultLeadTime: 13 },
-    { name: '조립', name_en: 'Assembly (Lasting)', key: 'assembly', defaultLeadTime: 7 },
+    { name: '제갑&조립', name_en: 'Upper Making & Assembly', key: 'cutting_upper', defaultLeadTime: 20 },
     { name: '공장출고', name_en: 'Factory Shipment', key: 'factory_shipment', defaultLeadTime: 3 }
   ],
   shipping: [
