@@ -178,12 +178,8 @@ export async function renderManufacturerManagement(container) {
                 <input type="number" id="leadTime_hando_cfm" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">재단재갑</label>
+                <label class="block text-xs font-medium text-gray-700 mb-1">제갑&조립</label>
                 <input type="number" id="leadTime_cutting_upper" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-gray-700 mb-1">조립</label>
-                <input type="number" id="leadTime_assembly" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">공장출고</label>
@@ -376,7 +372,7 @@ function openModal(id = null) {
         document.getElementById('leadTime_material').value = supplier.leadTimes.material || '';
         document.getElementById('leadTime_hando_cfm').value = supplier.leadTimes.hando_cfm || '';
         document.getElementById('leadTime_cutting_upper').value = supplier.leadTimes.cutting_upper || '';
-        document.getElementById('leadTime_assembly').value = supplier.leadTimes.assembly || '';
+
         document.getElementById('leadTime_factory_shipment').value = supplier.leadTimes.factory_shipment || '';
         document.getElementById('leadTime_shipping').value = supplier.leadTimes.shipping || '';
         document.getElementById('leadTime_arrival').value = supplier.leadTimes.arrival || '';
@@ -417,7 +413,6 @@ async function saveSupplier() {
         material: parseInt(document.getElementById('leadTime_material').value) || 0,
         hando_cfm: parseInt(document.getElementById('leadTime_hando_cfm').value) || 0,
         cutting_upper: parseInt(document.getElementById('leadTime_cutting_upper').value) || 0,
-        assembly: parseInt(document.getElementById('leadTime_assembly').value) || 0,
         factory_shipment: parseInt(document.getElementById('leadTime_factory_shipment').value) || 0,
         shipping: parseInt(document.getElementById('leadTime_shipping').value) || 0,
         arrival: parseInt(document.getElementById('leadTime_arrival').value) || 0
@@ -487,8 +482,8 @@ function downloadTemplate() {
   const columns = [
     'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
-    '리드타임_자재', '리드타임_한도CFM', '리드타임_재단재갑',
-    '리드타임_조립', '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
+    '리드타임_자재', '리드타임_한도CFM', '리드타임_제갑&조립',
+    '리드타임_공장출고', '리드타임_선적', '리드타임_입고'
   ];
   
   ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
@@ -518,8 +513,7 @@ function downloadSuppliersAsExcel() {
       '결제조건': supplier.paymentTerms || '',
       '리드타임_자재': supplier.leadTimes?.material || 0,
       '리드타임_한도CFM': supplier.leadTimes?.hando_cfm || 0,
-      '리드타임_재단재갑': supplier.leadTimes?.cutting_upper || 0,
-      '리드타임_조립': supplier.leadTimes?.assembly || 0,
+      '리드타임_제갑&조립': supplier.leadTimes?.cutting_upper || 0,
       '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
       '리드타임_선적': supplier.leadTimes?.shipping || 0,
       '리드타임_입고': supplier.leadTimes?.arrival || 0
@@ -579,8 +573,7 @@ async function handleExcelUpload(e) {
           leadTimes: {
             material: parseInt(row['리드타임_자재']) || 0,
             hando_cfm: parseInt(row['리드타임_한도CFM']) || 0,
-            cutting_upper: parseInt(row['리드타임_재단재갑']) || 0,
-            assembly: parseInt(row['리드타임_조립']) || 0,
+            cutting_upper: parseInt(row['리드타임_제갑&조립']) || parseInt(row['리드타임_재단재갑']) || 0,
             factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
             shipping: parseInt(row['리드타임_선적']) || 0,
             arrival: parseInt(row['리드타임_입고']) || 0

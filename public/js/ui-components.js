@@ -94,7 +94,7 @@ export function createProcessTableHeaders() {
   const processes = getAllProcesses();
   
   // 새로운 공정 구조에 맞게 업데이트
-  const productionKeys = ['material', 'hando_cfm', 'cutting_upper', 'assembly', 'factory_shipment'];
+  const productionKeys = ['material', 'hando_cfm', 'cutting_upper', 'factory_shipment'];
   const shippingKeys = ['shipping', 'arrival'];
   
   const production = processes.filter(p => productionKeys.includes(p.key));
