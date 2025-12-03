@@ -64,6 +64,27 @@ export async function getSupplierByName(supplierName) {
   }
 }
 
+export async function getSuppliersByCountry() {
+  try {
+    const suppliers = await getAllSuppliers();
+    
+    // 국가별로 그룹화
+    const suppliersByCountry = {};
+    suppliers.forEach(supplier => {
+      const country = supplier.location || supplier.country || '기타';
+      if (!suppliersByCountry[country]) {
+        suppliersByCountry[country] = [];
+      }
+      suppliersByCountry[country].push(supplier.name);
+    });
+    
+    return suppliersByCountry;
+  } catch (error) {
+    console.error('Error getting suppliers by country:', error);
+    throw error;
+  }
+}
+
 export async function addSupplier(supplierData) {
   try {
     // 현재 로그인한 사용자의 username을 문서 ID로 사용
@@ -482,6 +503,7 @@ export default {
   getAllSuppliers,
   getSupplierById,
   getSupplierByName,
+  getSuppliersByCountry,
   addSupplier,
   addSupplierWithUsername,
   updateSupplier,

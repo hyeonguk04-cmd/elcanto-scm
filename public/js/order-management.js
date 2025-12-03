@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage } from './firestore-service.js';
+import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
@@ -13,10 +13,16 @@ let orders = [];
 let selectedOrderIds = new Set();
 let originalOrders = {}; // 원본 데이터 저장 (변경 감지용)
 let hasUnsavedChanges = false;
+let dynamicSuppliersByCountry = {}; // Firebase에서 가져온 동적 생산업체 목록
 
 export async function renderOrderManagement(container) {
   try {
     UIUtils.showLoading();
+    
+    // Firebase에서 생산업체 목록 동적 로드
+    dynamicSuppliersByCountry = await getSuppliersByCountry();
+    console.log('동적 생산업체 목록 로드:', dynamicSuppliersByCountry);
+    
     orders = await getOrdersWithProcesses();
     
     // 원본 데이터 저장
@@ -213,7 +219,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border">
         <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 70px;" 
                 data-order-id="${order.id}" data-field="supplier" data-country="${order.country}">
-          ${(SUPPLIERS_BY_COUNTRY[order.country] || []).map(sup => 
+          ${(dynamicSuppliersByCountry[order.country] || []).map(sup => 
             `<option value="${sup}" ${order.supplier === sup ? 'selected' : ''}>${sup}</option>`
           ).join('')}
         </select>
@@ -508,7 +514,7 @@ function handleCountryChange(countrySelect) {
   // 해당 행의 supplier select 업데이트
   const supplierSelect = row.querySelector('.supplier-select');
   if (supplierSelect) {
-    const suppliers = SUPPLIERS_BY_COUNTRY[newCountry] || [];
+    const suppliers = dynamicSuppliersByCountry[newCountry] || [];
     supplierSelect.innerHTML = suppliers.map(sup => 
       `<option value="${sup}">${sup}</option>`
     ).join('');
