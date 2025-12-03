@@ -84,7 +84,7 @@ export async function renderManufacturerManagement(container) {
               <!-- Username (사용자 ID) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Username (사용자 ID) <span class="text-red-500">*</span></label>
-                <input type="text" id="username" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="예: shengan">
+                <input type="text" id="supplier-username" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="예: shengan">
                 <p class="text-xs text-gray-500 mt-1">users 컬렉션에 등록된 username과 일치해야 합니다</p>
               </div>
 
@@ -360,7 +360,7 @@ function openModal(id = null) {
     const supplier = suppliers.find(s => s.id === id);
     if (supplier) {
       // 수정 모드에서 username은 읽기 전용 (문서 ID이므로 변경 불가)
-      const usernameField = document.getElementById('username');
+      const usernameField = document.getElementById('supplier-username');
       usernameField.value = supplier.username || supplier.id || '';
       usernameField.readOnly = true;
       usernameField.classList.add('bg-gray-100', 'cursor-not-allowed');
@@ -396,7 +396,7 @@ function openModal(id = null) {
     deleteBtn.classList.add('hidden');
     
     // 추가 모드에서 username 필드 활성화
-    const usernameField = document.getElementById('username');
+    const usernameField = document.getElementById('supplier-username');
     usernameField.readOnly = false;
     usernameField.classList.remove('bg-gray-100', 'cursor-not-allowed');
   }
@@ -414,7 +414,7 @@ function closeModal() {
 // 생산업체 저장
 async function saveSupplier() {
   try {
-    const username = document.getElementById('username').value.trim();
+    const username = document.getElementById('supplier-username').value.trim();
     const supplierData = {
       name: document.getElementById('name').value.trim(),
       location: document.getElementById('location').value,
