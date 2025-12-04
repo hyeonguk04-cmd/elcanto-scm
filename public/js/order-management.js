@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry } from './firestore-service.js';
+import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
@@ -352,6 +352,19 @@ function setupEventListeners() {
         markAsChanged(e.target.dataset.orderId);
       });
     } 
+    // Supplier 변경 시 일정 재계산 (리드타임 반영)
+    else if (field.classList.contains('supplier-select')) {
+      field.addEventListener('change', async (e) => {
+        const orderId = e.target.dataset.orderId;
+        const order = orders.find(o => o.id === orderId);
+        if (order && order.orderDate) {
+          console.log('🏭 생산업체 변경됨:', e.target.value);
+          await handleOrderDateChange(orderId, order.orderDate);
+        } else {
+          markAsChanged(orderId);
+        }
+      });
+    }
     // Route 변경 시 일정 재계산
     else if (field.classList.contains('route-select')) {
       field.addEventListener('change', (e) => {
@@ -621,9 +634,26 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     console.log('📦 기존 발주:', order);
     console.log('🚢 경로:', order.route);
+    console.log('🏭 생산업체:', order.supplier);
     
-    // 발주일 변경 시 전체 공정 일정 재계산
-    const newSchedule = calculateProcessSchedule(newOrderDate, null, order.route);
+    // 생산업체 정보 가져오기 (리드타임 포함)
+    let supplierLeadTimes = null;
+    if (order.supplier) {
+      try {
+        const supplier = await getSupplierByName(order.supplier);
+        if (supplier && supplier.leadTimes) {
+          supplierLeadTimes = supplier.leadTimes;
+          console.log('✅ 생산업체 리드타임 로드:', supplierLeadTimes);
+        } else {
+          console.warn('⚠️ 생산업체 리드타임 없음, 기본값 사용');
+        }
+      } catch (error) {
+        console.warn('⚠️ 생산업체 정보 가져오기 실패, 기본 리드타임 사용:', error);
+      }
+    }
+    
+    // 발주일 변경 시 전체 공정 일정 재계산 (생산업체 리드타임 반영)
+    const newSchedule = calculateProcessSchedule(newOrderDate, supplierLeadTimes, order.route);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 발주 업데이트
