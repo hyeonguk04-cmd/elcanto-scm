@@ -43,22 +43,58 @@ async function renderSupplierDashboard(container, user) {
         <h2 class="text-2xl font-bold text-gray-800">${user.name} ${t('supplierDashboard')}</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">${t('inProgress')}</p>
-            <p class="text-3xl font-bold text-blue-600 mt-2">${orders.length} ${t('件')}</p>
+          <!-- 진행중 카드 -->
+          <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-blue-100 font-medium mb-1">${t('inProgress')}</p>
+                <p class="text-4xl font-bold">${orders.length}</p>
+                <p class="text-xs text-blue-100 mt-1">${t('件')}</p>
+              </div>
+              <div class="text-5xl opacity-20">
+                <i class="fas fa-tasks"></i>
+              </div>
+            </div>
           </div>
-          <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">${t('totalQty')}</p>
-            <p class="text-3xl font-bold text-purple-600 mt-2">${totalQty.toLocaleString()} ${t('pieces')}</p>
+          
+          <!-- 총 발주량 카드 -->
+          <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-purple-100 font-medium mb-1">${t('totalQty')}</p>
+                <p class="text-4xl font-bold">${totalQty.toLocaleString()}</p>
+                <p class="text-xs text-purple-100 mt-1">${t('pieces')}</p>
+              </div>
+              <div class="text-5xl opacity-20">
+                <i class="fas fa-boxes"></i>
+              </div>
+            </div>
           </div>
-          <div class="bg-white rounded-xl shadow-lg p-6">
-            <p class="text-sm text-gray-500 font-medium">${t('completionRate')}</p>
-            <p class="text-3xl font-bold text-green-600 mt-2">${completionRate}%</p>
+          
+          <!-- 완료율 카드 -->
+          <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-green-100 font-medium mb-1">${t('completionRate')}</p>
+                <p class="text-4xl font-bold">${completionRate}%</p>
+                <div class="w-32 bg-green-200 bg-opacity-30 rounded-full h-2 mt-3">
+                  <div class="bg-white h-2 rounded-full transition-all duration-500" style="width: ${completionRate}%"></div>
+                </div>
+              </div>
+              <div class="text-5xl opacity-20">
+                <i class="fas fa-chart-line"></i>
+              </div>
+            </div>
           </div>
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-6">
-          <h3 class="text-lg font-bold mb-4">${t('recentOrders')}</h3>
+          <div class="flex items-center mb-6">
+            <div class="bg-blue-100 rounded-lg p-3 mr-3">
+              <i class="fas fa-clipboard-list text-blue-600 text-xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-800">${t('recentOrders')}</h3>
+          </div>
           ${orders.length === 0 ? `
             <div class="text-center text-gray-500 py-8">
               <i class="fas fa-inbox text-4xl mb-2"></i>
@@ -67,14 +103,14 @@ async function renderSupplierDashboard(container, user) {
           ` : `
             <div class="overflow-x-auto">
               <table class="min-w-full">
-                <thead class="bg-gray-50">
+                <thead class="bg-gradient-to-r from-blue-600 to-blue-700">
                   <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('style')}</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Color</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('quantity')}</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('orderDate')}</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('requiredDelivery')}</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">${t('processRate')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('style')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Color</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('quantity')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('orderDate')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('requiredDelivery')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('processRate')}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -84,24 +120,35 @@ async function renderSupplierDashboard(container, user) {
                     const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
                     
                     return `
-                      <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 text-sm">
-                          <button class="text-blue-600 hover:text-blue-800 font-medium hover:underline dashboard-style-link"
+                      <tr class="hover:bg-blue-50 transition-colors duration-150 border-b border-gray-100">
+                        <td class="px-4 py-4 text-sm">
+                          <button class="text-blue-600 hover:text-blue-800 font-semibold hover:underline dashboard-style-link flex items-center"
                                   data-order-id="${order.id}"
                                   data-style="${order.style || '-'}">
+                            <i class="fas fa-external-link-alt mr-2 text-xs"></i>
                             ${order.style || '-'}
                           </button>
                         </td>
-                        <td class="px-4 py-3 text-sm">${order.color || '-'}</td>
-                        <td class="px-4 py-3 text-sm">${order.qty || 0}</td>
-                        <td class="px-4 py-3 text-sm">${order.orderDate || '-'}</td>
-                        <td class="px-4 py-3 text-sm">${order.requiredDelivery || '-'}</td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-4 text-sm font-medium text-gray-700">${order.color || '-'}</td>
+                        <td class="px-4 py-4 text-sm">
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            ${order.qty || 0} pcs
+                          </span>
+                        </td>
+                        <td class="px-4 py-4 text-sm text-gray-600">${order.orderDate || '-'}</td>
+                        <td class="px-4 py-4 text-sm text-gray-600">${order.requiredDelivery || '-'}</td>
+                        <td class="px-4 py-4 text-sm">
                           <div class="flex items-center">
-                            <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
-                              <div class="bg-blue-600 h-2 rounded-full" style="width: ${progress}%"></div>
+                            <div class="w-32 bg-gray-200 rounded-full h-2.5 mr-3">
+                              <div class="h-2.5 rounded-full transition-all duration-500 ${
+                                progress === 100 ? 'bg-green-500' : 
+                                progress >= 50 ? 'bg-blue-500' : 'bg-yellow-500'
+                              }" style="width: ${progress}%"></div>
                             </div>
-                            <span class="text-xs text-gray-600">${progress}%</span>
+                            <span class="text-sm font-semibold ${
+                              progress === 100 ? 'text-green-600' : 
+                              progress >= 50 ? 'text-blue-600' : 'text-yellow-600'
+                            }">${progress}%</span>
                           </div>
                         </td>
                       </tr>
@@ -295,7 +342,6 @@ function renderOrderCard(order, index) {
             <div class="flex items-center space-x-4 text-sm text-gray-600">
               <span>Color: <strong>${order.color || '-'}</strong></span>
               <span>${t('quantity')}: <strong>${order.qty || 0} ${t('pieces')}</strong></span>
-              <span>Size: <strong>${order.size || '-'}</strong></span>
               <span>${t('orderDate')}: <strong>${order.orderDate || '-'}</strong></span>
               <span>${t('requiredDelivery')}: <strong>${order.requiredDelivery || '-'}</strong></span>
             </div>
