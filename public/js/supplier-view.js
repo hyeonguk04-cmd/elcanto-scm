@@ -42,48 +42,37 @@ async function renderSupplierDashboard(container, user) {
       <div class="space-y-6">
         <h2 class="text-2xl font-bold text-gray-800">${user.name} ${t('supplierDashboard')}</h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- 진행중 카드 -->
-          <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-blue-100 font-medium mb-1">${t('inProgress')}</p>
-                <p class="text-4xl font-bold">${orders.length}</p>
-                <p class="text-xs text-blue-100 mt-1">${t('件')}</p>
-              </div>
-              <div class="text-5xl opacity-20">
-                <i class="fas fa-tasks"></i>
-              </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- 주문 발주량 카드 -->
+          <div class="bg-blue-50 rounded-lg shadow p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-blue-600 font-medium mb-1">${t('inProgress')}</p>
+              <p class="text-2xl font-bold text-blue-600">${orders.length}${t('件')}</p>
+            </div>
+            <div class="text-3xl text-blue-300">
+              <i class="fas fa-shopping-cart"></i>
             </div>
           </div>
           
-          <!-- 총 발주량 카드 -->
-          <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-purple-100 font-medium mb-1">${t('totalQty')}</p>
-                <p class="text-4xl font-bold">${totalQty.toLocaleString()}</p>
-                <p class="text-xs text-purple-100 mt-1">${t('pieces')}</p>
-              </div>
-              <div class="text-5xl opacity-20">
-                <i class="fas fa-boxes"></i>
-              </div>
+          <!-- 주문 입고량 카드 -->
+          <div class="bg-green-50 rounded-lg shadow p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-green-600 font-medium mb-1">${t('totalQty')}</p>
+              <p class="text-2xl font-bold text-green-600">${totalQty.toLocaleString()}${t('pieces')}</p>
+            </div>
+            <div class="text-3xl text-green-300">
+              <i class="fas fa-box"></i>
             </div>
           </div>
           
-          <!-- 완료율 카드 -->
-          <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform duration-200">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-green-100 font-medium mb-1">${t('completionRate')}</p>
-                <p class="text-4xl font-bold">${completionRate}%</p>
-                <div class="w-32 bg-green-200 bg-opacity-30 rounded-full h-2 mt-3">
-                  <div class="bg-white h-2 rounded-full transition-all duration-500" style="width: ${completionRate}%"></div>
-                </div>
-              </div>
-              <div class="text-5xl opacity-20">
-                <i class="fas fa-chart-line"></i>
-              </div>
+          <!-- 주간 지연건수 카드 -->
+          <div class="bg-red-50 rounded-lg shadow p-4 flex items-center justify-between">
+            <div>
+              <p class="text-xs text-red-600 font-medium mb-1">${t('completionRate')}</p>
+              <p class="text-2xl font-bold text-red-600">${completionRate}%</p>
+            </div>
+            <div class="text-3xl text-red-300">
+              <i class="fas fa-exclamation-triangle"></i>
             </div>
           </div>
         </div>
@@ -103,14 +92,14 @@ async function renderSupplierDashboard(container, user) {
           ` : `
             <div class="overflow-x-auto">
               <table class="min-w-full">
-                <thead class="bg-gradient-to-r from-blue-600 to-blue-700">
+                <thead class="bg-gray-100">
                   <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('style')}</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">Color</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('quantity')}</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('orderDate')}</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('requiredDelivery')}</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">${t('processRate')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${t('style')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Color</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${t('quantity')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${t('orderDate')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${t('requiredDelivery')}</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">${t('processRate')}</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
