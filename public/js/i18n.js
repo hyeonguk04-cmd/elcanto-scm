@@ -89,7 +89,7 @@ const translations = {
     handoConfirm: '핸도 컨펌',
     cutting: '재단',
     upperMaking: '갑피 제작',
-    assembly: '조립',
+
     selfInspection: '자체 검품',
     factoryShipment: '공장 출하',
     shippingProcess: '출하',
@@ -209,7 +209,7 @@ const translations = {
     handoConfirm: 'Hando Confirm',
     cutting: 'Cutting',
     upperMaking: 'Upper Making',
-    assembly: 'Assembly',
+
     selfInspection: 'Self Inspection',
     factoryShipment: 'Factory Shipment',
     shippingProcess: 'Shipping',

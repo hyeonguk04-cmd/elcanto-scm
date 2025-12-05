@@ -375,7 +375,7 @@ function renderOrderCard(order, index) {
         </div>
         
         <!-- 운송 공정 실적 입력 섹션 -->
-        <div class="px-6 py-4 border-t bg-green-50">
+        <div class="px-6 py-4 border-t bg-blue-50">
           <h4 class="text-sm font-bold text-gray-700 mb-3">🚢 ${t('shipping')}</h4>
           <div class="overflow-x-auto">
             <table class="min-w-full">
