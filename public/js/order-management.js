@@ -141,8 +141,12 @@ function renderOrderRow(order, rowNum, headers) {
     shippingCount: order.schedule?.shipping?.length
   });
   
-  // 물류입고 예정일 (마지막 공정의 목표일)
-  const logisticsArrival = order.schedule.shipping[order.schedule.shipping.length - 1]?.targetDate || '-';
+  // 입항일 (운송 공정의 마지막)
+  const arrivalDate = order.schedule.shipping[order.schedule.shipping.length - 1]?.targetDate || '-';
+  
+  // 물류입고일 = 입항일 + 0일 (통상 입항 당일 입고)
+  // 실제 물류입고일은 수동 입력 가능 (세관검사, 운송문제 등으로 지연 가능)
+  const logisticsArrival = order.logisticsArrival || arrivalDate;
   
   // 입고기준 예상차이 계산 (양수면 빨강 - 지연)
   const delayDays = logisticsArrival !== '-' ? DateUtils.diffInDays(order.requiredDelivery, logisticsArrival) : null;
@@ -311,7 +315,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border" style="min-width: 100px;">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                data-order-id="${order.id}" data-field="notes" value="${order.notes || ''}" 
-               placeholder="비고 입력">
+               placeholder="예: 세관검사 지연 +2일">
       </td>
     </tr>
   `;

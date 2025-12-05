@@ -214,10 +214,10 @@ function renderOrderRow(order, rowNum) {
       <td class="px-3 py-2 border">${order.supplier || '-'}</td>
       <td class="px-3 py-2 border font-medium">${order.style || '-'}</td>
       <td class="px-3 py-2 border text-center">
-        ${order.imageUrl ? `
-          <img src="${order.imageUrl}" alt="${order.style}" 
+        ${order.styleImage ? `
+          <img src="${order.styleImage}" alt="${order.style}" 
                class="h-12 w-auto mx-auto cursor-pointer hover:scale-150 transition-transform"
-               onclick="window.open('${order.imageUrl}', '_blank')"
+               onclick="window.open('${order.styleImage}', '_blank')"
                onerror="this.style.display='none'; this.parentElement.innerHTML='-';">
         ` : '-'}
       </td>
