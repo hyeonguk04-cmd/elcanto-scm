@@ -98,8 +98,10 @@ function dateDiffInDays(targetDate, actualDate) {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-// 공정 일정 자동 계산 (표준 리드타임 기준)
+// 공정 일정 자동 계산 (누적 방식)
 function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = null) {
+  console.log('📅 일정 계산 시작:', { orderDate, supplierLeadTimes, route });
+  
   const schedule = {
     production: [],
     shipping: []
@@ -107,9 +109,11 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
   
   let currentDate = orderDate;
   
-  // 생산 공정
+  // 생산 공정 (누적 방식)
   PROCESS_CONFIG.production.forEach(process => {
     const leadTime = (supplierLeadTimes && supplierLeadTimes[process.key]) || process.defaultLeadTime;
+    console.log(`🔧 ${process.name} (${process.key}): 리드타임 ${leadTime}일, supplierLeadTimes[${process.key}] = ${supplierLeadTimes?.[process.key]}`);
+    
     currentDate = addDays(currentDate, leadTime);
     schedule.production.push({
       processKey: process.key,
@@ -121,17 +125,19 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
       delayReason: null,
       leadTime: leadTime
     });
+    console.log(`✅ ${process.name} 목표일: ${currentDate}`);
   });
   
-  // 운송 공정
+  // 운송 공정 (누적 방식 계속)
   PROCESS_CONFIG.shipping.forEach(process => {
-    let leadTime = process.defaultLeadTime;
+    let leadTime = (supplierLeadTimes && supplierLeadTimes[process.key]) || process.defaultLeadTime;
     
     // 입항의 경우 선적 경로에 따라 리드타임 결정
     if (process.key === 'arrival' && route) {
-      leadTime = SHIPPING_LEAD_TIMES[route] || 0;
+      leadTime = SHIPPING_LEAD_TIMES[route] || leadTime;
     }
     
+    console.log(`🚢 ${process.name} (${process.key}): 리드타임 ${leadTime}일`);
     currentDate = addDays(currentDate, leadTime);
     
     const processData = {
@@ -150,6 +156,7 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     }
     
     schedule.shipping.push(processData);
+    console.log(`✅ ${process.name} 목표일: ${currentDate}`);
   });
   
   return schedule;
