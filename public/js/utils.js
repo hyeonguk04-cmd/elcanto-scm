@@ -62,14 +62,16 @@ export const DateUtils = {
     
     // 엑셀 날짜 시리얼 번호를 JavaScript Date로 변환
     // 엑셀은 1900-01-01을 1로 시작 (단, 1900년을 윤년으로 잘못 계산하는 버그 있음)
-    const excelEpoch = new Date(1899, 11, 30); // 1899-12-30
+    // UTC로 계산하여 시간대 문제 방지
+    const excelEpoch = Date.UTC(1899, 11, 30); // 1899-12-30 UTC
     const msPerDay = 86400000;
-    const date = new Date(excelEpoch.getTime() + excelDate * msPerDay);
+    const dateMs = excelEpoch + (excelDate * msPerDay);
+    const date = new Date(dateMs);
     
-    // 로컬 시간대 기준으로 날짜 포맷팅 (UTC 변환 문제 방지)
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    // UTC 기준으로 날짜 포맷팅 (시간대 변환 문제 완전 방지)
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
     
     return `${year}-${month}-${day}`;
   }
