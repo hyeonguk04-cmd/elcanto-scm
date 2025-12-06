@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembly 공정 제거 마이그레이션</title>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+    import { getFirestore, collection, getDocs, doc, updateDoc, deleteDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+    // Firebase 설정 (firebase-config.js에서 가져오기)
+    const firebaseConfig = {
+      apiKey: "AIzaSyALKVxJ7MQy5lQYEH0gU5-VCIXxK5xGVzE",
+      authDomain: "elcanto-scm.firebaseapp.com",
+      projectId: "elcanto-scm",
+      storageBucket: "elcanto-scm.firebasestorage.app",
+      messagingSenderId: "637249327661",
+      appId: "1:637249327661:web:d4b0c3e0f8e1a9d1e1b7f1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.migrateRemoveAssembly = async function() {
+      const logEl = document.getElementById('log');
+      const progressEl = document.getElementById('progress');
+      
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString('ko-KR');
+        const color = {
+          'info': '#333',
+          'success': '#10b981',
+          'error': '#ef4444',
+          'warning': '#f59e0b'
+        }[type] || '#333';
+        
+        logEl.innerHTML += `<div style="color: ${color}; margin: 4px 0;">[${timestamp}] ${message}</div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      try {
+        log('🚀 Assembly 공정 제거 마이그레이션 시작...', 'info');
+        log('', 'info');
+
+        // 모든 발주 가져오기
+        const ordersSnapshot = await getDocs(collection(db, 'orders'));
+        const totalOrders = ordersSnapshot.size;
+        log(`📦 총 ${totalOrders}개의 발주 건 발견`, 'info');
+        log('', 'info');
+
+        let updatedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+        let current = 0;
+
+        for (const orderDoc of ordersSnapshot.docs) {
+          current++;
+          const orderId = orderDoc.id;
+          const orderData = orderDoc.data();
+          
+          progressEl.textContent = `진행 중: ${current}/${totalOrders} (${Math.round(current/totalOrders*100)}%)`;
+          
+          log(`\n📋 [${current}/${totalOrders}] ${orderId} (스타일: ${orderData.style || 'N/A'})`, 'info');
+
+          try {
+            let hasAssembly = false;
+            let newProduction = [];
+
+            // schedule.production 배열에서 assembly 제거
+            if (orderData.schedule && orderData.schedule.production) {
+              newProduction = orderData.schedule.production.filter(process => {
+                const isAssembly = process.processKey === 'assembly' || 
+                                   process.key === 'assembly' ||
+                                   process.name === '조립' ||
+                                   process.name_en === 'Assembly' ||
+                                   process.name_en === 'Assembly (Lasting)';
+                
+                if (isAssembly) {
+                  log(`  ❌ 제거: ${process.name || process.name_en || 'assembly'}`, 'warning');
+                  hasAssembly = true;
+                  return false;
+                }
+                return true;
+              });
+            }
+
+            // processes 서브컬렉션 확인
+            const processesSnapshot = await getDocs(collection(db, 'orders', orderId, 'processes'));
+            const assemblyProcessDocs = [];
+
+            for (const processDoc of processesSnapshot.docs) {
+              const processData = processDoc.data();
+              const isAssembly = processData.processKey === 'assembly' || 
+                                processData.key === 'assembly' ||
+                                processData.name === '조립';
+              
+              if (isAssembly) {
+                assemblyProcessDocs.push(processDoc);
+                log(`  ❌ 서브컬렉션에서 제거: processes/${processDoc.id}`, 'warning');
+              }
+            }
+
+            // 업데이트 실행
+            if (hasAssembly || assemblyProcessDocs.length > 0) {
+              // 메인 문서 업데이트
+              if (hasAssembly) {
+                await updateDoc(doc(db, 'orders', orderId), {
+                  'schedule.production': newProduction
+                });
+              }
+
+              // 서브컬렉션 문서 삭제
+              for (const processDoc of assemblyProcessDocs) {
+                await deleteDoc(processDoc.ref);
+              }
+
+              log(`  ✅ 업데이트 완료`, 'success');
+              updatedCount++;
+            } else {
+              log(`  ⏭️  Assembly 공정 없음 - 건너뜀`, 'info');
+              skippedCount++;
+            }
+
+          } catch (error) {
+            log(`  ⚠️ 오류: ${error.message}`, 'error');
+            errorCount++;
+          }
+
+          // UI 업데이트를 위한 짧은 대기
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        // 결과 요약
+        log('\n' + '='.repeat(60), 'info');
+        log('📊 마이그레이션 완료!', 'success');
+        log('='.repeat(60), 'info');
+        log(`✅ 업데이트됨: ${updatedCount}건`, 'success');
+        log(`⏭️  건너뜀: ${skippedCount}건`, 'info');
+        log(`❌ 오류: ${errorCount}건`, 'error');
+        log(`📦 전체: ${totalOrders}건`, 'info');
+        log('='.repeat(60), 'info');
+        log('', 'info');
+        log('🎉 마이그레이션이 성공적으로 완료되었습니다!', 'success');
+        log('💡 페이지를 새로고침하여 변경사항을 확인하세요.', 'info');
+
+        progressEl.textContent = `완료! ${updatedCount}건 업데이트됨`;
+        document.getElementById('migrateBtn').disabled = false;
+
+      } catch (error) {
+        log(`\n❌ 마이그레이션 실패: ${error.message}`, 'error');
+        console.error('Migration error:', error);
+        progressEl.textContent = '오류 발생';
+        document.getElementById('migrateBtn').disabled = false;
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1f2937;
+      margin-bottom: 10px;
+    }
+    .warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .info {
+      background: #dbeafe;
+      border-left: 4px solid #3b82f6;
+      padding: 16px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    #log {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 16px;
+      margin-top: 20px;
+      height: 500px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    #progress {
+      margin: 16px 0;
+      font-weight: 600;
+      color: #3b82f6;
+    }
+    ul {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    li {
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Assembly 공정 제거 마이그레이션</h1>
+    <p style="color: #6b7280;">Firestore 데이터베이스에서 assembly 공정을 제거합니다.</p>
+
+    <div class="warning">
+      <strong>⚠️ 주의사항</strong>
+      <ul>
+        <li>이 작업은 <strong>되돌릴 수 없습니다</strong></li>
+        <li>모든 발주 건에서 "조립" 공정이 영구적으로 제거됩니다</li>
+        <li>작업 전에 데이터 백업을 권장합니다</li>
+        <li>마이그레이션 중에는 페이지를 닫지 마세요</li>
+      </ul>
+    </div>
+
+    <div class="info">
+      <strong>ℹ️ 작업 내용</strong>
+      <ul>
+        <li><code>orders</code> 컬렉션의 모든 문서 검사</li>
+        <li><code>schedule.production</code> 배열에서 assembly 공정 제거</li>
+        <li><code>orders/{orderId}/processes</code> 서브컬렉션에서 assembly 문서 삭제</li>
+      </ul>
+    </div>
+
+    <button id="migrateBtn" onclick="this.disabled=true; migrateRemoveAssembly();">
+      🚀 마이그레이션 시작
+    </button>
+
+    <div id="progress"></div>
+
+    <div id="log"></div>
+  </div>
+</body>
+</html>
