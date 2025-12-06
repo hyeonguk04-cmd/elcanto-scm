@@ -271,7 +271,7 @@ export function renderUserManual() {
                 <li>• <strong>자동 계산</strong>: 입고요구일 기준으로 역산하여 각 공정별 목표일 자동 계산</li>
                 <li>• <strong>수동 조정</strong>: 각 공정의 목표일을 개별적으로 수정 가능</li>
                 <li>• <strong>리드타임 기반</strong>: 공정별 기본 리드타임이 적용됩니다</li>
-                <li>• 공정: 원단(갑피/창), 핸도 컨펌, 재단, 갑피 제작, 조립, 자체 검품, 공장 출하, 출하, 입고</li>
+                <li>• 공정: 자재, 한도CFM, 제갑&조립, 공장출고, 선적, 입항</li>
               </ul>
             </div>
 

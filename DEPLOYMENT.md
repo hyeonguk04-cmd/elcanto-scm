@@ -13,23 +13,17 @@ ELCANTO SCM Portal이 성공적으로 개발되었습니다!
 - 프로젝트 디렉토리 구조 확립
 
 #### ✅ 2. 공정 프로세스 재정의
-새로운 12단계 공정 구조:
+새로운 6단계 공정 구조:
 
-**생산 공정 (9단계)**:
-1. 자재(어퍼) - Material (Upper)
-2. 자재(저부) - Material (Sole)
-3. 한도CFM - Hando CFM
-4. 재단 - Cutting
-5. 제갑 - Upper Making
-6. 조립 - Assembly (Lasting)
-7. 자체검사 - Self Inspection (기존 중간검사)
-8. 완성검사 - Final Inspection
-9. 공장출고 - Factory Shipment
+**생산 공정 (4단계)**:
+1. 자재 - Material
+2. 한도CFM - Hando CFM
+3. 제갑&조립 - Upper Making & Assembly
+4. 공장출고 - Factory Shipment
 
-**운송 공정 (3단계)**:
-10. 선적 - Shipping
-11. 입항 - Arrival
-12. 물류입고 - Logistics Arrival
+**운송 공정 (2단계)**:
+5. 선적 - Shipping
+6. 입항 - Arrival
 
 **변경사항**:
 - ➕ 추가: 자재(어퍼), 자재(저부), 한도CFM, 재단, 완성검사, 물류입고
