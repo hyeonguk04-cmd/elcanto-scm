@@ -107,6 +107,8 @@ const translations = {
     notUploaded: '미등록',
     uploadFirst: '실제 완료일을 먼저 입력하세요',
     reason: '차이원인 등 필요사항 기재',
+    days: '차이 일수',
+    delayReason: '원인',
     
     // 발주 관리
     orders: '발주',
@@ -227,6 +229,8 @@ const translations = {
     notUploaded: 'Not Uploaded',
     uploadFirst: 'Please enter actual date first',
     reason: 'Enter reason for delay or notes',
+    days: 'Days',
+    delayReason: 'Reason',
     
     // Order Management
     orders: 'Orders',

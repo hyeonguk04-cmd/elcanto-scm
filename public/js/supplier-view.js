@@ -362,9 +362,9 @@ function renderOrderCard(order, index) {
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">${t('processName')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('targetDate')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('actualDate')}</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">Days</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">${t('days')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">${t('proofPhoto')}</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">Reason</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">${t('delayReason')}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -375,7 +375,7 @@ function renderOrderCard(order, index) {
         </div>
         
         <!-- 운송 공정 실적 입력 섹션 -->
-        <div class="px-6 py-4 border-t bg-blue-50">
+        <div class="px-6 py-4 border-t">
           <h4 class="text-sm font-bold text-gray-700 mb-3">🚢 ${t('shipping')}</h4>
           <div class="overflow-x-auto">
             <table class="min-w-full">
@@ -384,9 +384,9 @@ function renderOrderCard(order, index) {
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 150px;">${t('processName')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('targetDate')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 120px;">${t('actualDate')}</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">Days</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 80px;">${t('days')}</th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-600" style="width: 100px;">${t('proofPhoto')}</th>
-                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">Reason</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-600">${t('delayReason')}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
