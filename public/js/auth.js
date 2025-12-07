@@ -10,6 +10,17 @@ export async function login(username, password) {
   try {
     UIUtils.showLoading();
     
+    // 기존 세션이 있으면 먼저 로그아웃
+    try {
+      const currentAuth = window.auth.currentUser;
+      if (currentAuth) {
+        console.log('🔄 기존 세션 로그아웃 중...');
+        await window.auth.signOut();
+      }
+    } catch (signOutError) {
+      console.warn('⚠️ 기존 세션 로그아웃 실패 (무시):', signOutError);
+    }
+    
     // Firestore에서 사용자 정보 찾기 (username을 문서 ID로 직접 조회)
     const userDoc = await window.db.collection('users').doc(username).get();
     
@@ -60,8 +71,8 @@ export async function login(username, password) {
     
     // Firebase Auth 에러 메시지를 사용자 친화적으로 변환
     let errorMessage = '로그인에 실패했습니다.';
-    if (error.code === 'auth/wrong-password') {
-      errorMessage = '비밀번호가 일치하지 않습니다.';
+    if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-login-credentials') {
+      errorMessage = '아이디 또는 비밀번호가 일치하지 않습니다.';
     } else if (error.code === 'auth/user-not-found') {
       errorMessage = '사용자를 찾을 수 없습니다.';
     } else if (error.code === 'auth/invalid-email') {
@@ -70,7 +81,7 @@ export async function login(username, password) {
       errorMessage = '비활성화된 계정입니다.';
     } else if (error.code === 'auth/too-many-requests') {
       errorMessage = '너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해주세요.';
-    } else if (error.message) {
+    } else if (error.message && !error.message.includes('Firebase:')) {
       errorMessage = error.message;
     }
     
