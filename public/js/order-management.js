@@ -78,7 +78,21 @@ export async function renderOrderManagement(container) {
             <h3 class="text-xl font-bold mb-4">스타일 이미지 업로드</h3>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">이미지 파일 선택</label>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <i class="fas fa-paste mr-1"></i>이미지 붙여넣기 (Ctrl+V 또는 Cmd+V)
+                </label>
+                <div id="paste-area" 
+                     class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                     tabindex="0">
+                  <i class="fas fa-clipboard text-4xl text-gray-400 mb-2"></i>
+                  <p class="text-sm text-gray-600">이미지를 복사한 후 여기를 클릭하고<br><strong>Ctrl+V (Windows) 또는 Cmd+V (Mac)</strong>를 눌러주세요</p>
+                  <p class="text-xs text-gray-500 mt-2">또는 아래에서 파일을 선택하세요</p>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <i class="fas fa-file-upload mr-1"></i>또는 파일 선택
+                </label>
                 <input type="file" id="style-image-input" accept="image/*" 
                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
               </div>
@@ -92,7 +106,7 @@ export async function renderOrderManagement(container) {
                 취소
               </button>
               <button type="button" id="image-upload-save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                업로드
+                저장
               </button>
             </div>
           </div>
@@ -574,17 +588,52 @@ function setupEventListeners() {
   document.getElementById('style-image-input')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const preview = document.getElementById('image-preview');
-        const previewContainer = document.getElementById('image-preview-container');
-        preview.src = e.target.result;
-        previewContainer.classList.remove('hidden');
-        document.getElementById('image-upload-save-btn').disabled = false;
-      };
-      reader.readAsDataURL(file);
+      handleImageFileSelected(file);
     }
   });
+  
+  // 이미지 붙여넣기 영역 - 클릭하면 포커스
+  document.getElementById('paste-area')?.addEventListener('click', (e) => {
+    e.currentTarget.focus();
+  });
+  
+  // 이미지 붙여넣기 - Ctrl+V / Cmd+V
+  document.getElementById('paste-area')?.addEventListener('paste', (e) => {
+    e.preventDefault();
+    const items = e.clipboardData?.items;
+    
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            console.log('📋 클립보드에서 이미지 감지:', blob);
+            handleImageFileSelected(blob);
+            UIUtils.showAlert('이미지가 붙여넣기 되었습니다!', 'success');
+            return;
+          }
+        }
+      }
+    }
+    
+    UIUtils.showAlert('클립보드에 이미지가 없습니다.', 'warning');
+  });
+  
+  // 모달이 열릴 때 붙여넣기 영역에 자동 포커스
+  const imageModal = document.getElementById('image-upload-modal');
+  const pasteArea = document.getElementById('paste-area');
+  if (imageModal && pasteArea) {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          if (!imageModal.classList.contains('hidden')) {
+            setTimeout(() => pasteArea.focus(), 100);
+          }
+        }
+      });
+    });
+    observer.observe(imageModal, { attributes: true });
+  }
   
   // 이미지 업로드 모달 - 취소
   document.getElementById('image-upload-cancel-btn')?.addEventListener('click', () => {
@@ -1073,20 +1122,67 @@ function downloadCurrentDataAsExcel() {
 
 // 이미지 업로드 모달 열기
 let currentUploadOrderId = null;
+let currentImageFile = null;
+
+// 이미지 파일 선택 처리 (파일 업로드 또는 붙여넣기 공통)
+function handleImageFileSelected(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    UIUtils.showAlert('이미지 파일만 업로드 가능합니다.', 'error');
+    return;
+  }
+  
+  currentImageFile = file;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const preview = document.getElementById('image-preview');
+    const previewContainer = document.getElementById('image-preview-container');
+    const pasteArea = document.getElementById('paste-area');
+    
+    preview.src = e.target.result;
+    previewContainer.classList.remove('hidden');
+    document.getElementById('image-upload-save-btn').disabled = false;
+    
+    // 붙여넣기 영역 스타일 업데이트
+    if (pasteArea) {
+      pasteArea.classList.add('border-green-500', 'bg-green-50');
+      pasteArea.innerHTML = `
+        <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
+        <p class="text-sm text-green-600 font-semibold">이미지가 준비되었습니다!</p>
+        <p class="text-xs text-gray-500 mt-1">아래 미리보기를 확인하고 저장 버튼을 눌러주세요</p>
+      `;
+    }
+  };
+  reader.readAsDataURL(file);
+}
 
 function openImageUploadModal(orderId) {
   currentUploadOrderId = orderId;
+  currentImageFile = null;
+  
   const modal = document.getElementById('image-upload-modal');
   const input = document.getElementById('style-image-input');
   const preview = document.getElementById('image-preview');
   const previewContainer = document.getElementById('image-preview-container');
   const saveBtn = document.getElementById('image-upload-save-btn');
+  const pasteArea = document.getElementById('paste-area');
   
   // 초기화
   input.value = '';
   preview.src = '';
   previewContainer.classList.add('hidden');
   saveBtn.disabled = true;
+  
+  // 붙여넣기 영역 초기화
+  if (pasteArea) {
+    pasteArea.classList.remove('border-green-500', 'bg-green-50');
+    pasteArea.classList.add('border-gray-300');
+    pasteArea.innerHTML = `
+      <i class="fas fa-clipboard text-4xl text-gray-400 mb-2"></i>
+      <p class="text-sm text-gray-600">이미지를 복사한 후 여기를 클릭하고<br><strong>Ctrl+V (Windows) 또는 Cmd+V (Mac)</strong>를 눌러주세요</p>
+      <p class="text-xs text-gray-500 mt-2">또는 아래에서 파일을 선택하세요</p>
+    `;
+  }
   
   modal.classList.remove('hidden');
 }
@@ -1095,16 +1191,17 @@ function closeImageUploadModal() {
   const modal = document.getElementById('image-upload-modal');
   modal.classList.add('hidden');
   currentUploadOrderId = null;
+  currentImageFile = null;
 }
 
 async function handleImageUpload() {
   if (!currentUploadOrderId) return;
   
-  const input = document.getElementById('style-image-input');
-  const file = input.files[0];
+  // 붙여넣기나 파일 선택으로 저장된 파일 사용
+  const file = currentImageFile;
   
   if (!file) {
-    UIUtils.showAlert('파일을 선택해주세요.', 'error');
+    UIUtils.showAlert('이미지를 선택하거나 붙여넣기 해주세요.', 'error');
     return;
   }
   
