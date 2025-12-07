@@ -71,6 +71,32 @@ export async function renderOrderManagement(container) {
             <img id="popup-image" src="" alt="확대 이미지" class="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl">
           </div>
         </div>
+        
+        <!-- 이미지 업로드/수정 모달 -->
+        <div id="image-upload-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div class="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md">
+            <h3 class="text-xl font-bold mb-4">스타일 이미지 업로드</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">이미지 파일 선택</label>
+                <input type="file" id="style-image-input" accept="image/*" 
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+              </div>
+              <div id="image-preview-container" class="hidden">
+                <p class="text-sm text-gray-500 mb-2">미리보기</p>
+                <img id="image-preview" src="" alt="Preview" class="w-full h-auto rounded-lg max-h-64 object-contain border border-gray-200">
+              </div>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+              <button type="button" id="image-upload-cancel-btn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                취소
+              </button>
+              <button type="button" id="image-upload-save-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                업로드
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     
@@ -188,12 +214,25 @@ function renderOrderRow(order, rowNum, headers) {
       <!-- 스타일 이미지 -->
       <td class="px-2 py-2 border text-center">
         ${order.styleImage ? `
-          <div class="style-image-container relative inline-block">
+          <div class="style-image-container relative inline-block group">
             <img src="${order.styleImage}" alt="Style" class="style-image-thumb cursor-pointer rounded border border-gray-300"
                  style="height: 48px; width: auto; max-width: 200px;"
-                 data-image-url="${order.styleImage}">
+                 data-image-url="${order.styleImage}"
+                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23f3f4f6%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2212%22 fill=%22%23999%22%3E이미지 없음%3C/text%3E%3C/svg%3E'; this.classList.add('broken-image');">
+            <button class="upload-image-btn absolute top-0 right-0 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-bl opacity-0 group-hover:opacity-100 transition-opacity"
+                    data-order-id="${order.id}"
+                    title="이미지 변경">
+              <i class="fas fa-upload"></i>
+            </button>
           </div>
-        ` : '<span class="text-gray-400 text-xs">-</span>'}
+        ` : `
+          <button class="upload-image-btn text-gray-400 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded transition-colors"
+                  data-order-id="${order.id}"
+                  title="이미지 업로드">
+            <i class="fas fa-image text-xl"></i>
+            <span class="block text-xs mt-1">업로드</span>
+          </button>
+        `}
       </td>
       
       <!-- 색상 (직접입력) -->
@@ -520,6 +559,41 @@ function setupEventListeners() {
       e.target.style.display = 'none';
       e.target.classList.add('hidden');
     }
+  });
+  
+  // 이미지 업로드 버튼 클릭
+  document.querySelectorAll('.upload-image-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // 이미지 확대 팝업 방지
+      const orderId = e.currentTarget.dataset.orderId;
+      openImageUploadModal(orderId);
+    });
+  });
+  
+  // 이미지 업로드 모달 - 파일 선택
+  document.getElementById('style-image-input')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('image-preview');
+        const previewContainer = document.getElementById('image-preview-container');
+        preview.src = e.target.result;
+        previewContainer.classList.remove('hidden');
+        document.getElementById('image-upload-save-btn').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  
+  // 이미지 업로드 모달 - 취소
+  document.getElementById('image-upload-cancel-btn')?.addEventListener('click', () => {
+    closeImageUploadModal();
+  });
+  
+  // 이미지 업로드 모달 - 저장
+  document.getElementById('image-upload-save-btn')?.addEventListener('click', async () => {
+    await handleImageUpload();
   });
 }
 
@@ -994,6 +1068,77 @@ function downloadCurrentDataAsExcel() {
   } catch (error) {
     console.error('Excel download error:', error);
     UIUtils.showAlert(`엑셀 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// 이미지 업로드 모달 열기
+let currentUploadOrderId = null;
+
+function openImageUploadModal(orderId) {
+  currentUploadOrderId = orderId;
+  const modal = document.getElementById('image-upload-modal');
+  const input = document.getElementById('style-image-input');
+  const preview = document.getElementById('image-preview');
+  const previewContainer = document.getElementById('image-preview-container');
+  const saveBtn = document.getElementById('image-upload-save-btn');
+  
+  // 초기화
+  input.value = '';
+  preview.src = '';
+  previewContainer.classList.add('hidden');
+  saveBtn.disabled = true;
+  
+  modal.classList.remove('hidden');
+}
+
+function closeImageUploadModal() {
+  const modal = document.getElementById('image-upload-modal');
+  modal.classList.add('hidden');
+  currentUploadOrderId = null;
+}
+
+async function handleImageUpload() {
+  if (!currentUploadOrderId) return;
+  
+  const input = document.getElementById('style-image-input');
+  const file = input.files[0];
+  
+  if (!file) {
+    UIUtils.showAlert('파일을 선택해주세요.', 'error');
+    return;
+  }
+  
+  try {
+    UIUtils.showLoading();
+    
+    // 해당 발주 건 찾기
+    const order = orders.find(o => o.id === currentUploadOrderId);
+    if (!order) {
+      throw new Error('발주 건을 찾을 수 없습니다.');
+    }
+    
+    console.log(`📤 이미지 업로드 시작: ${order.style}`);
+    
+    // 이미지 업로드
+    const imageUrl = await uploadStyleImage(order.style, file);
+    console.log(`✅ 이미지 업로드 완료: ${imageUrl}`);
+    
+    // 발주 데이터 업데이트
+    order.styleImage = imageUrl;
+    await updateOrder(currentUploadOrderId, { styleImage: imageUrl });
+    
+    // 테이블 다시 렌더링
+    renderOrdersTable();
+    setupEventListeners();
+    
+    closeImageUploadModal();
+    UIUtils.showAlert('이미지가 업로드되었습니다.', 'success');
+    UIUtils.hideLoading();
+    
+  } catch (error) {
+    console.error('이미지 업로드 실패:', error);
+    UIUtils.showAlert('이미지 업로드 중 오류가 발생했습니다: ' + error.message, 'error');
+    UIUtils.hideLoading();
   }
 }
 
