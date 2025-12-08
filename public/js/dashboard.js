@@ -1086,7 +1086,7 @@ function createTotalCharts() {
     });
   }
   
-  // 2. 세로 막대 차트 - 채널별 발주 대비 입고 (누적)
+  // 2. 세로 막대 차트 - 채널별 발주 대비 입고 (겹침 효과)
   const channelComparisonCtx = document.getElementById('channel-comparison-chart');
   if (channelComparisonCtx) {
     charts.channelComparison = new Chart(channelComparisonCtx, {
@@ -1099,16 +1099,18 @@ function createTotalCharts() {
             data: [channelData['ELCANTO'].total, channelData['IM'].total],
             backgroundColor: [colors.elcanto.light, colors.im.light],
             borderWidth: 0,
-            borderRadius: 6,
-            barPercentage: 0.7
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 },
+            barPercentage: 0.7,
+            categoryPercentage: 0.8
           },
           {
             label: '입고완료량',
             data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
             backgroundColor: [colors.elcanto.dark, colors.im.dark],
             borderWidth: 0,
-            borderRadius: 6,
-            barPercentage: 0.7
+            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 },
+            barPercentage: 0.7,
+            categoryPercentage: 0.8
           }
         ]
       },
@@ -1117,9 +1119,11 @@ function createTotalCharts() {
         maintainAspectRatio: true,
         scales: {
           x: {
+            stacked: false, // 겹쳐서 표시
             grid: { display: false }
           },
           y: {
+            stacked: false, // 겹쳐서 표시
             beginAtZero: true,
             grid: { color: '#E5E7EB' },
             ticks: {
@@ -1146,12 +1150,13 @@ function createTotalCharts() {
             padding: 10,
             titleFont: { size: 12, weight: 'bold' },
             bodyFont: { size: 11 },
+            mode: 'index',
             callbacks: {
-              afterLabel: function(context) {
-                const channel = context.label;
+              afterBody: function(tooltipItems) {
+                const channel = tooltipItems[0].label;
                 const info = channelData[channel];
                 const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
-                return `입고율: ${rate}%`;
+                return `\n입고율: ${rate}%`;
               }
             }
           }
@@ -1187,16 +1192,18 @@ function createTotalCharts() {
             data: Object.values(supplierData).map(d => d.total),
             backgroundColor: colors.supplier.light,
             borderWidth: 0,
-            borderRadius: 4,
-            barPercentage: 0.8
+            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 4, bottomRight: 4 },
+            barPercentage: 0.8,
+            categoryPercentage: 0.9
           },
           {
             label: '입고완료량',
             data: Object.values(supplierData).map(d => d.completed),
             backgroundColor: colors.supplier.main,
             borderWidth: 0,
-            borderRadius: 4,
-            barPercentage: 0.8
+            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 4, bottomRight: 4 },
+            barPercentage: 0.8,
+            categoryPercentage: 0.9
           }
         ]
       },
@@ -1206,6 +1213,7 @@ function createTotalCharts() {
         maintainAspectRatio: true,
         scales: {
           x: {
+            stacked: false, // 겹쳐서 표시
             grid: { color: '#E5E7EB' },
             ticks: {
               font: { size: 9 },
@@ -1215,6 +1223,7 @@ function createTotalCharts() {
             }
           },
           y: {
+            stacked: false, // 겹쳐서 표시
             grid: { display: false },
             ticks: {
               font: { size: 10, weight: '500' }
@@ -1237,12 +1246,13 @@ function createTotalCharts() {
             padding: 10,
             titleFont: { size: 12, weight: 'bold' },
             bodyFont: { size: 11 },
+            mode: 'index',
             callbacks: {
-              afterLabel: function(context) {
-                const supplier = context.label;
+              afterBody: function(tooltipItems) {
+                const supplier = tooltipItems[0].label;
                 const info = supplierData[supplier];
                 const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
-                return `입고율: ${rate}%`;
+                return `\n입고율: ${rate}%`;
               }
             }
           }
