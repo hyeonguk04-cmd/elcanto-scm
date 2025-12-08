@@ -14,6 +14,10 @@ let selectedOrderIds = new Set();
 let originalOrders = {}; // 원본 데이터 저장 (변경 감지용)
 let hasUnsavedChanges = false;
 let dynamicSuppliersByCountry = {}; // Firebase에서 가져온 동적 생산업체 목록
+let sortState = {
+  column: null,
+  direction: null // null, 'asc', 'desc'
+};
 
 export async function renderOrderManagement(container) {
   try {
@@ -124,9 +128,74 @@ export async function renderOrderManagement(container) {
   }
 }
 
+function getSortIcon(column) {
+  if (sortState.column !== column) {
+    return '<i class="fas fa-sort text-gray-400 ml-1 text-xs"></i>';
+  }
+  if (sortState.direction === 'asc') {
+    return '<i class="fas fa-sort-up text-blue-600 ml-1 text-xs"></i>';
+  }
+  if (sortState.direction === 'desc') {
+    return '<i class="fas fa-sort-down text-blue-600 ml-1 text-xs"></i>';
+  }
+  return '<i class="fas fa-sort text-gray-400 ml-1 text-xs"></i>';
+}
+
+function sortOrders() {
+  if (!sortState.column || !sortState.direction) {
+    return; // 정렬 안함
+  }
+  
+  orders.sort((a, b) => {
+    let aVal, bVal;
+    
+    switch(sortState.column) {
+      case 'channel':
+        aVal = a.channel || '';
+        bVal = b.channel || '';
+        break;
+      case 'country':
+        aVal = a.country || '';
+        bVal = b.country || '';
+        break;
+      case 'supplier':
+        aVal = a.supplier || '';
+        bVal = b.supplier || '';
+        break;
+      case 'orderDate':
+        aVal = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+        bVal = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+        break;
+      case 'requiredDelivery':
+        aVal = a.requiredDelivery ? new Date(a.requiredDelivery).getTime() : 0;
+        bVal = b.requiredDelivery ? new Date(b.requiredDelivery).getTime() : 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    // 빈 값은 끝으로
+    if (!aVal && bVal) return 1;
+    if (aVal && !bVal) return -1;
+    if (!aVal && !bVal) return 0;
+    
+    // 정렬 방향에 따라
+    if (typeof aVal === 'string') {
+      const result = aVal.localeCompare(bVal, 'ko');
+      return sortState.direction === 'asc' ? result : -result;
+    } else {
+      const result = aVal - bVal;
+      return sortState.direction === 'asc' ? result : -result;
+    }
+  });
+}
+
 function renderOrdersTable() {
   const tableContainer = document.getElementById('orders-table');
   const headers = createProcessTableHeaders();
+  
+  // 정렬 적용
+  sortOrders();
   
   tableContainer.innerHTML = `
     <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
@@ -142,16 +211,26 @@ function renderOrdersTable() {
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">비고</th>
           </tr>
           <tr>
-            <th class="px-2 py-2 border">채널</th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'channel' ? 'bg-blue-100' : ''}" data-sort="channel">
+              채널 ${getSortIcon('channel')}
+            </th>
             <th class="px-2 py-2 border">연도시즌+차수</th>
             <th class="px-2 py-2 border">스타일</th>
             <th class="px-2 py-2 border">이미지</th>
             <th class="px-2 py-2 border">색상</th>
             <th class="px-2 py-2 border">수량</th>
-            <th class="px-2 py-2 border">국가</th>
-            <th class="px-2 py-2 border">생산업체</th>
-            <th class="px-2 py-2 border">발주일</th>
-            <th class="px-2 py-2 border">입고요구일</th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'country' ? 'bg-blue-100' : ''}" data-sort="country">
+              국가 ${getSortIcon('country')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'supplier' ? 'bg-blue-100' : ''}" data-sort="supplier">
+              생산업체 ${getSortIcon('supplier')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'orderDate' ? 'bg-blue-100' : ''}" data-sort="orderDate">
+              발주일 ${getSortIcon('orderDate')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'requiredDelivery' ? 'bg-blue-100' : ''}" data-sort="requiredDelivery">
+              입고요구일 ${getSortIcon('requiredDelivery')}
+            </th>
             ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
             <th class="px-2 py-2 border">선적</th>
             <th class="px-2 py-2 border">선적항-도착항</th>
@@ -375,6 +454,34 @@ function renderOrderRow(order, rowNum, headers) {
 }
 
 function setupEventListeners() {
+  // 정렬 헤더 클릭 이벤트
+  document.querySelectorAll('[data-sort]').forEach(header => {
+    header.addEventListener('click', (e) => {
+      const column = e.currentTarget.dataset.sort;
+      
+      // 정렬 상태 토글
+      if (sortState.column === column) {
+        if (sortState.direction === null) {
+          sortState.direction = 'asc';
+        } else if (sortState.direction === 'asc') {
+          sortState.direction = 'desc';
+        } else {
+          // 원래 순서로 복원
+          sortState.column = null;
+          sortState.direction = null;
+        }
+      } else {
+        sortState.column = column;
+        sortState.direction = 'asc';
+      }
+      
+      // 테이블 재렌더링
+      renderOrdersTable();
+      // 이벤트 리스너 재설정
+      setupEventListeners();
+    });
+  });
+  
   // Select all checkbox
   document.getElementById('select-all')?.addEventListener('change', (e) => {
     document.querySelectorAll('.order-checkbox').forEach(cb => {
