@@ -1062,6 +1062,10 @@ function renderAllChannelCharts(orders, colors, container) {
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
       <canvas id="chart-date-bar" class="mx-auto" style="max-height: 180px;"></canvas>
+      <div class="mt-3 flex items-center justify-center text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        <span>미입고수량(회색 영역)을 클릭하면 해당 날짜의 상세 미입고 현황을 확인할 수 있습니다</span>
+      </div>
     </div>
   `;
   
@@ -1114,6 +1118,10 @@ function renderSingleChannelCharts(orders, colors, container) {
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
       <canvas id="chart-date-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <div class="mt-3 flex items-center justify-center text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        <span>미입고수량(회색 영역)을 클릭하면 해당 날짜의 상세 미입고 현황을 확인할 수 있습니다</span>
+      </div>
     </div>
   `;
   
@@ -1541,7 +1549,7 @@ function createChannelBarChart(canvasId, channelStats, colors) {
   });
 }
 
-// ===== 차트 생성: 발주일별 입고현황 (세로 막대) =====
+// ===== 차트 생성: 발주일별 입고현황 (누적 세로 막대) =====
 function createDateBarChart(canvasId, orders, colors) {
   const ctx = document.getElementById(canvasId);
   if (!ctx) return;
@@ -1565,29 +1573,36 @@ function createDateBarChart(canvasId, orders, colors) {
     }
   });
   
-  // 날짜순 정렬 (최근 4개)
-  const sortedDates = Object.keys(dateData).sort().slice(-4);
-  const totalData = sortedDates.map(date => dateData[date].total);
+  // 날짜순 정렬 (최근 6개)
+  const sortedDates = Object.keys(dateData).sort().slice(-6);
   const completedData = sortedDates.map(date => dateData[date].completed);
+  const pendingData = sortedDates.map(date => dateData[date].total - dateData[date].completed);
   
-  new Chart(ctx, {
+  // 달성률 계산
+  const achievementRates = sortedDates.map(date => {
+    const total = dateData[date].total;
+    const completed = dateData[date].completed;
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  });
+  
+  const chart = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: sortedDates,
       datasets: [
         {
-          label: '총 발주량',
-          data: totalData,
-          backgroundColor: '#8B5CF6',  // 세련된 보라 (포털 메인 컬러)
-          borderRadius: 6,
-          barPercentage: 0.65
+          label: '입고수량',
+          data: completedData,
+          backgroundColor: '#10B981',  // 초록
+          borderRadius: 4,
+          barPercentage: 0.7
         },
         {
-          label: '입고량',
-          data: completedData,
-          backgroundColor: '#10B981',  // 세련된 초록 (입고 완료 긍정 컬러)
-          borderRadius: 6,
-          barPercentage: 0.65
+          label: '미입고수량',
+          data: pendingData,
+          backgroundColor: '#CBD5E1',  // 회색
+          borderRadius: 4,
+          barPercentage: 0.7
         }
       ]
     },
@@ -1596,6 +1611,7 @@ function createDateBarChart(canvasId, orders, colors) {
       maintainAspectRatio: true,
       scales: {
         x: {
+          stacked: true,
           grid: { display: false },
           ticks: { 
             font: { size: 11, weight: '500' },
@@ -1603,6 +1619,7 @@ function createDateBarChart(canvasId, orders, colors) {
           }
         },
         y: {
+          stacked: true,
           beginAtZero: true,
           grid: { 
             color: '#E5E7EB',
@@ -1629,20 +1646,64 @@ function createDateBarChart(canvasId, orders, colors) {
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          padding: 12,
-          titleFont: { size: 12, weight: 'bold' },
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          padding: 14,
+          titleFont: { size: 13, weight: 'bold' },
           bodyFont: { size: 11 },
-          cornerRadius: 6,
+          cornerRadius: 8,
           displayColors: true,
-          boxPadding: 4,
+          boxPadding: 6,
           callbacks: {
+            title: function(context) {
+              return `발주일자: ${context[0].label}`;
+            },
+            afterTitle: function(context) {
+              const index = context[0].dataIndex;
+              return '';
+            },
             label: function(context) {
-              return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
+              const index = context.dataIndex;
+              const completed = completedData[index];
+              const pending = pendingData[index];
+              const total = completed + pending;
+              const rate = achievementRates[index];
+              
+              if (context.datasetIndex === 0) {
+                return [
+                  `입고수량: ${completed.toLocaleString()}개`,
+                  `미입고수량: ${pending.toLocaleString()}개`,
+                  `총발주수량: ${total.toLocaleString()}개`,
+                  `달성률: ${rate}%`
+                ];
+              }
+              return null;
+            },
+            footer: function(context) {
+              const index = context[0].dataIndex;
+              const pending = pendingData[index];
+              if (pending > 0) {
+                return '\n💡 미입고 영역을 클릭하여 상세정보 보기';
+              }
+              return '';
             }
           }
         }
+      },
+      onClick: function(event, elements) {
+        if (elements && elements.length > 0) {
+          const element = elements[0];
+          const datasetIndex = element.datasetIndex;
+          const index = element.index;
+          const date = sortedDates[index];
+          const pending = pendingData[index];
+          
+          // 미입고수량 영역 클릭 시
+          if (datasetIndex === 1 && pending > 0) {
+            alert(`${date} 미입고 상세 현황:\n\n미입고수량: ${pending.toLocaleString()}개\n달성률: ${achievementRates[index]}%\n\n※ 상세 현황은 [미입고 관리] 메뉴에서 확인하실 수 있습니다.`);
+          }
+        }
       }
+    }
     }
   });
 }
