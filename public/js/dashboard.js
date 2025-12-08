@@ -495,10 +495,11 @@ function createOntimeCharts() {
         }]
       },
       options: {
+        indexAxis: 'y', // 수평 막대 차트로 변경
         responsive: true,
         maintainAspectRatio: true,
         scales: {
-          y: {
+          x: {
             beginAtZero: true,
             max: 100,
             ticks: {
@@ -515,7 +516,7 @@ function createOntimeCharts() {
           tooltip: {
             callbacks: {
               label: function(context) {
-                return `납기 준수율: ${context.parsed.y}%`;
+                return `납기 준수율: ${context.parsed.x}%`;
               }
             }
           }
@@ -1011,33 +1012,91 @@ function createTotalCharts() {
   
   const channelCtx = document.getElementById('channel-distribution-chart');
   if (channelCtx) {
+    // 채널별 총 발주량과 입고완료량 계산
+    const channelData = {};
+    ['IM', 'ELCANTO'].forEach(channel => {
+      const channelOrders = orders.filter(o => o.channel === channel);
+      const totalQty = DataUtils.sumBy(channelOrders, 'qty');
+      const completedOrders = channelOrders.filter(order => {
+        const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+        return arrivalProcess?.actualDate;
+      });
+      const completedQty = DataUtils.sumBy(completedOrders, 'qty');
+      channelData[channel] = { total: totalQty, completed: completedQty };
+    });
+    
     charts.channelDist = new Chart(channelCtx, {
       type: 'doughnut',
       data: {
-        labels: Object.keys(channelStats),
-        datasets: [{
-          data: Object.values(channelStats),
-          backgroundColor: ['#3B82F6', '#8B5CF6']
-        }]
+        labels: Object.keys(channelData),
+        datasets: [
+          {
+            label: '총 발주량',
+            data: Object.values(channelData).map(d => d.total),
+            backgroundColor: ['#3B82F6', '#8B5CF6'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          },
+          {
+            label: '입고완료량',
+            data: Object.values(channelData).map(d => d.completed),
+            backgroundColor: ['#93C5FD', '#C4B5FD'],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: true,
+        cutout: '40%', // 도넛 두께 조절
         plugins: {
           legend: {
-            position: 'bottom'
+            position: 'bottom',
+            labels: {
+              font: { size: 10 },
+              boxWidth: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed;
+                const datasetLabel = context.dataset.label;
+                const channel = context.label;
+                const channelInfo = channelData[channel];
+                const rate = channelInfo.total > 0 ? Math.round((channelInfo.completed / channelInfo.total) * 100) : 0;
+                return `${label} ${datasetLabel}: ${value.toLocaleString()}개 (입고율: ${rate}%)`;
+              }
+            }
           }
+        },
+        layout: {
+          padding: 10
         }
       }
     });
+    
+    // 차트 크기 60%로 조정
+    channelCtx.style.maxWidth = '60%';
+    channelCtx.style.maxHeight = '200px';
+    channelCtx.style.margin = '0 auto';
   }
   
-  // 업체별 물량
-  const supplierStats = {};
-  orders.forEach(order => {
-    if (order.supplier) {
-      supplierStats[order.supplier] = (supplierStats[order.supplier] || 0) + (order.qty || 0);
-    }
+  // 업체별 물량과 입고완료량
+  const supplierData = {};
+  const suppliers = [...new Set(orders.map(o => o.supplier).filter(s => s))];
+  
+  suppliers.forEach(supplier => {
+    const supplierOrders = orders.filter(o => o.supplier === supplier);
+    const totalQty = DataUtils.sumBy(supplierOrders, 'qty');
+    const completedOrders = supplierOrders.filter(order => {
+      const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+      return arrivalProcess?.actualDate;
+    });
+    const completedQty = DataUtils.sumBy(completedOrders, 'qty');
+    supplierData[supplier] = { total: totalQty, completed: completedQty };
   });
   
   const supplierCtx = document.getElementById('supplier-distribution-chart');
@@ -1045,13 +1104,21 @@ function createTotalCharts() {
     charts.supplierDist = new Chart(supplierCtx, {
       type: 'bar',
       data: {
-        labels: Object.keys(supplierStats),
-        datasets: [{
-          label: '발주 물량 (개)',
-          data: Object.values(supplierStats),
-          backgroundColor: '#8B5CF6',
-          borderRadius: 4
-        }]
+        labels: Object.keys(supplierData),
+        datasets: [
+          {
+            label: '총 발주량',
+            data: Object.values(supplierData).map(d => d.total),
+            backgroundColor: '#F59E0B', // 채널 색상과 겹치지 않는 주황색
+            borderRadius: 4
+          },
+          {
+            label: '입고완료량',
+            data: Object.values(supplierData).map(d => d.completed),
+            backgroundColor: '#FCD34D', // 밝은 주황색
+            borderRadius: 4
+          }
+        ]
       },
       options: {
         indexAxis: 'y',
@@ -1059,7 +1126,37 @@ function createTotalCharts() {
         maintainAspectRatio: true,
         plugins: {
           legend: {
-            display: false
+            display: true,
+            position: 'bottom',
+            labels: {
+              font: { size: 10 },
+              boxWidth: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const supplier = context.label;
+                const value = context.parsed.x;
+                const datasetLabel = context.dataset.label;
+                const supplierInfo = supplierData[supplier];
+                const rate = supplierInfo.total > 0 ? Math.round((supplierInfo.completed / supplierInfo.total) * 100) : 0;
+                return `${datasetLabel}: ${value.toLocaleString()}개 (입고율: ${rate}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: false,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString() + '개';
+              }
+            }
+          },
+          y: {
+            stacked: false
           }
         }
       }
