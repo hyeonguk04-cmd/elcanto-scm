@@ -957,10 +957,13 @@ function renderTotalAnalysis() {
             <div style="width: 42%; max-width: 200px;">
               <canvas id="channel-ratio-chart"></canvas>
             </div>
-            <!-- 세로 막대 차트 -->
+            <!-- 세로 막대 차트 (겹침) -->
             <div style="width: 58%;">
               <h5 class="text-xs font-semibold text-gray-600 mb-2">채널별 발주 대비 입고</h5>
-              <canvas id="channel-comparison-chart"></canvas>
+              <div style="position: relative; height: 250px;">
+                <canvas id="channel-total-chart" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                <canvas id="channel-completed-chart" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -968,7 +971,10 @@ function renderTotalAnalysis() {
         <!-- 생산업체별 물량 분포 (누적 가로 막대) - 40% -->
         <div class="bg-gray-50 rounded-lg p-4" style="flex: 0 0 40%;">
           <h4 class="text-sm font-bold text-gray-700 mb-3">생산업체별 물량 분포</h4>
-          <canvas id="supplier-distribution-chart"></canvas>
+          <div style="position: relative; height: 250px;">
+            <canvas id="supplier-total-chart" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+            <canvas id="supplier-completed-chart" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+          </div>
         </div>
       </div>
       
@@ -1087,44 +1093,35 @@ function createTotalCharts() {
   }
   
   // 2. 세로 막대 차트 - 채널별 발주 대비 입고 (겹침 효과)
-  const channelComparisonCtx = document.getElementById('channel-comparison-chart');
-  if (channelComparisonCtx) {
-    charts.channelComparison = new Chart(channelComparisonCtx, {
+  // 2-1. 총 발주량 (배경)
+  const channelTotalCtx = document.getElementById('channel-total-chart');
+  if (channelTotalCtx) {
+    const maxValue = Math.max(channelData['ELCANTO'].total, channelData['IM'].total);
+    
+    charts.channelTotal = new Chart(channelTotalCtx, {
       type: 'bar',
       data: {
         labels: ['ELCANTO', 'IM'],
-        datasets: [
-          {
-            label: '총 발주량',
-            data: [channelData['ELCANTO'].total, channelData['IM'].total],
-            backgroundColor: [colors.elcanto.light, colors.im.light],
-            borderWidth: 0,
-            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 },
-            barPercentage: 0.7,
-            categoryPercentage: 0.8
-          },
-          {
-            label: '입고완료량',
-            data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
-            backgroundColor: [colors.elcanto.dark, colors.im.dark],
-            borderWidth: 0,
-            borderRadius: { topLeft: 6, topRight: 6, bottomLeft: 6, bottomRight: 6 },
-            barPercentage: 0.7,
-            categoryPercentage: 0.8
-          }
-        ]
+        datasets: [{
+          label: '총 발주량',
+          data: [channelData['ELCANTO'].total, channelData['IM'].total],
+          backgroundColor: [colors.elcanto.light, colors.im.light],
+          borderWidth: 0,
+          borderRadius: 6,
+          barPercentage: 0.7
+        }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         scales: {
-          x: {
-            stacked: false, // 겹쳐서 표시
-            grid: { display: false }
+          x: { 
+            grid: { display: false },
+            ticks: { font: { size: 10, weight: '500' } }
           },
           y: {
-            stacked: false, // 겹쳐서 표시
             beginAtZero: true,
+            max: maxValue * 1.1,
             grid: { color: '#E5E7EB' },
             ticks: {
               font: { size: 10 },
@@ -1135,6 +1132,47 @@ function createTotalCharts() {
           }
         },
         plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        }
+      }
+    });
+  }
+  
+  // 2-2. 입고완료량 (전경)
+  const channelCompletedCtx = document.getElementById('channel-completed-chart');
+  if (channelCompletedCtx) {
+    const maxValue = Math.max(channelData['ELCANTO'].total, channelData['IM'].total);
+    
+    charts.channelCompleted = new Chart(channelCompletedCtx, {
+      type: 'bar',
+      data: {
+        labels: ['ELCANTO', 'IM'],
+        datasets: [{
+          label: '입고완료량',
+          data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
+          backgroundColor: [colors.elcanto.dark, colors.im.dark],
+          borderWidth: 0,
+          borderRadius: 6,
+          barPercentage: 0.7
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { 
+            grid: { display: false },
+            ticks: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            max: maxValue * 1.1,
+            grid: { display: false },
+            ticks: { display: false }
+          }
+        },
+        plugins: {
           legend: {
             display: true,
             position: 'bottom',
@@ -1142,7 +1180,13 @@ function createTotalCharts() {
               font: { size: 9, weight: '500' },
               boxWidth: 10,
               padding: 8,
-              usePointStyle: true
+              usePointStyle: true,
+              generateLabels: function() {
+                return [
+                  { text: '총 발주량', fillStyle: colors.elcanto.light, strokeStyle: colors.elcanto.light },
+                  { text: '입고완료량', fillStyle: colors.elcanto.dark, strokeStyle: colors.elcanto.dark }
+                ];
+              }
             }
           },
           tooltip: {
@@ -1150,13 +1194,16 @@ function createTotalCharts() {
             padding: 10,
             titleFont: { size: 12, weight: 'bold' },
             bodyFont: { size: 11 },
-            mode: 'index',
             callbacks: {
-              afterBody: function(tooltipItems) {
-                const channel = tooltipItems[0].label;
+              label: function(context) {
+                const channel = context.label;
                 const info = channelData[channel];
                 const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
-                return `\n입고율: ${rate}%`;
+                return [
+                  `총 발주량: ${info.total.toLocaleString()}개`,
+                  `입고완료량: ${info.completed.toLocaleString()}개`,
+                  `입고율: ${rate}%`
+                ];
               }
             }
           }
@@ -1180,40 +1227,32 @@ function createTotalCharts() {
     supplierData[supplier] = { total: totalQty, completed: completedQty };
   });
   
-  const supplierCtx = document.getElementById('supplier-distribution-chart');
-  if (supplierCtx) {
-    charts.supplierDist = new Chart(supplierCtx, {
+  // 3-1. 총 발주량 (배경)
+  const supplierTotalCtx = document.getElementById('supplier-total-chart');
+  if (supplierTotalCtx) {
+    const maxValue = Math.max(...Object.values(supplierData).map(d => d.total));
+    
+    charts.supplierTotal = new Chart(supplierTotalCtx, {
       type: 'bar',
       data: {
         labels: Object.keys(supplierData),
-        datasets: [
-          {
-            label: '총 발주량',
-            data: Object.values(supplierData).map(d => d.total),
-            backgroundColor: colors.supplier.light,
-            borderWidth: 0,
-            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 4, bottomRight: 4 },
-            barPercentage: 0.8,
-            categoryPercentage: 0.9
-          },
-          {
-            label: '입고완료량',
-            data: Object.values(supplierData).map(d => d.completed),
-            backgroundColor: colors.supplier.main,
-            borderWidth: 0,
-            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 4, bottomRight: 4 },
-            barPercentage: 0.8,
-            categoryPercentage: 0.9
-          }
-        ]
+        datasets: [{
+          label: '총 발주량',
+          data: Object.values(supplierData).map(d => d.total),
+          backgroundColor: colors.supplier.light,
+          borderWidth: 0,
+          borderRadius: 4,
+          barPercentage: 0.8
+        }]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         scales: {
           x: {
-            stacked: false, // 겹쳐서 표시
+            beginAtZero: true,
+            max: maxValue * 1.1,
             grid: { color: '#E5E7EB' },
             ticks: {
               font: { size: 9 },
@@ -1223,11 +1262,50 @@ function createTotalCharts() {
             }
           },
           y: {
-            stacked: false, // 겹쳐서 표시
             grid: { display: false },
-            ticks: {
-              font: { size: 10, weight: '500' }
-            }
+            ticks: { font: { size: 10, weight: '500' } }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        }
+      }
+    });
+  }
+  
+  // 3-2. 입고완료량 (전경)
+  const supplierCompletedCtx = document.getElementById('supplier-completed-chart');
+  if (supplierCompletedCtx) {
+    const maxValue = Math.max(...Object.values(supplierData).map(d => d.total));
+    
+    charts.supplierCompleted = new Chart(supplierCompletedCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(supplierData),
+        datasets: [{
+          label: '입고완료량',
+          data: Object.values(supplierData).map(d => d.completed),
+          backgroundColor: colors.supplier.main,
+          borderWidth: 0,
+          borderRadius: 4,
+          barPercentage: 0.8
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: maxValue * 1.1,
+            grid: { display: false },
+            ticks: { display: false }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { display: false }
           }
         },
         plugins: {
@@ -1238,7 +1316,13 @@ function createTotalCharts() {
               font: { size: 9, weight: '500' },
               boxWidth: 10,
               padding: 8,
-              usePointStyle: true
+              usePointStyle: true,
+              generateLabels: function() {
+                return [
+                  { text: '총 발주량', fillStyle: colors.supplier.light, strokeStyle: colors.supplier.light },
+                  { text: '입고완료량', fillStyle: colors.supplier.main, strokeStyle: colors.supplier.main }
+                ];
+              }
             }
           },
           tooltip: {
@@ -1246,13 +1330,16 @@ function createTotalCharts() {
             padding: 10,
             titleFont: { size: 12, weight: 'bold' },
             bodyFont: { size: 11 },
-            mode: 'index',
             callbacks: {
-              afterBody: function(tooltipItems) {
-                const supplier = tooltipItems[0].label;
+              label: function(context) {
+                const supplier = context.label;
                 const info = supplierData[supplier];
                 const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
-                return `\n입고율: ${rate}%`;
+                return [
+                  `총 발주량: ${info.total.toLocaleString()}개`,
+                  `입고완료량: ${info.completed.toLocaleString()}개`,
+                  `입고율: ${rate}%`
+                ];
               }
             }
           }
