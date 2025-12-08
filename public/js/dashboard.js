@@ -1777,9 +1777,9 @@ function renderPendingOrdersTable(delayedOrders) {
             
             return `
               <tr class="${severityColor}">
-                <td class="px-3 py-2 font-medium">${order.style || '-'}</td>
+                <td class="px-3 py-2 font-medium">${order.orderDate || '-'}</td>
+                <td class="px-3 py-2">${order.style || '-'}</td>
                 <td class="px-3 py-2">${order.supplier || '-'}</td>
-                <td class="px-3 py-2">${(order.qty || 0).toLocaleString()}개</td>
                 <td class="px-3 py-2">${order.requiredDelivery || '-'}</td>
                 <td class="px-3 py-2">
                   <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
