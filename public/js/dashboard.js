@@ -1062,10 +1062,6 @@ function renderAllChannelCharts(orders, colors, container) {
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
       <canvas id="chart-date-bar" class="mx-auto" style="max-height: 180px;"></canvas>
-      <div class="mt-3 flex items-center justify-center text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        <span>미입고수량(회색 영역)을 클릭하면 해당 날짜의 상세 미입고 현황을 확인할 수 있습니다</span>
-      </div>
     </div>
   `;
   
@@ -1118,10 +1114,6 @@ function renderSingleChannelCharts(orders, colors, container) {
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
       <canvas id="chart-date-single" class="mx-auto" style="max-height: 180px;"></canvas>
-      <div class="mt-3 flex items-center justify-center text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        <span>미입고수량(회색 영역)을 클릭하면 해당 날짜의 상세 미입고 현황을 확인할 수 있습니다</span>
-      </div>
     </div>
   `;
   
@@ -1621,6 +1613,7 @@ function createDateBarChart(canvasId, orders, colors) {
         y: {
           stacked: true,
           beginAtZero: true,
+          max: 10000,
           grid: { 
             color: '#E5E7EB',
             drawBorder: false
@@ -1631,7 +1624,8 @@ function createDateBarChart(canvasId, orders, colors) {
             callback: function(value) {
               return value.toLocaleString();
             },
-            padding: 6
+            padding: 6,
+            stepSize: 1000
           }
         }
       },
