@@ -949,21 +949,23 @@ function renderTotalAnalysis() {
       </div>
       
       <div class="grid grid-cols-2 gap-4">
-        <!-- 채널별 발주 비율 -->
+        <!-- 채널별 발주 비율 (도넛 + 세로 막대) -->
         <div class="bg-gray-50 rounded-lg p-4">
           <h4 class="text-sm font-bold text-gray-700 mb-3">채널별 발주 비율</h4>
-          <canvas id="channel-distribution-chart"></canvas>
-          <div class="mt-3 space-y-1">
-            ${Object.entries(channelStats).map(([channel, stat]) => `
-              <div class="flex justify-between text-xs">
-                <span class="font-medium">${channel}</span>
-                <span class="text-gray-600">${stat.qty.toLocaleString()}개 (${stat.count}건)</span>
-              </div>
-            `).join('')}
+          <div class="flex items-center gap-4">
+            <!-- 도넛 차트 -->
+            <div style="width: 45%; max-width: 180px;">
+              <canvas id="channel-ratio-chart"></canvas>
+            </div>
+            <!-- 세로 막대 차트 -->
+            <div style="width: 55%;">
+              <h5 class="text-xs font-semibold text-gray-600 mb-2">채널별 발주 대비 입고</h5>
+              <canvas id="channel-comparison-chart"></canvas>
+            </div>
           </div>
         </div>
         
-        <!-- 생산업체별 물량 분포 -->
+        <!-- 생산업체별 물량 분포 (누적 가로 막대) -->
         <div class="bg-gray-50 rounded-lg p-4">
           <h4 class="text-sm font-bold text-gray-700 mb-3">생산업체별 물량 분포</h4>
           <canvas id="supplier-distribution-chart"></canvas>
@@ -1003,59 +1005,45 @@ function generateTotalInsights(channelStats, supplierStats) {
 function createTotalCharts() {
   const { orders } = dashboardData;
   
-  // 채널별 발주
-  const channelStats = {};
+  // 채널별 데이터 계산
+  const channelData = {};
   ['IM', 'ELCANTO'].forEach(channel => {
     const channelOrders = orders.filter(o => o.channel === channel);
-    channelStats[channel] = DataUtils.sumBy(channelOrders, 'qty');
+    const totalQty = DataUtils.sumBy(channelOrders, 'qty');
+    const completedOrders = channelOrders.filter(order => {
+      const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+      return arrivalProcess?.actualDate;
+    });
+    const completedQty = DataUtils.sumBy(completedOrders, 'qty');
+    channelData[channel] = { total: totalQty, completed: completedQty };
   });
   
-  const channelCtx = document.getElementById('channel-distribution-chart');
-  if (channelCtx) {
-    // 채널별 총 발주량과 입고완료량 계산
-    const channelData = {};
-    ['IM', 'ELCANTO'].forEach(channel => {
-      const channelOrders = orders.filter(o => o.channel === channel);
-      const totalQty = DataUtils.sumBy(channelOrders, 'qty');
-      const completedOrders = channelOrders.filter(order => {
-        const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
-        return arrivalProcess?.actualDate;
-      });
-      const completedQty = DataUtils.sumBy(completedOrders, 'qty');
-      channelData[channel] = { total: totalQty, completed: completedQty };
-    });
+  // 1. 도넛 차트 - 채널별 발주 비율 (전체 대비 %)
+  const channelRatioCtx = document.getElementById('channel-ratio-chart');
+  if (channelRatioCtx) {
+    const totalAllQty = Object.values(channelData).reduce((sum, d) => sum + d.total, 0);
     
-    charts.channelDist = new Chart(channelCtx, {
+    charts.channelRatio = new Chart(channelRatioCtx, {
       type: 'doughnut',
       data: {
-        labels: Object.keys(channelData),
-        datasets: [
-          {
-            label: '총 발주량',
-            data: Object.values(channelData).map(d => d.total),
-            backgroundColor: ['#3B82F6', '#8B5CF6'],
-            borderWidth: 2,
-            borderColor: '#fff'
-          },
-          {
-            label: '입고완료량',
-            data: Object.values(channelData).map(d => d.completed),
-            backgroundColor: ['#93C5FD', '#C4B5FD'],
-            borderWidth: 2,
-            borderColor: '#fff'
-          }
-        ]
+        labels: ['ELCANTO', 'IM'],
+        datasets: [{
+          data: [channelData['ELCANTO'].total, channelData['IM'].total],
+          backgroundColor: ['#8B5CF6', '#3B82F6'],
+          borderWidth: 2,
+          borderColor: '#fff'
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: true,
-        cutout: '40%', // 도넛 두께 조절
+        cutout: '60%',
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
-              font: { size: 10 },
-              boxWidth: 12
+              font: { size: 9 },
+              boxWidth: 10
             }
           },
           tooltip: {
@@ -1063,28 +1051,82 @@ function createTotalCharts() {
               label: function(context) {
                 const label = context.label || '';
                 const value = context.parsed;
-                const datasetLabel = context.dataset.label;
-                const channel = context.label;
-                const channelInfo = channelData[channel];
-                const rate = channelInfo.total > 0 ? Math.round((channelInfo.completed / channelInfo.total) * 100) : 0;
-                return `${label} ${datasetLabel}: ${value.toLocaleString()}개 (입고율: ${rate}%)`;
+                const percentage = totalAllQty > 0 ? Math.round((value / totalAllQty) * 100) : 0;
+                return `${label}: ${value.toLocaleString()}개 (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // 2. 세로 막대 차트 - 채널별 발주 대비 입고 (누적)
+  const channelComparisonCtx = document.getElementById('channel-comparison-chart');
+  if (channelComparisonCtx) {
+    charts.channelComparison = new Chart(channelComparisonCtx, {
+      type: 'bar',
+      data: {
+        labels: ['ELCANTO', 'IM'],
+        datasets: [
+          {
+            label: '입고완료량',
+            data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
+            backgroundColor: '#10B981',
+            borderRadius: 4
+          },
+          {
+            label: '입고대기량',
+            data: [
+              channelData['ELCANTO'].total - channelData['ELCANTO'].completed,
+              channelData['IM'].total - channelData['IM'].completed
+            ],
+            backgroundColor: '#EF4444',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          x: {
+            stacked: true
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              font: { size: 9 },
+              callback: function(value) {
+                return value.toLocaleString();
               }
             }
           }
         },
-        layout: {
-          padding: 10
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              font: { size: 8 },
+              boxWidth: 10
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.dataset.label || '';
+                const value = context.parsed.y;
+                return `${label}: ${value.toLocaleString()}개`;
+              }
+            }
+          }
         }
       }
     });
-    
-    // 차트 크기 60%로 조정
-    channelCtx.style.maxWidth = '60%';
-    channelCtx.style.maxHeight = '200px';
-    channelCtx.style.margin = '0 auto';
   }
   
-  // 업체별 물량과 입고완료량
+  // 3. 생산업체별 물량 분포 - 누적 가로 막대
   const supplierData = {};
   const suppliers = [...new Set(orders.map(o => o.supplier).filter(s => s))];
   
@@ -1107,15 +1149,15 @@ function createTotalCharts() {
         labels: Object.keys(supplierData),
         datasets: [
           {
-            label: '총 발주량',
-            data: Object.values(supplierData).map(d => d.total),
-            backgroundColor: '#F59E0B', // 채널 색상과 겹치지 않는 주황색
+            label: '입고완료량',
+            data: Object.values(supplierData).map(d => d.completed),
+            backgroundColor: '#3B82F6',
             borderRadius: 4
           },
           {
-            label: '입고완료량',
-            data: Object.values(supplierData).map(d => d.completed),
-            backgroundColor: '#FCD34D', // 밝은 주황색
+            label: '입고대기량',
+            data: Object.values(supplierData).map(d => d.total - d.completed),
+            backgroundColor: '#DC2626',
             borderRadius: 4
           }
         ]
@@ -1124,6 +1166,19 @@ function createTotalCharts() {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: true,
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString() + '개';
+              }
+            }
+          },
+          y: {
+            stacked: true
+          }
+        },
         plugins: {
           legend: {
             display: true,
@@ -1144,19 +1199,6 @@ function createTotalCharts() {
                 return `${datasetLabel}: ${value.toLocaleString()}개 (입고율: ${rate}%)`;
               }
             }
-          }
-        },
-        scales: {
-          x: {
-            stacked: false,
-            ticks: {
-              callback: function(value) {
-                return value.toLocaleString() + '개';
-              }
-            }
-          },
-          y: {
-            stacked: false
           }
         }
       }
