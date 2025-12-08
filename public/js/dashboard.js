@@ -1677,14 +1677,6 @@ function createDateBarChart(canvasId, orders, colors) {
               ];
             },
             footer: function(context) {
-              const index = context[0].dataIndex;
-              const pending = pendingData[index];
-              const datasetIndex = context[0].datasetIndex;
-              
-              // 미입고수량 영역에만 클릭 안내 표시
-              if (datasetIndex === 1 && pending > 0) {
-                return '\n💡 미입고 영역을 클릭하여 상세정보 보기';
-              }
               return '';
             }
           }
