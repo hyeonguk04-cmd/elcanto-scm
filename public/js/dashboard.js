@@ -116,6 +116,10 @@ function updateDashboard() {
   // 데이터 처리
   dashboardData = processData(filteredOrders);
   
+  // 전역 변수에 저장 (차트 네비게이션용)
+  window.currentDashboardData = dashboardData;
+  window.currentChannelFilter = currentChannelFilter;
+  
   // KPI 카드 렌더링
   renderKPICards();
   
@@ -1569,10 +1573,28 @@ function createDateBarChart(canvasId, orders, colors) {
     }
   });
   
-  // 날짜순 정렬 (최근 6개)
-  const sortedDates = Object.keys(dateData).sort().slice(-6);
+  // 날짜순 정렬 (모든 날짜)
+  const allSortedDates = Object.keys(dateData).sort();
+  
+  // 스크롤 상태 저장 (전역 변수 사용)
+  if (!window.chartScrollState) {
+    window.chartScrollState = {};
+  }
+  if (!window.chartScrollState[canvasId]) {
+    window.chartScrollState[canvasId] = { startIndex: Math.max(0, allSortedDates.length - 6) };
+  }
+  
+  const startIndex = window.chartScrollState[canvasId].startIndex;
+  const visibleCount = 6;
+  const sortedDates = allSortedDates.slice(startIndex, startIndex + visibleCount);
+  
   const completedData = sortedDates.map(date => dateData[date].completed);
   const pendingData = sortedDates.map(date => dateData[date].total - dateData[date].completed);
+  
+  // 최대값 계산 (Y축 자동 조정)
+  const maxTotal = Math.max(...sortedDates.map(date => dateData[date].total));
+  const suggestedMax = Math.ceil(maxTotal * 1.2 / 1000) * 1000; // 20% 여유 + 1000 단위 반올림
+  const yAxisMax = Math.max(suggestedMax, 1000); // 최소 1000
   
   // 달성률 계산
   const achievementRates = sortedDates.map(date => {
@@ -1617,7 +1639,7 @@ function createDateBarChart(canvasId, orders, colors) {
         y: {
           stacked: true,
           beginAtZero: true,
-          max: 10000,
+          max: yAxisMax,
           grid: { 
             color: '#E5E7EB',
             drawBorder: false
@@ -1629,7 +1651,7 @@ function createDateBarChart(canvasId, orders, colors) {
               return value.toLocaleString();
             },
             padding: 6,
-            stepSize: 1000
+            stepSize: Math.max(Math.ceil(yAxisMax / 10 / 100) * 100, 100)
           }
         }
       },
@@ -1711,6 +1733,104 @@ function createDateBarChart(canvasId, orders, colors) {
       }
     }
   });
+  
+  // 네비게이션 버튼 추가
+  addChartNavigation(canvasId, allSortedDates, dateData, colors);
+}
+
+// 차트 네비게이션 버튼 추가
+function addChartNavigation(canvasId, allDates, dateData, colors) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  
+  const container = canvas.closest('.bg-white');
+  if (!container) return;
+  
+  // 기존 네비게이션 제거
+  const existingNav = container.querySelector('.chart-navigation');
+  if (existingNav) {
+    existingNav.remove();
+  }
+  
+  // 네비게이션이 필요한지 확인 (6개 초과 시)
+  if (allDates.length <= 6) return;
+  
+  const state = window.chartScrollState[canvasId];
+  const canGoPrev = state.startIndex > 0;
+  const canGoNext = state.startIndex + 6 < allDates.length;
+  
+  // 네비게이션 HTML 생성
+  const navHtml = `
+    <div class="chart-navigation flex items-center justify-between mt-2 px-2">
+      <button 
+        class="chart-nav-prev px-3 py-1 text-xs rounded ${canGoPrev ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}"
+        ${!canGoPrev ? 'disabled' : ''}
+      >
+        <i class="fas fa-chevron-left mr-1"></i> 이전
+      </button>
+      <span class="text-xs text-gray-600">
+        ${state.startIndex + 1}-${Math.min(state.startIndex + 6, allDates.length)} / ${allDates.length}
+      </span>
+      <button 
+        class="chart-nav-next px-3 py-1 text-xs rounded ${canGoNext ? 'bg-gray-200 hover:bg-gray-300 text-gray-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}"
+        ${!canGoNext ? 'disabled' : ''}
+      >
+        다음 <i class="fas fa-chevron-right ml-1"></i>
+      </button>
+    </div>
+  `;
+  
+  container.insertAdjacentHTML('beforeend', navHtml);
+  
+  // 이벤트 리스너 추가
+  const prevBtn = container.querySelector('.chart-nav-prev');
+  const nextBtn = container.querySelector('.chart-nav-next');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (state.startIndex > 0) {
+        state.startIndex = Math.max(0, state.startIndex - 6);
+        
+        // 차트 찾기 및 재생성
+        const orders = window.currentDashboardData?.orders || [];
+        const channelFilter = window.currentChannelFilter;
+        const filteredOrders = channelFilter && channelFilter !== '전체' 
+          ? orders.filter(o => o.channel === channelFilter)
+          : orders;
+        
+        // 기존 차트 제거
+        const existingChart = Chart.getChart(canvasId);
+        if (existingChart) {
+          existingChart.destroy();
+        }
+        
+        createDateBarChart(canvasId, filteredOrders, colors);
+      }
+    });
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (state.startIndex + 6 < allDates.length) {
+        state.startIndex = Math.min(allDates.length - 6, state.startIndex + 6);
+        
+        // 차트 찾기 및 재생성
+        const orders = window.currentDashboardData?.orders || [];
+        const channelFilter = window.currentChannelFilter;
+        const filteredOrders = channelFilter && channelFilter !== '전체' 
+          ? orders.filter(o => o.channel === channelFilter)
+          : orders;
+        
+        // 기존 차트 제거
+        const existingChart = Chart.getChart(canvasId);
+        if (existingChart) {
+          existingChart.destroy();
+        }
+        
+        createDateBarChart(canvasId, filteredOrders, colors);
+      }
+    });
+  }
 }
 
 // 지연 위험 발주 테이블
