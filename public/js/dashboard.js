@@ -1769,9 +1769,19 @@ function renderPendingOrdersTable(delayedOrders) {
               : 0;
             
             // 현재 공정 찾기
-            const allProcesses = [...(order.schedule?.production || []), ...(order.schedule?.shipping || [])];
-            const lastCompleted = allProcesses.filter(p => p.actualDate).pop();
-            const currentProcess = lastCompleted ? lastCompleted.name : '미착수';
+            let currentProcess = '미착수';
+            if (order.schedule) {
+              const productionProcesses = order.schedule.production || [];
+              const shippingProcesses = order.schedule.shipping || [];
+              const allProcesses = [...productionProcesses, ...shippingProcesses];
+              
+              // actualDate가 있는 공정 중 마지막 공정 찾기
+              const completedProcesses = allProcesses.filter(p => p && p.actualDate);
+              if (completedProcesses.length > 0) {
+                const lastCompleted = completedProcesses[completedProcesses.length - 1];
+                currentProcess = lastCompleted.name || lastCompleted.processName || '진행중';
+              }
+            }
             
             const severityColor = diffDays >= 15 ? 'bg-red-50' : diffDays >= 8 ? 'bg-orange-50' : 'bg-yellow-50';
             
