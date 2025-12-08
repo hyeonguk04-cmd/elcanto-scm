@@ -1370,17 +1370,17 @@ function createProgressDonutChart(canvasId, total, completed, color, label) {
         ctx.save();
         ctx.textAlign = 'center';
         
-        // 첫 번째 줄: "발주: XXX개"
+        // 첫 번째 줄: "발주 XXX개"
         ctx.font = '500 11px sans-serif';
         ctx.fillStyle = '#6B7280';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(`발주: ${total.toLocaleString()}개`, centerX, centerY - 2);
+        ctx.fillText(`발주 ${total.toLocaleString()}개`, centerX, centerY - 2);
         
-        // 두 번째 줄: "입고율: XX%"
+        // 두 번째 줄: "입고 XX%"
         ctx.font = 'bold 14px sans-serif';
         ctx.fillStyle = color;
         ctx.textBaseline = 'top';
-        ctx.fillText(`입고율: ${rate}%`, centerX, centerY + 2);
+        ctx.fillText(`입고 ${rate}%`, centerX, centerY + 2);
         
         ctx.restore();
       }
