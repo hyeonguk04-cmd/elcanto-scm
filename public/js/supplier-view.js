@@ -7,6 +7,7 @@ import { PROCESS_CONFIG, getProcessName } from './process-config.js';
 import { t, getCurrentLanguage } from './i18n.js';
 
 let supplierOrders = [];
+let expandedOrderIndices = new Set(); // 펼쳐진 주문 인덱스 추적
 
 export async function renderSupplierView(container, view) {
   const user = getCurrentUser();
@@ -261,6 +262,9 @@ async function renderSupplierOrders(container, user) {
       }
     }
     
+    // 펼쳐진 상태 복원
+    restoreExpandedState();
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
@@ -499,11 +503,29 @@ window.toggleOrderDetail = function(index) {
   if (detailDiv.classList.contains('hidden')) {
     detailDiv.classList.remove('hidden');
     icon.classList.add('rotate-180');
+    expandedOrderIndices.add(index); // 펼친 상태 저장
   } else {
     detailDiv.classList.add('hidden');
     icon.classList.remove('rotate-180');
+    expandedOrderIndices.delete(index); // 접은 상태 저장
   }
 };
+
+// 펼쳐진 상태 복원
+function restoreExpandedState() {
+  // 약간의 지연 후 복원 (DOM이 완전히 로드된 후)
+  setTimeout(() => {
+    expandedOrderIndices.forEach(index => {
+      const detailDiv = document.getElementById(`order-detail-${index}`);
+      const icon = document.getElementById(`toggle-icon-${index}`);
+      
+      if (detailDiv && icon) {
+        detailDiv.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+      }
+    });
+  }, 100);
+}
 
 function setupEventListeners() {
   // 실제 완료일 입력
