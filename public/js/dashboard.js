@@ -1668,20 +1668,21 @@ function createDateBarChart(canvasId, orders, colors) {
               const total = completed + pending;
               const rate = achievementRates[index];
               
-              if (context.datasetIndex === 0) {
-                return [
-                  `입고수량: ${completed.toLocaleString()}개`,
-                  `미입고수량: ${pending.toLocaleString()}개`,
-                  `총발주수량: ${total.toLocaleString()}개`,
-                  `달성률: ${rate}%`
-                ];
-              }
-              return null;
+              // 입고수량과 미입고수량 모두 동일한 툴팁 표시
+              return [
+                `입고수량: ${completed.toLocaleString()}개`,
+                `미입고수량: ${pending.toLocaleString()}개`,
+                `총발주수량: ${total.toLocaleString()}개`,
+                `달성률: ${rate}%`
+              ];
             },
             footer: function(context) {
               const index = context[0].dataIndex;
               const pending = pendingData[index];
-              if (pending > 0) {
+              const datasetIndex = context[0].datasetIndex;
+              
+              // 미입고수량 영역에만 클릭 안내 표시
+              if (datasetIndex === 1 && pending > 0) {
                 return '\n💡 미입고 영역을 클릭하여 상세정보 보기';
               }
               return '';
@@ -1697,9 +1698,24 @@ function createDateBarChart(canvasId, orders, colors) {
           const date = sortedDates[index];
           const pending = pendingData[index];
           
-          // 미입고수량 영역 클릭 시
+          // 미입고수량 영역 클릭 시 모니터링 탭으로 이동
           if (datasetIndex === 1 && pending > 0) {
-            alert(`${date} 미입고 상세 현황:\n\n미입고수량: ${pending.toLocaleString()}개\n달성률: ${achievementRates[index]}%\n\n※ 상세 현황은 [미입고 관리] 메뉴에서 확인하실 수 있습니다.`);
+            // 전역 변수에 선택된 날짜 저장
+            window.selectedOrderDate = date;
+            
+            // 모니터링 KPI 카드 클릭 이벤트 트리거
+            const monitoringCard = document.querySelector('[data-kpi="pending"]');
+            if (monitoringCard) {
+              monitoringCard.click();
+              
+              // 약간의 지연 후 해당 날짜로 스크롤
+              setTimeout(() => {
+                const pendingTable = document.getElementById('pending-orders-table');
+                if (pendingTable) {
+                  pendingTable.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 300);
+            }
           }
         }
       }
@@ -1711,11 +1727,28 @@ function createDateBarChart(canvasId, orders, colors) {
 function renderPendingOrdersTable(delayedOrders) {
   const container = document.getElementById('pending-orders-table');
   
-  if (!delayedOrders || delayedOrders.length === 0) {
-    container.innerHTML = `
+  // 선택된 발주일자가 있으면 필터링
+  let filteredOrders = delayedOrders;
+  let filterMessage = '';
+  
+  if (window.selectedOrderDate) {
+    filteredOrders = delayedOrders.filter(order => order.orderDate === window.selectedOrderDate);
+    filterMessage = `<div class="mb-3 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+      <span class="text-sm text-blue-700">
+        <i class="fas fa-filter mr-2"></i>
+        발주일자 <strong>${window.selectedOrderDate}</strong> 필터 적용 중
+      </span>
+      <button onclick="window.selectedOrderDate = null; updateDashboard();" class="text-xs text-blue-600 hover:text-blue-800 underline">
+        필터 해제
+      </button>
+    </div>`;
+  }
+  
+  if (!filteredOrders || filteredOrders.length === 0) {
+    container.innerHTML = filterMessage + `
       <div class="text-center py-8 text-gray-500">
         <i class="fas fa-check-circle text-4xl mb-2 text-green-500"></i>
-        <p>지연 위험 발주가 없습니다.</p>
+        <p>${window.selectedOrderDate ? '해당 날짜의 지연 위험 발주가 없습니다.' : '지연 위험 발주가 없습니다.'}</p>
       </div>
     `;
     return;
@@ -1723,11 +1756,12 @@ function renderPendingOrdersTable(delayedOrders) {
   
   const today = new Date();
   
-  container.innerHTML = `
+  container.innerHTML = filterMessage + `
     <div class="overflow-x-auto">
       <table class="min-w-full text-xs">
         <thead class="bg-gray-50">
           <tr>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">발주일</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">스타일</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">생산업체</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">수량</th>
@@ -1737,7 +1771,7 @@ function renderPendingOrdersTable(delayedOrders) {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
-          ${delayedOrders.slice(0, 10).map(order => {
+          ${filteredOrders.slice(0, 20).map(order => {
             const diffDays = order.requiredDelivery 
               ? Math.floor((today - new Date(order.requiredDelivery)) / (1000 * 60 * 60 * 24))
               : 0;
