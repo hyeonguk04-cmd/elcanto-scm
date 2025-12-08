@@ -5,6 +5,7 @@ import { UIUtils, DateUtils, FormatUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
+let sortState = { column: null, direction: null };
 
 export async function renderAnalytics(container) {
   try {
@@ -126,6 +127,65 @@ function renderAnalyticsTable(orders) {
     return;
   }
   
+  // 정렬 적용
+  if (sortState.column && sortState.direction) {
+    orders = [...orders].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortState.column) {
+        case 'channel':
+          aVal = a.channel || '';
+          bVal = b.channel || '';
+          break;
+        case 'supplier':
+          aVal = a.supplier || '';
+          bVal = b.supplier || '';
+          break;
+        case 'style':
+          aVal = (a.style || '').toLowerCase();
+          bVal = (b.style || '').toLowerCase();
+          break;
+        case 'orderDate':
+          aVal = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+          bVal = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+          break;
+        case 'requiredDelivery':
+          aVal = a.requiredDelivery ? new Date(a.requiredDelivery).getTime() : 0;
+          bVal = b.requiredDelivery ? new Date(b.requiredDelivery).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      // 빈 값 처리
+      if (!aVal && bVal) return 1;
+      if (aVal && !bVal) return -1;
+      if (!aVal && !bVal) return 0;
+      
+      // 정렬
+      if (typeof aVal === 'string') {
+        const result = aVal.localeCompare(bVal, 'ko');
+        return sortState.direction === 'asc' ? result : -result;
+      } else {
+        const result = aVal - bVal;
+        return sortState.direction === 'asc' ? result : -result;
+      }
+    });
+  }
+  
+  const getSortIcon = (column) => {
+    if (sortState.column !== column) return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
+    return sortState.direction === 'asc' 
+      ? '<i class="fas fa-sort-up text-blue-600 ml-1"></i>'
+      : '<i class="fas fa-sort-down text-blue-600 ml-1"></i>';
+  };
+  
+  const getHeaderClass = (column) => {
+    return sortState.column === column
+      ? 'px-3 py-2 border cursor-pointer hover:bg-blue-200 bg-blue-100 text-blue-800'
+      : 'px-3 py-2 border cursor-pointer hover:bg-gray-100';
+  };
+  
   // 생산 공정 헤더
   const productionHeaders = PROCESS_CONFIG.production.map(p => p.name);
   
@@ -147,14 +207,14 @@ function renderAnalyticsTable(orders) {
         <!-- 서브 헤더 -->
         <tr>
           <!-- 발주 정보 -->
-          <th class="px-3 py-2 border" style="min-width: 60px;">채널</th>
-          <th class="px-3 py-2 border" style="min-width: 80px;">생산업체</th>
-          <th class="px-3 py-2 border" style="min-width: 100px;">스타일</th>
+          <th class="${getHeaderClass('channel')}" style="min-width: 60px;" data-analytics-sort="channel">채널 ${getSortIcon('channel')}</th>
+          <th class="${getHeaderClass('supplier')}" style="min-width: 80px;" data-analytics-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
+          <th class="${getHeaderClass('style')}" style="min-width: 100px;" data-analytics-sort="style">스타일 ${getSortIcon('style')}</th>
           <th class="px-3 py-2 border" style="min-width: 80px;">이미지</th>
           <th class="px-3 py-2 border" style="min-width: 50px;">색상</th>
           <th class="px-3 py-2 border" style="min-width: 60px;">수량</th>
-          <th class="px-3 py-2 border" style="min-width: 90px;">발주일</th>
-          <th class="px-3 py-2 border" style="min-width: 90px;">입고요구일</th>
+          <th class="${getHeaderClass('orderDate')}" style="min-width: 90px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
+          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 90px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           
           <!-- 생산 공정 -->
           ${productionHeaders.map(name => `
@@ -176,6 +236,29 @@ function renderAnalyticsTable(orders) {
       </tbody>
     </table>
   `;
+  
+  // 정렬 이벤트 리스너 추가
+  setTimeout(() => {
+    document.querySelectorAll('[data-analytics-sort]').forEach(header => {
+      header.addEventListener('click', () => {
+        const column = header.dataset.analyticsSort;
+        
+        if (sortState.column === column) {
+          if (sortState.direction === 'asc') {
+            sortState.direction = 'desc';
+          } else if (sortState.direction === 'desc') {
+            sortState.column = null;
+            sortState.direction = null;
+          }
+        } else {
+          sortState.column = column;
+          sortState.direction = 'asc';
+        }
+        
+        filterOrders();
+      });
+    });
+  }, 0);
 }
 
 function renderOrderRow(order, rowNum) {

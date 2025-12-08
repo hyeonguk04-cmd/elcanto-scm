@@ -7,6 +7,7 @@ import { PROCESS_CONFIG } from './process-config.js';
 let allOrders = [];
 let currentWeekStart = null;
 let currentWeekEnd = null;
+let sortState = { column: null, direction: null };
 
 export async function renderWeeklyReport(container) {
   try {
@@ -194,17 +195,76 @@ function renderWeeklyTable(orders) {
     return;
   }
   
+  // 정렬 적용
+  if (sortState.column && sortState.direction) {
+    orders = [...orders].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortState.column) {
+        case 'channel':
+          aVal = a.channel || '';
+          bVal = b.channel || '';
+          break;
+        case 'country':
+          aVal = a.country || '';
+          bVal = b.country || '';
+          break;
+        case 'supplier':
+          aVal = a.supplier || '';
+          bVal = b.supplier || '';
+          break;
+        case 'style':
+          aVal = (a.style || '').toLowerCase();
+          bVal = (b.style || '').toLowerCase();
+          break;
+        case 'requiredDelivery':
+          aVal = a.requiredDelivery ? new Date(a.requiredDelivery).getTime() : 0;
+          bVal = b.requiredDelivery ? new Date(b.requiredDelivery).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      // 빈 값 처리
+      if (!aVal && bVal) return 1;
+      if (aVal && !bVal) return -1;
+      if (!aVal && !bVal) return 0;
+      
+      // 정렬
+      if (typeof aVal === 'string') {
+        const result = aVal.localeCompare(bVal, 'ko');
+        return sortState.direction === 'asc' ? result : -result;
+      } else {
+        const result = aVal - bVal;
+        return sortState.direction === 'asc' ? result : -result;
+      }
+    });
+  }
+  
+  const getSortIcon = (column) => {
+    if (sortState.column !== column) return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
+    return sortState.direction === 'asc' 
+      ? '<i class="fas fa-sort-up text-blue-600 ml-1"></i>'
+      : '<i class="fas fa-sort-down text-blue-600 ml-1"></i>';
+  };
+  
+  const getHeaderClass = (column) => {
+    return sortState.column === column
+      ? 'px-2 py-2 text-center border-r cursor-pointer hover:bg-blue-200 bg-blue-100 text-blue-800'
+      : 'px-2 py-2 text-center border-r cursor-pointer hover:bg-gray-200';
+  };
+  
   container.innerHTML = `
     <table class="w-full text-xs">
       <thead class="bg-gray-100 sticky top-0 z-10">
         <tr class="border-b-2 border-gray-300">
           <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 60px;">채널</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">생산국</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">업체명</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 80px;">스타일코드</th>
+          <th class="${getHeaderClass('channel')}" style="min-width: 60px;" data-weekly-sort="channel">채널 ${getSortIcon('channel')}</th>
+          <th class="${getHeaderClass('country')}" style="min-width: 70px;" data-weekly-sort="country">생산국 ${getSortIcon('country')}</th>
+          <th class="${getHeaderClass('supplier')}" style="min-width: 70px;" data-weekly-sort="supplier">업체명 ${getSortIcon('supplier')}</th>
+          <th class="${getHeaderClass('style')}" style="min-width: 80px;" data-weekly-sort="style">스타일코드 ${getSortIcon('style')}</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">발주수량</th>
-          <th class="px-2 py-2 text-center border-r" style="min-width: 90px;">입고요구일</th>
+          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 90px;" data-weekly-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 120px;">공정률</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 65px;">누적입고</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 65px;">주입고량</th>
@@ -217,6 +277,29 @@ function renderWeeklyTable(orders) {
       </tbody>
     </table>
   `;
+  
+  // 정렬 이벤트 리스너 추가
+  setTimeout(() => {
+    document.querySelectorAll('[data-weekly-sort]').forEach(header => {
+      header.addEventListener('click', () => {
+        const column = header.dataset.weeklySort;
+        
+        if (sortState.column === column) {
+          if (sortState.direction === 'asc') {
+            sortState.direction = 'desc';
+          } else if (sortState.direction === 'desc') {
+            sortState.column = null;
+            sortState.direction = null;
+          }
+        } else {
+          sortState.column = column;
+          sortState.direction = 'asc';
+        }
+        
+        filterOrders();
+      });
+    });
+  }, 0);
 }
 
 function renderOrderRow(order, rowNum) {
