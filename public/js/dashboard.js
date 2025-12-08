@@ -1058,10 +1058,10 @@ function renderAllChannelCharts(orders, colors, container) {
       <canvas id="chart-channel-donut" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 발주일별 입고현황 (너비 2배, 높이 증가) -->
-    <div class="bg-white rounded-lg p-6 shadow-sm col-span-2">
-      <h5 class="text-sm font-semibold text-gray-700 mb-4 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 280px;"></canvas>
+    <!-- 3. 발주일별 입고현황 (너비 2배, 높이 동일) -->
+    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
   `;
   
@@ -1110,10 +1110,10 @@ function renderSingleChannelCharts(orders, colors, container) {
       <canvas id="chart-channel-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 증가) -->
-    <div class="bg-white rounded-lg p-6 shadow-sm col-span-2">
-      <h5 class="text-sm font-semibold text-gray-700 mb-4 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-single" class="mx-auto" style="max-height: 280px;"></canvas>
+    <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 동일) -->
+    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
   `;
   
@@ -1508,12 +1508,12 @@ function createDateBarChart(canvasId, orders, colors) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
       scales: {
         x: {
           grid: { display: false },
           ticks: { 
-            font: { size: 12, weight: '600' },
+            font: { size: 11, weight: '500' },
             color: '#374151'
           }
         },
@@ -1524,12 +1524,12 @@ function createDateBarChart(canvasId, orders, colors) {
             drawBorder: false
           },
           ticks: {
-            font: { size: 11, weight: '500' },
+            font: { size: 10, weight: '500' },
             color: '#6B7280',
             callback: function(value) {
               return value.toLocaleString();
             },
-            padding: 8
+            padding: 6
           }
         }
       },
@@ -1537,20 +1537,20 @@ function createDateBarChart(canvasId, orders, colors) {
         legend: {
           position: 'bottom',
           labels: {
-            font: { size: 12, weight: '600' },
-            boxWidth: 14,
-            padding: 12,
+            font: { size: 11, weight: '500' },
+            boxWidth: 12,
+            padding: 10,
             usePointStyle: true
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          padding: 14,
-          titleFont: { size: 13, weight: 'bold' },
-          bodyFont: { size: 12 },
-          cornerRadius: 8,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 12,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          cornerRadius: 6,
           displayColors: true,
-          boxPadding: 6,
+          boxPadding: 4,
           callbacks: {
             label: function(context) {
               return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
