@@ -1040,62 +1040,62 @@ function createTotalCharts() {
   }
 }
 
-// ===== 전체 채널 선택 시: 4개 도넛 차트 =====
+// ===== 전체 채널 선택 시: 4개 차트 (2 도넛 + 2 막대) =====
 function renderAllChannelCharts(orders, colors, container) {
   const channelStats = calculateChannelStats(orders);
+  const countryData = calculateCountryData(orders);
   
   container.innerHTML = `
-    <!-- 1. 전체 발주 현황 -->
+    <!-- 1. 채널별 도넛 차트 -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">전체</h5>
-      <canvas id="chart-all-total" class="mx-auto" style="max-height: 160px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
+      <canvas id="chart-channel-donut" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 2. 한국 발주 비율 -->
+    <!-- 2. 국가별 도넛 차트 -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">한국 발주 비율</h5>
-      <canvas id="chart-korea" class="mx-auto" style="max-height: 160px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별</h5>
+      <canvas id="chart-country-donut" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 중국 발주 비율 -->
+    <!-- 3. 채널별 발주대비 입고 -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">중국 발주 비율</h5>
-      <canvas id="chart-china" class="mx-auto" style="max-height: 160px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별 발주대비 입고</h5>
+      <canvas id="chart-channel-bar" class="mx-auto" style="max-height: 200px;"></canvas>
     </div>
     
-    <!-- 4. 베트남 발주 비율 -->
+    <!-- 4. 발주일별 입고현황 -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">베트남 발주 비율</h5>
-      <canvas id="chart-vietnam" class="mx-auto" style="max-height: 160px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 200px;"></canvas>
     </div>
   `;
   
   // 차트 생성
   setTimeout(() => {
-    // 1. 전체 발주 현황 (ELCANTO vs IM)
-    createDonutChart('chart-all-total', 
+    // 1. 채널별 도넛 차트
+    createDonutChart('chart-channel-donut', 
       ['ELCANTO', 'IM'],
       [channelStats.ELCANTO.total, channelStats.IM.total],
       [colors.elcanto, colors.im],
       '전체'
     );
     
-    // 2~4. 국가별 발주 비율
-    const countries = ['한국', '중국', '베트남'];
-    const countryData = calculateCountryData(orders);
+    // 2. 국가별 도넛 차트 (베트남 vs 중국)
+    const vietnamTotal = (countryData['베트남']?.ELCANTO || 0) + (countryData['베트남']?.IM || 0);
+    const chinaTotal = (countryData['중국']?.ELCANTO || 0) + (countryData['중국']?.IM || 0);
+    createDonutChart('chart-country-donut',
+      ['베트남', '중국'],
+      [vietnamTotal, chinaTotal],
+      ['#8B5CF6', '#3B82F6'],  // 보라, 파랑
+      '전체'
+    );
     
-    countries.forEach((country, idx) => {
-      const chartId = ['chart-korea', 'chart-china', 'chart-vietnam'][idx];
-      const data = countryData[country];
-      if (data) {
-        createDonutChart(chartId,
-          ['ELCANTO', 'IM'],
-          [data.ELCANTO || 0, data.IM || 0],
-          [colors.elcanto, colors.im],
-          country
-        );
-      }
-    });
+    // 3. 채널별 발주대비 입고 (세로 막대)
+    createChannelBarChart('chart-channel-bar', channelStats, colors);
+    
+    // 4. 발주일별 입고현황 (세로 막대)
+    createDateBarChart('chart-date-bar', orders, colors);
   }, 100);
 }
 
@@ -1386,6 +1386,172 @@ function createProgressDonutChart(canvasId, total, completed, color, label) {
         ctx.restore();
       }
     }]
+  });
+}
+
+// ===== 차트 생성: 채널별 발주대비 입고 (세로 막대) =====
+function createChannelBarChart(canvasId, channelStats, colors) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['ELCANTO', 'IM'],
+      datasets: [
+        {
+          label: '총 발주량',
+          data: [channelStats.ELCANTO.total, channelStats.IM.total],
+          backgroundColor: '#3B82F6',  // 파랑
+          borderRadius: 4,
+          barPercentage: 0.7
+        },
+        {
+          label: '입고량',
+          data: [channelStats.ELCANTO.completed, channelStats.IM.completed],
+          backgroundColor: '#F97316',  // 주황
+          borderRadius: 4,
+          barPercentage: 0.7
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11, weight: '500' } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E5E7EB' },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              return value.toLocaleString();
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 10, weight: '500' },
+            boxWidth: 12,
+            padding: 8,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 10,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ===== 차트 생성: 발주일별 입고현황 (세로 막대) =====
+function createDateBarChart(canvasId, orders, colors) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  // 발주일별 데이터 집계
+  const dateData = {};
+  orders.forEach(order => {
+    if (!order.orderDate) return;
+    const date = order.orderDate;
+    
+    if (!dateData[date]) {
+      dateData[date] = { total: 0, completed: 0 };
+    }
+    
+    dateData[date].total += order.qty || 0;
+    
+    // 입고 완료 여부 확인
+    const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+    if (arrivalProcess?.actualDate) {
+      dateData[date].completed += order.qty || 0;
+    }
+  });
+  
+  // 날짜순 정렬 (최근 4개)
+  const sortedDates = Object.keys(dateData).sort().slice(-4);
+  const totalData = sortedDates.map(date => dateData[date].total);
+  const completedData = sortedDates.map(date => dateData[date].completed);
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sortedDates,
+      datasets: [
+        {
+          label: '총 발주량',
+          data: totalData,
+          backgroundColor: '#3B82F6',  // 파랑
+          borderRadius: 4,
+          barPercentage: 0.7
+        },
+        {
+          label: '입고량',
+          data: completedData,
+          backgroundColor: '#F97316',  // 주황
+          borderRadius: 4,
+          barPercentage: 0.7
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10, weight: '500' } }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E5E7EB' },
+          ticks: {
+            font: { size: 10 },
+            callback: function(value) {
+              return value.toLocaleString();
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 10, weight: '500' },
+            boxWidth: 12,
+            padding: 8,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 10,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
+            }
+          }
+        }
+      }
+    }
   });
 }
 
