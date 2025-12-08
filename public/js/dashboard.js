@@ -93,6 +93,9 @@ export async function renderDashboard(container) {
       updateDashboard();
     });
     
+    // 정렬 핸들러 설정
+    setupSortHandlers();
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
@@ -430,6 +433,199 @@ function generateOntimeInsights(supplierStats) {
   return insights.join('');
 }
 
+// ===== 생산 목표일정 수립 테이블 렌더링 (정렬 기능 포함) =====
+function renderProductionScheduleTable(orders) {
+  if (!window.productionScheduleSort) {
+    window.productionScheduleSort = {
+      column: null,
+      direction: null, // null, 'asc', 'desc'
+      originalOrder: [...orders]
+    };
+  }
+  
+  const sortState = window.productionScheduleSort;
+  let sortedOrders = [...orders];
+  
+  // 정렬 적용
+  if (sortState.column && sortState.direction) {
+    sortedOrders.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortState.column) {
+        case 'channel':
+          aVal = a.channel || '';
+          bVal = b.channel || '';
+          break;
+        case 'country':
+          aVal = a.country || '';
+          bVal = b.country || '';
+          break;
+        case 'supplier':
+          aVal = a.supplier || '';
+          bVal = b.supplier || '';
+          break;
+        case 'orderDate':
+          aVal = a.orderDate ? new Date(a.orderDate).getTime() : 0;
+          bVal = b.orderDate ? new Date(b.orderDate).getTime() : 0;
+          break;
+        case 'requiredDelivery':
+          aVal = a.requiredDelivery ? new Date(a.requiredDelivery).getTime() : 0;
+          bVal = b.requiredDelivery ? new Date(b.requiredDelivery).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      // 빈 값은 끝으로
+      if (!aVal && bVal) return 1;
+      if (aVal && !bVal) return -1;
+      if (!aVal && !bVal) return 0;
+      
+      // 정렬 방향에 따라
+      if (typeof aVal === 'string') {
+        const result = aVal.localeCompare(bVal, 'ko');
+        return sortState.direction === 'asc' ? result : -result;
+      } else {
+        const result = aVal - bVal;
+        return sortState.direction === 'asc' ? result : -result;
+      }
+    });
+  }
+  
+  const getSortIcon = (column) => {
+    if (sortState.column !== column) {
+      return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
+    }
+    if (sortState.direction === 'asc') {
+      return '<i class="fas fa-sort-up text-blue-600 ml-1"></i>';
+    }
+    if (sortState.direction === 'desc') {
+      return '<i class="fas fa-sort-down text-blue-600 ml-1"></i>';
+    }
+    return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
+  };
+  
+  const getHeaderClass = (column) => {
+    return sortState.column === column 
+      ? 'bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200'
+      : 'bg-gray-50 text-gray-700 cursor-pointer hover:bg-gray-100';
+  };
+  
+  return `
+    <div class="bg-white rounded-xl shadow-lg p-4 mt-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800">📋 생산 목표일정 수립</h3>
+        <button class="close-schedule-table-btn text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr>
+              <th class="px-3 py-3 text-left font-semibold ${getHeaderClass('channel')}" 
+                  data-sort-column="channel">
+                채널 ${getSortIcon('channel')}
+              </th>
+              <th class="px-3 py-3 text-left font-semibold ${getHeaderClass('country')}" 
+                  data-sort-column="country">
+                국가 ${getSortIcon('country')}
+              </th>
+              <th class="px-3 py-3 text-left font-semibold ${getHeaderClass('supplier')}" 
+                  data-sort-column="supplier">
+                생산업체 ${getSortIcon('supplier')}
+              </th>
+              <th class="px-3 py-3 text-left font-semibold bg-gray-50 text-gray-700">
+                스타일
+              </th>
+              <th class="px-3 py-3 text-left font-semibold bg-gray-50 text-gray-700">
+                수량
+              </th>
+              <th class="px-3 py-3 text-left font-semibold ${getHeaderClass('orderDate')}" 
+                  data-sort-column="orderDate">
+                발주일 ${getSortIcon('orderDate')}
+              </th>
+              <th class="px-3 py-3 text-left font-semibold ${getHeaderClass('requiredDelivery')}" 
+                  data-sort-column="requiredDelivery">
+                입고요구일 ${getSortIcon('requiredDelivery')}
+              </th>
+              <th class="px-3 py-3 text-left font-semibold bg-gray-50 text-gray-700">
+                진행 상태
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            ${sortedOrders.map(order => {
+              const arrivalProcess = order.schedule?.shipping?.find(p => p.processKey === 'arrival');
+              const status = arrivalProcess?.actualDate ? '입고완료' : '진행중';
+              const statusClass = arrivalProcess?.actualDate ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800';
+              
+              return `
+                <tr class="hover:bg-gray-50">
+                  <td class="px-3 py-2 font-medium">${order.channel || '-'}</td>
+                  <td class="px-3 py-2">${order.country || '-'}</td>
+                  <td class="px-3 py-2">${order.supplier || '-'}</td>
+                  <td class="px-3 py-2">${order.style || '-'}</td>
+                  <td class="px-3 py-2">${(order.qty || 0).toLocaleString()}개</td>
+                  <td class="px-3 py-2">${order.orderDate || '-'}</td>
+                  <td class="px-3 py-2">${order.requiredDelivery || '-'}</td>
+                  <td class="px-3 py-2">
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                      ${status}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="mt-3 text-xs text-gray-500 text-center">
+        총 ${sortedOrders.length}건
+      </div>
+    </div>
+  `;
+}
+
+// 정렬 이벤트 핸들러 설정
+function setupSortHandlers() {
+  document.addEventListener('click', (e) => {
+    const header = e.target.closest('[data-sort-column]');
+    if (!header) return;
+    
+    const column = header.dataset.sortColumn;
+    const sortState = window.productionScheduleSort;
+    
+    if (!sortState) return;
+    
+    // 정렬 상태 토글
+    if (sortState.column === column) {
+      if (sortState.direction === null) {
+        sortState.direction = 'asc';
+      } else if (sortState.direction === 'asc') {
+        sortState.direction = 'desc';
+      } else {
+        // 원래 순서로 복원
+        sortState.column = null;
+        sortState.direction = null;
+      }
+    } else {
+      sortState.column = column;
+      sortState.direction = 'asc';
+    }
+    
+    // 테이블 재렌더링
+    const orders = dashboardData?.orders || window.productionScheduleSort.originalOrder || [];
+    const tableHtml = renderProductionScheduleTable(orders);
+    const container = document.querySelector('.bg-white.rounded-xl.shadow-lg.p-4.mt-4');
+    if (container) {
+      container.outerHTML = tableHtml;
+    }
+  });
+}
+
 function createOntimeCharts() {
   const { completedOrders, kpi } = dashboardData;
   const onTimeCount = kpi.onTimeOrders;
@@ -622,6 +818,8 @@ function renderProgressAnalysis() {
         </ul>
       </div>
     </div>
+    
+    ${renderProductionScheduleTable(orders)}
   `;
 }
 
