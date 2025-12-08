@@ -948,9 +948,9 @@ function renderTotalAnalysis() {
         </button>
       </div>
       
-      <!-- 채널별 발주 현황 -->
+      <!-- 국가별/채널별 발주 현황 -->
       <div class="bg-gray-50 rounded-lg p-4 mb-4">
-        <h4 class="text-sm font-bold text-gray-700 mb-3">채널별 발주 현황</h4>
+        <h4 class="text-sm font-bold text-gray-700 mb-3">국가별/채널별 발주 현황</h4>
         <div id="channel-charts-container" class="grid grid-cols-4 gap-4">
           <!-- 동적으로 생성 -->
         </div>
@@ -1046,42 +1046,42 @@ function renderAllChannelCharts(orders, colors, container) {
   const countryData = calculateCountryData(orders);
   
   container.innerHTML = `
-    <!-- 1. 채널별 도넛 차트 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
-      <canvas id="chart-channel-donut" class="mx-auto" style="max-height: 180px;"></canvas>
-    </div>
-    
-    <!-- 2. 국가별 도넛 차트 -->
+    <!-- 1. 국가별 도넛 차트 -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별</h5>
       <canvas id="chart-country-donut" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 발주일별 입고현황 (너비 2배) -->
-    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 200px;"></canvas>
+    <!-- 2. 채널별 도넛 차트 -->
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
+      <canvas id="chart-channel-donut" class="mx-auto" style="max-height: 180px;"></canvas>
+    </div>
+    
+    <!-- 3. 발주일별 입고현황 (너비 2배, 높이 증가) -->
+    <div class="bg-white rounded-lg p-6 shadow-sm col-span-2">
+      <h5 class="text-sm font-semibold text-gray-700 mb-4 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 280px;"></canvas>
     </div>
   `;
   
   // 차트 생성
   setTimeout(() => {
-    // 1. 채널별 도넛 차트
-    createDonutChart('chart-channel-donut', 
-      ['ELCANTO', 'IM'],
-      [channelStats.ELCANTO.total, channelStats.IM.total],
-      [colors.elcanto, colors.im],
-      '전체'
-    );
-    
-    // 2. 국가별 도넛 차트 (베트남 vs 중국)
+    // 1. 국가별 도넛 차트 (베트남 vs 중국)
     const vietnamTotal = (countryData['베트남']?.ELCANTO || 0) + (countryData['베트남']?.IM || 0);
     const chinaTotal = (countryData['중국']?.ELCANTO || 0) + (countryData['중국']?.IM || 0);
     createDonutChart('chart-country-donut',
       ['베트남', '중국'],
       [vietnamTotal, chinaTotal],
       ['#8B5CF6', '#3B82F6'],  // 보라, 파랑
+      '전체'
+    );
+    
+    // 2. 채널별 도넛 차트
+    createDonutChart('chart-channel-donut', 
+      ['ELCANTO', 'IM'],
+      [channelStats.ELCANTO.total, channelStats.IM.total],
+      [colors.elcanto, colors.im],
       '전체'
     );
     
@@ -1098,22 +1098,22 @@ function renderSingleChannelCharts(orders, colors, container) {
   const countryData = calculateCountryData(channelOrders);
   
   container.innerHTML = `
-    <!-- 1. 채널별 도넛 차트 (선택 채널 강조) -->
-    <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
-      <canvas id="chart-channel-single" class="mx-auto" style="max-height: 180px;"></canvas>
-    </div>
-    
-    <!-- 2. 국가별 도넛 차트 (선택 채널 데이터) -->
+    <!-- 1. 국가별 도넛 차트 (선택 채널 데이터) -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별</h5>
       <canvas id="chart-country-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배) -->
-    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-single" class="mx-auto" style="max-height: 200px;"></canvas>
+    <!-- 2. 채널별 도넛 차트 (선택 채널 강조) -->
+    <div class="bg-white rounded-lg p-4 shadow-sm">
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
+      <canvas id="chart-channel-single" class="mx-auto" style="max-height: 180px;"></canvas>
+    </div>
+    
+    <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 증가) -->
+    <div class="bg-white rounded-lg p-6 shadow-sm col-span-2">
+      <h5 class="text-sm font-semibold text-gray-700 mb-4 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-single" class="mx-auto" style="max-height: 280px;"></canvas>
     </div>
   `;
   
@@ -1121,21 +1121,21 @@ function renderSingleChannelCharts(orders, colors, container) {
   setTimeout(() => {
     const channelColor = selectedChannel === 'ELCANTO' ? colors.elcanto : colors.im;
     
-    // 1. 채널별 도넛 차트 (선택 채널 강조)
-    createDonutChart('chart-channel-single',
-      ['ELCANTO', 'IM'],
-      [channelStats.ELCANTO.total, channelStats.IM.total],
-      [colors.elcanto, colors.im],
-      selectedChannel  // 선택된 채널명 표시
-    );
-    
-    // 2. 국가별 도넛 차트 (선택 채널의 국가별 데이터)
+    // 1. 국가별 도넛 차트 (선택 채널의 국가별 데이터)
     const vietnamTotal = countryData['베트남']?.[selectedChannel] || 0;
     const chinaTotal = countryData['중국']?.[selectedChannel] || 0;
     createDonutChart('chart-country-single',
       ['베트남', '중국'],
       [vietnamTotal, chinaTotal],
       ['#8B5CF6', '#3B82F6'],  // 보라, 파랑
+      selectedChannel  // 선택된 채널명 표시
+    );
+    
+    // 2. 채널별 도넛 차트 (선택 채널 강조)
+    createDonutChart('chart-channel-single',
+      ['ELCANTO', 'IM'],
+      [channelStats.ELCANTO.total, channelStats.IM.total],
+      [colors.elcanto, colors.im],
       selectedChannel  // 선택된 채널명 표시
     );
     
@@ -1493,35 +1493,43 @@ function createDateBarChart(canvasId, orders, colors) {
         {
           label: '총 발주량',
           data: totalData,
-          backgroundColor: '#3B82F6',  // 파랑
-          borderRadius: 4,
-          barPercentage: 0.7
+          backgroundColor: '#8B5CF6',  // 세련된 보라 (포털 메인 컬러)
+          borderRadius: 6,
+          barPercentage: 0.65
         },
         {
           label: '입고량',
           data: completedData,
-          backgroundColor: '#F97316',  // 주황
-          borderRadius: 4,
-          barPercentage: 0.7
+          backgroundColor: '#10B981',  // 세련된 초록 (입고 완료 긍정 컬러)
+          borderRadius: 6,
+          barPercentage: 0.65
         }
       ]
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       scales: {
         x: {
           grid: { display: false },
-          ticks: { font: { size: 10, weight: '500' } }
+          ticks: { 
+            font: { size: 12, weight: '600' },
+            color: '#374151'
+          }
         },
         y: {
           beginAtZero: true,
-          grid: { color: '#E5E7EB' },
+          grid: { 
+            color: '#E5E7EB',
+            drawBorder: false
+          },
           ticks: {
-            font: { size: 10 },
+            font: { size: 11, weight: '500' },
+            color: '#6B7280',
             callback: function(value) {
               return value.toLocaleString();
-            }
+            },
+            padding: 8
           }
         }
       },
@@ -1529,17 +1537,20 @@ function createDateBarChart(canvasId, orders, colors) {
         legend: {
           position: 'bottom',
           labels: {
-            font: { size: 10, weight: '500' },
-            boxWidth: 12,
-            padding: 8,
+            font: { size: 12, weight: '600' },
+            boxWidth: 14,
+            padding: 12,
             usePointStyle: true
           }
         },
         tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          padding: 10,
-          titleFont: { size: 12, weight: 'bold' },
-          bodyFont: { size: 11 },
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          padding: 14,
+          titleFont: { size: 13, weight: 'bold' },
+          bodyFont: { size: 12 },
+          cornerRadius: 8,
+          displayColors: true,
+          boxPadding: 6,
           callbacks: {
             label: function(context) {
               return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
