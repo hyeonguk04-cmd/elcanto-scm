@@ -1704,7 +1704,6 @@ function createDateBarChart(canvasId, orders, colors) {
         }
       }
     }
-    }
   });
 }
 
