@@ -21,7 +21,10 @@ export async function renderAnalytics(container) {
       <div class="space-y-3">
         <div class="flex justify-between items-center">
         <div>
-          <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
+          <div class="flex items-center">
+            <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
+            <i id="analytics-info-icon" class="fas fa-info-circle ml-2 text-gray-600 hover:text-gray-800 cursor-pointer" style="font-size: 18px; vertical-align: middle;"></i>
+          </div>
           <p class="text-xs text-gray-500 mt-0.5">생산업체가 등록한 공정별 실제 완료일을 기준으로 각 공정별 목표대비 실적차이 확인을 통해 납기 리스크를 관리합니다</p>
         </div>           
           <div class="flex space-x-2 items-center">
@@ -45,13 +48,27 @@ export async function renderAnalytics(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
-          <div class="mt-4 space-y-1 text-xs text-gray-500 border-t pt-3">
-            <p>• 기간 선택은 입고요구일 기준 입니다.</p>
-            <p>• 특정 스타일코드의 공정 현황은 Ctrl+F를 눌러 스타일코드 입력한 후 확인할 수 있습니다.</p>
-            <p>• 공정별 지연일수를 클릭하면, 생산업체의 공정별 상세 진행 현황을 확인할 수 있습니다.</p>
-          </div>
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 110px);"></div>
         </div>
+      </div>
+      
+      <!-- 인포메이션 툴팁 -->
+      <div id="analytics-info-tooltip" class="hidden fixed bg-white border border-gray-300 rounded-lg shadow-xl p-5 z-[1001]" style="width: 420px;">
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex items-center">
+            <span class="text-lg mr-2">💡</span>
+            <h3 class="font-bold text-gray-800" style="font-size: 15px;">안내사항</h3>
+          </div>
+          <button id="close-info-tooltip" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+        </div>
+        <div class="text-sm text-gray-700 space-y-3" style="line-height: 1.7;">
+          <p>• 생산업체가 등록한 실제 공정 완료일 기준으로 각 공정별 목표 대비 실적 차이를 통해 납기 리스크를 관리합니다.</p>
+          <p>• 공정별 지연일수를 클릭하면, 생산업체의 공정별 상세 진행 현황을 확인할 수 있습니다.</p>
+          <p>• 특정 스타일코드 검색: Ctrl+F를 눌러 스타일코드를 입력하세요.</p>
+        </div>
+        <!-- 툴팁 화살표 -->
+        <div id="tooltip-arrow" class="absolute w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white" style="top: -8px; left: 20px;"></div>
+        <div id="tooltip-arrow-border" class="absolute w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-gray-300" style="top: -9px; left: 20px;"></div>
       </div>
       
       <!-- 공정 상세 정보 모달 -->
@@ -94,6 +111,141 @@ function setupEventListeners() {
   
   // 엑셀 다운로드
   document.getElementById('analytics-download-excel-btn')?.addEventListener('click', downloadExcel);
+  
+  // 인포메이션 툴팁 기능
+  setupInfoTooltip();
+}
+
+// 인포메이션 툴팁 기능 설정
+function setupInfoTooltip() {
+  const icon = document.getElementById('analytics-info-icon');
+  const tooltip = document.getElementById('analytics-info-tooltip');
+  const closeBtn = document.getElementById('close-info-tooltip');
+  
+  let hoverTimeout = null;
+  let hideTimeout = null;
+  let isFixed = false; // 클릭으로 고정된 상태
+  
+  // 툴팁 위치 조정 함수
+  function positionTooltip() {
+    if (!icon || !tooltip) return;
+    
+    const iconRect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // 기본 위치: 아이콘 아래-오른쪽
+    let top = iconRect.bottom + 10;
+    let left = iconRect.left;
+    
+    // 화면 경계 체크 및 조정
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = window.innerWidth - tooltipRect.width - 20;
+    }
+    
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = iconRect.top - tooltipRect.height - 10;
+      // 화살표를 아래로
+      document.getElementById('tooltip-arrow').style.borderBottom = 'none';
+      document.getElementById('tooltip-arrow').style.borderTop = '8px solid white';
+      document.getElementById('tooltip-arrow-border').style.borderBottom = 'none';
+      document.getElementById('tooltip-arrow-border').style.borderTop = '8px solid #ddd';
+      document.getElementById('tooltip-arrow').style.top = 'auto';
+      document.getElementById('tooltip-arrow').style.bottom = '-8px';
+      document.getElementById('tooltip-arrow-border').style.top = 'auto';
+      document.getElementById('tooltip-arrow-border').style.bottom = '-9px';
+    } else {
+      // 화살표를 위로 (기본)
+      document.getElementById('tooltip-arrow').style.borderTop = 'none';
+      document.getElementById('tooltip-arrow').style.borderBottom = '8px solid white';
+      document.getElementById('tooltip-arrow-border').style.borderTop = 'none';
+      document.getElementById('tooltip-arrow-border').style.borderBottom = '8px solid #ddd';
+      document.getElementById('tooltip-arrow').style.bottom = 'auto';
+      document.getElementById('tooltip-arrow').style.top = '-8px';
+      document.getElementById('tooltip-arrow-border').style.bottom = 'auto';
+      document.getElementById('tooltip-arrow-border').style.top = '-9px';
+    }
+    
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+  }
+  
+  // 툴팁 표시
+  function showTooltip() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    tooltip.classList.remove('hidden');
+    positionTooltip();
+  }
+  
+  // 툴팁 숨기기
+  function hideTooltip() {
+    if (!isFixed) {
+      hideTimeout = setTimeout(() => {
+        tooltip.classList.add('hidden');
+      }, 300);
+    }
+  }
+  
+  // 마우스 호버 이벤트
+  icon.addEventListener('mouseenter', () => {
+    if (!isFixed) {
+      hoverTimeout = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('mouseleave', () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = null;
+    }
+    hideTooltip();
+  });
+  
+  // 툴팁 위에 마우스 있을 때는 숨기지 않음
+  tooltip.addEventListener('mouseenter', () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    hideTooltip();
+  });
+  
+  // 클릭으로 고정
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFixed = !isFixed;
+    if (isFixed) {
+      showTooltip();
+    } else {
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 닫기 버튼
+  closeBtn.addEventListener('click', () => {
+    isFixed = false;
+    tooltip.classList.add('hidden');
+  });
+  
+  // 툴팁 외부 클릭 시 닫기
+  document.addEventListener('click', (e) => {
+    if (isFixed && !tooltip.contains(e.target) && e.target !== icon) {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 창 크기 변경 시 위치 재조정
+  window.addEventListener('resize', () => {
+    if (!tooltip.classList.contains('hidden')) {
+      positionTooltip();
+    }
+  });
 }
 
 function filterOrders() {
