@@ -1104,10 +1104,10 @@ function renderSingleChannelCharts(orders, colors, container) {
       <canvas id="chart-country-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 2. 채널별 도넛 차트 (선택 채널 강조) -->
+    <!-- 2. 국가별 발주대비 입고 (선택 채널의 국가별 세로 막대) -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
-      <canvas id="chart-channel-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별 발주대비 입고</h5>
+      <canvas id="chart-country-bar-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
     <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 동일) -->
@@ -1131,13 +1131,8 @@ function renderSingleChannelCharts(orders, colors, container) {
       selectedChannel  // 선택된 채널명 표시
     );
     
-    // 2. 채널별 도넛 차트 (선택 채널 강조)
-    createDonutChart('chart-channel-single',
-      ['ELCANTO', 'IM'],
-      [channelStats.ELCANTO.total, channelStats.IM.total],
-      [colors.elcanto, colors.im],
-      selectedChannel  // 선택된 채널명 표시
-    );
+    // 2. 국가별 발주대비 입고 (선택 채널의 국가별 세로 막대)
+    createCountryBarChart('chart-country-bar-single', countryData, selectedChannel, colors);
     
     // 3. 발주일별 입고현황 (선택 채널 데이터만)
     createDateBarChart('chart-date-single', channelOrders, colors);
@@ -1385,6 +1380,93 @@ function createProgressDonutChart(canvasId, total, completed, color, label) {
         ctx.restore();
       }
     }]
+  });
+}
+
+// ===== 차트 생성: 국가별 발주대비 입고 (세로 막대) =====
+function createCountryBarChart(canvasId, countryData, selectedChannel, colors) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  // 국가별 데이터 추출
+  const countries = ['한국', '중국', '베트남'];
+  const totalData = countries.map(country => countryData[country]?.[selectedChannel] || 0);
+  const completedData = countries.map(country => countryData[country]?.[`${selectedChannel}_completed`] || 0);
+  
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: countries,
+      datasets: [
+        {
+          label: '총 발주량',
+          data: totalData,
+          backgroundColor: '#8B5CF6',  // 보라
+          borderRadius: 6,
+          barPercentage: 0.65
+        },
+        {
+          label: '입고량',
+          data: completedData,
+          backgroundColor: '#10B981',  // 초록
+          borderRadius: 6,
+          barPercentage: 0.65
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { 
+            font: { size: 11, weight: '500' },
+            color: '#374151'
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { 
+            color: '#E5E7EB',
+            drawBorder: false
+          },
+          ticks: {
+            font: { size: 10, weight: '500' },
+            color: '#6B7280',
+            callback: function(value) {
+              return value.toLocaleString();
+            },
+            padding: 6
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 11, weight: '500' },
+            boxWidth: 12,
+            padding: 10,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 12,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          cornerRadius: 6,
+          displayColors: true,
+          boxPadding: 4,
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}개`;
+            }
+          }
+        }
+      }
+    }
   });
 }
 
