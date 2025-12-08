@@ -6,11 +6,16 @@ import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
 let sortState = { column: null, direction: null };
+let supplierList = [];
+let dateFilter = { start: '', end: '' };
 
 export async function renderAnalytics(container) {
   try {
     UIUtils.showLoading();
     allOrders = await getOrdersWithProcesses();
+    
+    // 생산업체 목록 추출
+    supplierList = ['전체', ...new Set(allOrders.map(o => o.supplier).filter(Boolean).sort())];
     
     container.innerHTML = `
       <div class="space-y-3">
@@ -19,23 +24,33 @@ export async function renderAnalytics(container) {
           <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
           <p class="text-xs text-gray-500 mt-0.5">생산업체가 등록한 공정별 실제 완료일을 기준으로 각 공정별 목표대비 실적차이 확인을 통해 납기 리스크를 관리합니다</p>
         </div>           
-          <div class="flex space-x-2">
+          <div class="flex space-x-2 items-center">
+            <button id="analytics-download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+              <i class="fas fa-download mr-1"></i>엑셀 다운로드
+            </button>
             <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">전체 채널</option>
               <option value="IM">IM</option>
               <option value="ELCANTO">ELCANTO</option>
             </select>
-            <select id="analytics-status-filter" class="px-2 py-1.5 border rounded-lg text-sm">
-              <option value="전체">전체 상태</option>
-              <option value="진행중">진행중</option>
-              <option value="지연">지연 발생</option>
-              <option value="완료">입고완료</option>
+            <select id="analytics-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm">
+              ${supplierList.map(s => `<option value="${s}">${s === '전체' ? '전체 생산업체' : s}</option>`).join('')}
             </select>
+            <div class="flex items-center space-x-1">
+              <input type="date" id="analytics-start-date" class="px-2 py-1.5 border rounded-lg text-sm" />
+              <span class="text-gray-500">~</span>
+              <input type="date" id="analytics-end-date" class="px-2 py-1.5 border rounded-lg text-sm" />
+            </div>
           </div>
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 110px);"></div>
+          <div id="analytics-table-container" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
+          <div class="mt-4 space-y-1 text-xs text-gray-500 border-t pt-3">
+            <p>• 기간 선택은 입고요구일 기준 입니다.</p>
+            <p>• 특정 스타일코드의 공정 현황은 Ctrl+F를 눌러 스타일코드 입력한 후 확인할 수 있습니다.</p>
+            <p>• 공정별 지연일수를 클릭하면, 생산업체의 공정별 상세 진행 현황을 확인할 수 있습니다.</p>
+          </div>
         </div>
       </div>
       
@@ -70,13 +85,22 @@ function setupEventListeners() {
   // 채널 필터
   document.getElementById('analytics-channel-filter')?.addEventListener('change', filterOrders);
   
-  // 상태 필터
-  document.getElementById('analytics-status-filter')?.addEventListener('change', filterOrders);
+  // 생산업체 필터
+  document.getElementById('analytics-supplier-filter')?.addEventListener('change', filterOrders);
+  
+  // 날짜 필터
+  document.getElementById('analytics-start-date')?.addEventListener('change', filterOrders);
+  document.getElementById('analytics-end-date')?.addEventListener('change', filterOrders);
+  
+  // 엑셀 다운로드
+  document.getElementById('analytics-download-excel-btn')?.addEventListener('click', downloadExcel);
 }
 
 function filterOrders() {
   const channelFilter = document.getElementById('analytics-channel-filter').value;
-  const statusFilter = document.getElementById('analytics-status-filter').value;
+  const supplierFilter = document.getElementById('analytics-supplier-filter').value;
+  const startDate = document.getElementById('analytics-start-date').value;
+  const endDate = document.getElementById('analytics-end-date').value;
   
   let filtered = allOrders;
   
@@ -85,17 +109,17 @@ function filterOrders() {
     filtered = filtered.filter(o => o.channel === channelFilter);
   }
   
-  // 상태 필터링
-  if (statusFilter !== '전체') {
-    filtered = filtered.filter(o => {
-      const hasDelay = checkIfDelayed(o);
-      const allCompleted = checkIfAllCompleted(o);
-      
-      if (statusFilter === '지연') return hasDelay;
-      if (statusFilter === '완료') return allCompleted;
-      if (statusFilter === '진행중') return !allCompleted;
-      return true;
-    });
+  // 생산업체 필터링
+  if (supplierFilter !== '전체') {
+    filtered = filtered.filter(o => o.supplier === supplierFilter);
+  }
+  
+  // 입고요구일 기간 필터링
+  if (startDate) {
+    filtered = filtered.filter(o => o.requiredDelivery >= startDate);
+  }
+  if (endDate) {
+    filtered = filtered.filter(o => o.requiredDelivery <= endDate);
   }
   
   renderAnalyticsTable(filtered);
@@ -207,28 +231,32 @@ function renderAnalyticsTable(orders) {
         <!-- 서브 헤더 -->
         <tr>
           <!-- 발주 정보 -->
-          <th class="${getHeaderClass('channel')}" style="min-width: 60px;" data-analytics-sort="channel">채널 ${getSortIcon('channel')}</th>
-          <th class="${getHeaderClass('supplier')}" style="min-width: 80px;" data-analytics-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
-          <th class="${getHeaderClass('style')}" style="min-width: 100px;" data-analytics-sort="style">스타일 ${getSortIcon('style')}</th>
-          <th class="px-3 py-2 border" style="min-width: 80px;">이미지</th>
-          <th class="px-3 py-2 border" style="min-width: 50px;">색상</th>
-          <th class="px-3 py-2 border" style="min-width: 60px;">수량</th>
-          <th class="${getHeaderClass('orderDate')}" style="min-width: 90px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
-          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 90px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
+          <th class="${getHeaderClass('channel')}" style="min-width: 50px;" data-analytics-sort="channel">채널 ${getSortIcon('channel')}</th>
+          <th class="${getHeaderClass('supplier')}" style="min-width: 75px;" data-analytics-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
+          <th class="${getHeaderClass('style')}" style="min-width: 90px;" data-analytics-sort="style">스타일 ${getSortIcon('style')}</th>
+          <th class="px-2 py-2 border" style="min-width: 70px;">이미지</th>
+          <th class="px-2 py-2 border" style="min-width: 45px;">색상</th>
+          <th class="px-2 py-2 border" style="min-width: 50px;">수량</th>
+          <th class="${getHeaderClass('orderDate')}" style="min-width: 85px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
+          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 85px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           
           <!-- 생산 공정 -->
-          ${productionHeaders.map(name => `
-            <th class="px-3 py-2 border" style="min-width: 70px;">${name}</th>
-          `).join('')}
+          ${productionHeaders.map((name, idx) => {
+            // 한도CFM, 제갑초조립, 공정출고 컬럼 너비 축소
+            const width = (name === '한도CFM' || name === '제갑초조립' || name === '공정출고') ? '55px' : '70px';
+            return `<th class="px-2 py-2 border" style="min-width: ${width};">${name}</th>`;
+          }).join('')}
           
           <!-- 운송 상황 -->
-          ${shippingHeaders.map(name => `
-            <th class="px-3 py-2 border" style="min-width: 70px;">${name}</th>
-          `).join('')}
+          ${shippingHeaders.map(name => {
+            // 선적, 입항 컬럼 너비 축소
+            const width = (name === '선적' || name === '입항') ? '55px' : '70px';
+            return `<th class="px-2 py-2 border" style="min-width: ${width};">${name}</th>`;
+          }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-3 py-2 border" style="min-width: 80px;">최종<br>지연일수</th>
-          <th class="px-3 py-2" style="min-width: 90px;">물류입고<br>예정일</th>
+          <th class="px-2 py-2 border" style="min-width: 65px;">최종<br>지연일수</th>
+          <th class="px-2 py-2" style="min-width: 90px;">물류입고<br>예정일</th>
         </tr>
       </thead>
       <tbody>
@@ -565,5 +593,79 @@ window.showProcessDetail = async function(orderId, processId, processKey, catego
 window.closeProcessDetailModal = function() {
   document.getElementById('process-detail-modal').classList.add('hidden');
 };
+
+// 엑셀 다운로드
+function downloadExcel() {
+  const channelFilter = document.getElementById('analytics-channel-filter').value;
+  const supplierFilter = document.getElementById('analytics-supplier-filter').value;
+  const startDate = document.getElementById('analytics-start-date').value;
+  const endDate = document.getElementById('analytics-end-date').value;
+  
+  let filtered = allOrders;
+  
+  // 필터 적용
+  if (channelFilter !== '전체') {
+    filtered = filtered.filter(o => o.channel === channelFilter);
+  }
+  if (supplierFilter !== '전체') {
+    filtered = filtered.filter(o => o.supplier === supplierFilter);
+  }
+  if (startDate) {
+    filtered = filtered.filter(o => o.requiredDelivery >= startDate);
+  }
+  if (endDate) {
+    filtered = filtered.filter(o => o.requiredDelivery <= endDate);
+  }
+  
+  // 엑셀 데이터 준비
+  const excelData = filtered.map((order, idx) => {
+    const row = {
+      'NO.': idx + 1,
+      '채널': order.channel || '',
+      '생산업체': order.supplier || '',
+      '스타일': order.style || '',
+      '색상': order.color || '',
+      '수량': order.qty || 0,
+      '발주일': order.orderDate || '',
+      '입고요구일': order.requiredDelivery || ''
+    };
+    
+    // 생산 공정 추가
+    PROCESS_CONFIG.production.forEach(p => {
+      const process = (order.schedule?.production || []).find(pr => pr.name === p.name);
+      const delayDays = process && process.actualDate && process.targetDate 
+        ? Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24))
+        : '';
+      row[p.name] = delayDays !== '' ? delayDays : '';
+    });
+    
+    // 운송 공정 추가
+    PROCESS_CONFIG.shipping.forEach(p => {
+      const process = (order.schedule?.shipping || []).find(pr => pr.name === p.name);
+      const delayDays = process && process.actualDate && process.targetDate 
+        ? Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24))
+        : '';
+      row[p.name] = delayDays !== '' ? delayDays : '';
+    });
+    
+    // 최종 현황
+    const expectedArrivalInfo = calculateExpectedArrival(order, order.schedule?.production || [], order.schedule?.shipping || []);
+    let finalDelayDays = '';
+    if (expectedArrivalInfo.date && order.requiredDelivery) {
+      const expectedDate = new Date(expectedArrivalInfo.date);
+      const requiredDate = new Date(order.requiredDelivery);
+      const diff = Math.floor((expectedDate - requiredDate) / (1000 * 60 * 60 * 24));
+      finalDelayDays = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '0';
+    }
+    row['최종지연일수'] = finalDelayDays;
+    row['물류입고예정일'] = expectedArrivalInfo.date || '';
+    
+    return row;
+  });
+  
+  // ExcelUtils를 사용하여 다운로드
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+  ExcelUtils.exportToExcel(excelData, `공정입고진척현황_${timestamp}.xlsx`);
+}
 
 export default { renderAnalytics };
