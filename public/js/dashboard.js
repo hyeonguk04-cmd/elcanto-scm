@@ -1161,12 +1161,6 @@ function renderAllSupplierCharts(orders, colors, container) {
       <div class="bg-white rounded-lg p-4 shadow-sm">
         <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">${supplier}</h5>
         <canvas id="chart-supplier-${idx}" class="mx-auto" style="max-height: 140px;"></canvas>
-        <div class="text-center mt-2">
-          <p class="text-xs text-gray-500">발주: ${data.total.toLocaleString()}개</p>
-          <p class="text-xs font-semibold" style="color: ${colors.suppliers[colorIdx]}">
-            입고율: ${data.rate}%
-          </p>
-        </div>
       </div>
     `;
   }).join('');
@@ -1374,11 +1368,20 @@ function createProgressDonutChart(canvasId, total, completed, color, label) {
         const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
         
         ctx.save();
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillStyle = color;
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(`${rate}%`, centerX, centerY);
+        
+        // 첫 번째 줄: "발주: XXX개"
+        ctx.font = '500 11px sans-serif';
+        ctx.fillStyle = '#6B7280';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(`발주: ${total.toLocaleString()}개`, centerX, centerY - 2);
+        
+        // 두 번째 줄: "입고율: XX%"
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillStyle = color;
+        ctx.textBaseline = 'top';
+        ctx.fillText(`입고율: ${rate}%`, centerX, centerY + 2);
+        
         ctx.restore();
       }
     }]
