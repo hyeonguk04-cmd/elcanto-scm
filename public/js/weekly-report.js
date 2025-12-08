@@ -260,9 +260,9 @@ function renderWeeklyTable(orders) {
         <tr class="border-b-2 border-gray-300">
           <th class="px-2 py-2 text-center border-r" style="min-width: 40px;">NO.</th>
           <th class="${getHeaderClass('channel')}" style="min-width: 60px;" data-weekly-sort="channel">채널 ${getSortIcon('channel')}</th>
-          <th class="${getHeaderClass('country')}" style="min-width: 70px;" data-weekly-sort="country">생산국 ${getSortIcon('country')}</th>
-          <th class="${getHeaderClass('supplier')}" style="min-width: 70px;" data-weekly-sort="supplier">업체명 ${getSortIcon('supplier')}</th>
-          <th class="${getHeaderClass('style')}" style="min-width: 80px;" data-weekly-sort="style">스타일코드 ${getSortIcon('style')}</th>
+          <th class="${getHeaderClass('country')}" style="min-width: 70px;" data-weekly-sort="country">국가 ${getSortIcon('country')}</th>
+          <th class="${getHeaderClass('supplier')}" style="min-width: 70px;" data-weekly-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
+          <th class="${getHeaderClass('style')}" style="min-width: 80px;" data-weekly-sort="style">스타일 ${getSortIcon('style')}</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 70px;">발주수량</th>
           <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 90px;" data-weekly-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           <th class="px-2 py-2 text-center border-r" style="min-width: 120px;">공정률</th>
