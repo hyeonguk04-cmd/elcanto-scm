@@ -948,25 +948,25 @@ function renderTotalAnalysis() {
         </button>
       </div>
       
-      <div class="grid grid-cols-2 gap-4">
-        <!-- 채널별 발주 비율 (도넛 + 세로 막대) -->
-        <div class="bg-gray-50 rounded-lg p-4">
+      <div class="flex gap-4">
+        <!-- 채널별 발주 비율 (도넛 + 세로 막대) - 60% -->
+        <div class="bg-gray-50 rounded-lg p-4" style="flex: 0 0 60%;">
           <h4 class="text-sm font-bold text-gray-700 mb-3">채널별 발주 비율</h4>
           <div class="flex items-center gap-4">
             <!-- 도넛 차트 -->
-            <div style="width: 45%; max-width: 180px;">
+            <div style="width: 42%; max-width: 200px;">
               <canvas id="channel-ratio-chart"></canvas>
             </div>
             <!-- 세로 막대 차트 -->
-            <div style="width: 55%;">
+            <div style="width: 58%;">
               <h5 class="text-xs font-semibold text-gray-600 mb-2">채널별 발주 대비 입고</h5>
               <canvas id="channel-comparison-chart"></canvas>
             </div>
           </div>
         </div>
         
-        <!-- 생산업체별 물량 분포 (누적 가로 막대) -->
-        <div class="bg-gray-50 rounded-lg p-4">
+        <!-- 생산업체별 물량 분포 (누적 가로 막대) - 40% -->
+        <div class="bg-gray-50 rounded-lg p-4" style="flex: 0 0 40%;">
           <h4 class="text-sm font-bold text-gray-700 mb-3">생산업체별 물량 분포</h4>
           <canvas id="supplier-distribution-chart"></canvas>
         </div>
@@ -1007,7 +1007,7 @@ function createTotalCharts() {
   
   // 채널별 데이터 계산
   const channelData = {};
-  ['IM', 'ELCANTO'].forEach(channel => {
+  ['ELCANTO', 'IM'].forEach(channel => {
     const channelOrders = orders.filter(o => o.channel === channel);
     const totalQty = DataUtils.sumBy(channelOrders, 'qty');
     const completedOrders = channelOrders.filter(order => {
@@ -1017,6 +1017,24 @@ function createTotalCharts() {
     const completedQty = DataUtils.sumBy(completedOrders, 'qty');
     channelData[channel] = { total: totalQty, completed: completedQty };
   });
+  
+  // 세련된 색상 팔레트
+  const colors = {
+    elcanto: {
+      main: '#7C3AED',      // 세련된 보라 (Violet-600)
+      light: '#A78BFA',     // 연한 보라 (Violet-400)
+      dark: '#5B21B6'       // 진한 보라 (Violet-700)
+    },
+    im: {
+      main: '#2563EB',      // 세련된 파랑 (Blue-600)
+      light: '#60A5FA',     // 연한 파랑 (Blue-400)
+      dark: '#1E40AF'       // 진한 파랑 (Blue-700)
+    },
+    supplier: {
+      light: '#CBD5E1',     // 옅은 회색 (Slate-300)
+      main: '#475569'       // 진한 회색 (Slate-600)
+    }
+  };
   
   // 1. 도넛 차트 - 채널별 발주 비율 (전체 대비 %)
   const channelRatioCtx = document.getElementById('channel-ratio-chart');
@@ -1029,24 +1047,31 @@ function createTotalCharts() {
         labels: ['ELCANTO', 'IM'],
         datasets: [{
           data: [channelData['ELCANTO'].total, channelData['IM'].total],
-          backgroundColor: ['#8B5CF6', '#3B82F6'],
-          borderWidth: 2,
-          borderColor: '#fff'
+          backgroundColor: [colors.elcanto.main, colors.im.main],
+          borderWidth: 3,
+          borderColor: '#fff',
+          hoverOffset: 8
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: true,
-        cutout: '60%',
+        cutout: '65%',
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
-              font: { size: 9 },
-              boxWidth: 10
+              font: { size: 10, weight: '500' },
+              boxWidth: 12,
+              padding: 10,
+              usePointStyle: true
             }
           },
           tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: { size: 13, weight: 'bold' },
+            bodyFont: { size: 12 },
             callbacks: {
               label: function(context) {
                 const label = context.label || '';
@@ -1070,19 +1095,20 @@ function createTotalCharts() {
         labels: ['ELCANTO', 'IM'],
         datasets: [
           {
-            label: '입고완료량',
-            data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
-            backgroundColor: '#10B981',
-            borderRadius: 4
+            label: '총 발주량',
+            data: [channelData['ELCANTO'].total, channelData['IM'].total],
+            backgroundColor: [colors.elcanto.light, colors.im.light],
+            borderWidth: 0,
+            borderRadius: 6,
+            barPercentage: 0.7
           },
           {
-            label: '입고대기량',
-            data: [
-              channelData['ELCANTO'].total - channelData['ELCANTO'].completed,
-              channelData['IM'].total - channelData['IM'].completed
-            ],
-            backgroundColor: '#EF4444',
-            borderRadius: 4
+            label: '입고완료량',
+            data: [channelData['ELCANTO'].completed, channelData['IM'].completed],
+            backgroundColor: [colors.elcanto.dark, colors.im.dark],
+            borderWidth: 0,
+            borderRadius: 6,
+            barPercentage: 0.7
           }
         ]
       },
@@ -1091,12 +1117,13 @@ function createTotalCharts() {
         maintainAspectRatio: true,
         scales: {
           x: {
-            stacked: true
+            grid: { display: false }
           },
           y: {
-            stacked: true,
+            beginAtZero: true,
+            grid: { color: '#E5E7EB' },
             ticks: {
-              font: { size: 9 },
+              font: { size: 10 },
               callback: function(value) {
                 return value.toLocaleString();
               }
@@ -1108,16 +1135,23 @@ function createTotalCharts() {
             display: true,
             position: 'bottom',
             labels: {
-              font: { size: 8 },
-              boxWidth: 10
+              font: { size: 9, weight: '500' },
+              boxWidth: 10,
+              padding: 8,
+              usePointStyle: true
             }
           },
           tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 10,
+            titleFont: { size: 12, weight: 'bold' },
+            bodyFont: { size: 11 },
             callbacks: {
-              label: function(context) {
-                const label = context.dataset.label || '';
-                const value = context.parsed.y;
-                return `${label}: ${value.toLocaleString()}개`;
+              afterLabel: function(context) {
+                const channel = context.label;
+                const info = channelData[channel];
+                const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
+                return `입고율: ${rate}%`;
               }
             }
           }
@@ -1149,16 +1183,20 @@ function createTotalCharts() {
         labels: Object.keys(supplierData),
         datasets: [
           {
-            label: '입고완료량',
-            data: Object.values(supplierData).map(d => d.completed),
-            backgroundColor: '#3B82F6',
-            borderRadius: 4
+            label: '총 발주량',
+            data: Object.values(supplierData).map(d => d.total),
+            backgroundColor: colors.supplier.light,
+            borderWidth: 0,
+            borderRadius: 4,
+            barPercentage: 0.8
           },
           {
-            label: '입고대기량',
-            data: Object.values(supplierData).map(d => d.total - d.completed),
-            backgroundColor: '#DC2626',
-            borderRadius: 4
+            label: '입고완료량',
+            data: Object.values(supplierData).map(d => d.completed),
+            backgroundColor: colors.supplier.main,
+            borderWidth: 0,
+            borderRadius: 4,
+            barPercentage: 0.8
           }
         ]
       },
@@ -1168,15 +1206,19 @@ function createTotalCharts() {
         maintainAspectRatio: true,
         scales: {
           x: {
-            stacked: true,
+            grid: { color: '#E5E7EB' },
             ticks: {
+              font: { size: 9 },
               callback: function(value) {
-                return value.toLocaleString() + '개';
+                return value.toLocaleString();
               }
             }
           },
           y: {
-            stacked: true
+            grid: { display: false },
+            ticks: {
+              font: { size: 10, weight: '500' }
+            }
           }
         },
         plugins: {
@@ -1184,19 +1226,23 @@ function createTotalCharts() {
             display: true,
             position: 'bottom',
             labels: {
-              font: { size: 10 },
-              boxWidth: 12
+              font: { size: 9, weight: '500' },
+              boxWidth: 10,
+              padding: 8,
+              usePointStyle: true
             }
           },
           tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 10,
+            titleFont: { size: 12, weight: 'bold' },
+            bodyFont: { size: 11 },
             callbacks: {
-              label: function(context) {
+              afterLabel: function(context) {
                 const supplier = context.label;
-                const value = context.parsed.x;
-                const datasetLabel = context.dataset.label;
-                const supplierInfo = supplierData[supplier];
-                const rate = supplierInfo.total > 0 ? Math.round((supplierInfo.completed / supplierInfo.total) * 100) : 0;
-                return `${datasetLabel}: ${value.toLocaleString()}개 (입고율: ${rate}%)`;
+                const info = supplierData[supplier];
+                const rate = info.total > 0 ? Math.round((info.completed / info.total) * 100) : 0;
+                return `입고율: ${rate}%`;
               }
             }
           }
