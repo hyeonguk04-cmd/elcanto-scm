@@ -1061,7 +1061,9 @@ function renderAllChannelCharts(orders, colors, container) {
     <!-- 3. 발주일별 입고현황 (너비 2배, 높이 동일) -->
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-bar" class="mx-auto" style="max-height: 180px;"></canvas>
+      <div style="height: 180px;">
+        <canvas id="chart-date-bar"></canvas>
+      </div>
     </div>
   `;
   
@@ -1113,7 +1115,9 @@ function renderSingleChannelCharts(orders, colors, container) {
     <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 동일) -->
     <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
-      <canvas id="chart-date-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <div style="height: 180px;">
+        <canvas id="chart-date-single"></canvas>
+      </div>
     </div>
   `;
   
@@ -1600,7 +1604,7 @@ function createDateBarChart(canvasId, orders, colors) {
     },
     options: {
       responsive: true,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       scales: {
         x: {
           stacked: true,
