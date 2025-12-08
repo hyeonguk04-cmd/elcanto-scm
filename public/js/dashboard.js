@@ -1110,10 +1110,10 @@ function renderSingleChannelCharts(orders, colors, container) {
       <canvas id="chart-country-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 2. 국가별 발주대비 입고 (선택 채널의 국가별 세로 막대) -->
+    <!-- 2. 생산처별 발주현황 (선택 채널의 생산처별 도넛) -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별 발주대비 입고</h5>
-      <canvas id="chart-country-bar-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">생산처별</h5>
+      <canvas id="chart-supplier-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
     <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배, 높이 동일) -->
@@ -1139,8 +1139,8 @@ function renderSingleChannelCharts(orders, colors, container) {
       selectedChannel  // 선택된 채널명 표시
     );
     
-    // 2. 국가별 발주대비 입고 (선택 채널의 국가별 세로 막대)
-    createCountryBarChart('chart-country-bar-single', countryData, selectedChannel, colors);
+    // 2. 생산처별 발주현황 (선택 채널의 생산처별 도넛)
+    createSupplierDonutChart('chart-supplier-single', channelOrders, colors);
     
     // 3. 발주일별 입고현황 (선택 채널 데이터만)
     createDateBarChart('chart-date-single', channelOrders, colors);
@@ -1246,6 +1246,119 @@ function calculateSupplierData(orders) {
   });
   
   return supplierData;
+}
+
+// ===== 차트 생성: 생산처별 발주현황 도넛 차트 =====
+function createSupplierDonutChart(canvasId, orders, colors) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  
+  // 생산처별 발주량 집계
+  const supplierData = {};
+  orders.forEach(order => {
+    const supplier = order.supplier || '미지정';
+    if (!supplierData[supplier]) {
+      supplierData[supplier] = 0;
+    }
+    supplierData[supplier] += order.qty || 0;
+  });
+  
+  // 발주량 기준 내림차순 정렬
+  const sortedSuppliers = Object.entries(supplierData)
+    .sort((a, b) => b[1] - a[1]);
+  
+  // 상위 4개 + 기타
+  const top4 = sortedSuppliers.slice(0, 4);
+  const others = sortedSuppliers.slice(4);
+  
+  const labels = [];
+  const data = [];
+  const chartColors = [];
+  
+  // 색상 팔레트 (보라/파랑 계열)
+  const colorPalette = [
+    '#8B5CF6',  // 보라
+    '#3B82F6',  // 파랑
+    '#A78BFA',  // 밝은 보라
+    '#60A5FA',  // 밝은 파랑
+    '#CBD5E1'   // 회색 (기타)
+  ];
+  
+  // 상위 4개 추가
+  top4.forEach((item, index) => {
+    labels.push(item[0]);
+    data.push(item[1]);
+    chartColors.push(colorPalette[index]);
+  });
+  
+  // 기타 추가 (5개 이상인 경우)
+  if (others.length > 0) {
+    const othersTotal = others.reduce((sum, item) => sum + item[1], 0);
+    labels.push('기타');
+    data.push(othersTotal);
+    chartColors.push(colorPalette[4]);
+  }
+  
+  const total = data.reduce((sum, val) => sum + val, 0);
+  
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: chartColors,
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { size: 10, weight: '500' },
+            boxWidth: 10,
+            padding: 8,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          padding: 10,
+          titleFont: { size: 12, weight: 'bold' },
+          bodyFont: { size: 11 },
+          callbacks: {
+            label: function(context) {
+              const value = context.parsed;
+              const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+              return `${context.label}: ${value.toLocaleString()}개 (${percentage}%)`;
+            }
+          }
+        }
+      }
+    },
+    plugins: [{
+      id: 'centerText',
+      afterDraw: function(chart) {
+        const ctx = chart.ctx;
+        const centerX = (chart.chartArea.left + chart.chartArea.right) / 2;
+        const centerY = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+        
+        ctx.save();
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillStyle = '#374151';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('생산처별', centerX, centerY);
+        ctx.restore();
+      }
+    }]
+  });
 }
 
 // ===== 차트 생성: 기본 도넛 차트 =====
