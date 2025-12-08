@@ -1040,7 +1040,7 @@ function createTotalCharts() {
   }
 }
 
-// ===== 전체 채널 선택 시: 4개 차트 (2 도넛 + 2 막대) =====
+// ===== 전체 채널 선택 시: 3개 차트 (2 도넛 + 1 막대) =====
 function renderAllChannelCharts(orders, colors, container) {
   const channelStats = calculateChannelStats(orders);
   const countryData = calculateCountryData(orders);
@@ -1058,14 +1058,8 @@ function renderAllChannelCharts(orders, colors, container) {
       <canvas id="chart-country-donut" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 채널별 발주대비 입고 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별 발주대비 입고</h5>
-      <canvas id="chart-channel-bar" class="mx-auto" style="max-height: 200px;"></canvas>
-    </div>
-    
-    <!-- 4. 발주일별 입고현황 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm">
+    <!-- 3. 발주일별 입고현황 (너비 2배) -->
+    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
       <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
       <canvas id="chart-date-bar" class="mx-auto" style="max-height: 200px;"></canvas>
     </div>
@@ -1091,60 +1085,62 @@ function renderAllChannelCharts(orders, colors, container) {
       '전체'
     );
     
-    // 3. 채널별 발주대비 입고 (세로 막대)
-    createChannelBarChart('chart-channel-bar', channelStats, colors);
-    
-    // 4. 발주일별 입고현황 (세로 막대)
+    // 3. 발주일별 입고현황 (세로 막대)
     createDateBarChart('chart-date-bar', orders, colors);
   }, 100);
 }
 
-// ===== 특정 채널 선택 시: 3개 도넛 차트 =====
+// ===== 특정 채널 선택 시: 3개 차트 (2 도넛 + 1 막대) =====
 function renderSingleChannelCharts(orders, colors, container) {
   const selectedChannel = currentChannelFilter;
   const channelOrders = orders.filter(o => o.channel === selectedChannel);
+  const channelStats = calculateChannelStats(channelOrders);
   const countryData = calculateCountryData(channelOrders);
   
   container.innerHTML = `
-    <!-- 1. 한국 발주 대비 입고 -->
+    <!-- 1. 채널별 도넛 차트 (선택 채널 강조) -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">${selectedChannel} - 한국</h5>
-      <canvas id="chart-korea-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">채널별</h5>
+      <canvas id="chart-channel-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 2. 중국 발주 대비 입고 -->
+    <!-- 2. 국가별 도넛 차트 (선택 채널 데이터) -->
     <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">${selectedChannel} - 중국</h5>
-      <canvas id="chart-china-single" class="mx-auto" style="max-height: 180px;"></canvas>
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">국가별</h5>
+      <canvas id="chart-country-single" class="mx-auto" style="max-height: 180px;"></canvas>
     </div>
     
-    <!-- 3. 베트남 발주 대비 입고 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm">
-      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">${selectedChannel} - 베트남</h5>
-      <canvas id="chart-vietnam-single" class="mx-auto" style="max-height: 180px;"></canvas>
+    <!-- 3. 발주일별 입고현황 (선택 채널 데이터, 너비 2배) -->
+    <div class="bg-white rounded-lg p-4 shadow-sm col-span-2">
+      <h5 class="text-xs font-semibold text-gray-600 mb-3 text-center">발주일별 입고현황</h5>
+      <canvas id="chart-date-single" class="mx-auto" style="max-height: 200px;"></canvas>
     </div>
   `;
   
   // 차트 생성
   setTimeout(() => {
-    const countries = ['한국', '중국', '베트남'];
-    const chartIds = ['chart-korea-single', 'chart-china-single', 'chart-vietnam-single'];
     const channelColor = selectedChannel === 'ELCANTO' ? colors.elcanto : colors.im;
     
-    countries.forEach((country, idx) => {
-      const data = countryData[country];
-      if (data) {
-        const total = data[selectedChannel] || 0;
-        const completed = data[`${selectedChannel}_completed`] || 0;
-        
-        createProgressDonutChart(chartIds[idx],
-          total,
-          completed,
-          channelColor,
-          `${selectedChannel} ${country}`
-        );
-      }
-    });
+    // 1. 채널별 도넛 차트 (선택 채널 강조)
+    createDonutChart('chart-channel-single',
+      ['ELCANTO', 'IM'],
+      [channelStats.ELCANTO.total, channelStats.IM.total],
+      [colors.elcanto, colors.im],
+      selectedChannel  // 선택된 채널명 표시
+    );
+    
+    // 2. 국가별 도넛 차트 (선택 채널의 국가별 데이터)
+    const vietnamTotal = countryData['베트남']?.[selectedChannel] || 0;
+    const chinaTotal = countryData['중국']?.[selectedChannel] || 0;
+    createDonutChart('chart-country-single',
+      ['베트남', '중국'],
+      [vietnamTotal, chinaTotal],
+      ['#8B5CF6', '#3B82F6'],  // 보라, 파랑
+      selectedChannel  // 선택된 채널명 표시
+    );
+    
+    // 3. 발주일별 입고현황 (선택 채널 데이터만)
+    createDateBarChart('chart-date-single', channelOrders, colors);
   }, 100);
 }
 
