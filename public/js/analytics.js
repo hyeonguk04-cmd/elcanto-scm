@@ -158,25 +158,6 @@ function setupInfoTooltip() {
     
     if (top + tooltipRect.height > window.innerHeight) {
       top = iconRect.top - tooltipRect.height - 10;
-      // 화살표를 아래로
-      document.getElementById('tooltip-arrow').style.borderBottom = 'none';
-      document.getElementById('tooltip-arrow').style.borderTop = '8px solid white';
-      document.getElementById('tooltip-arrow-border').style.borderBottom = 'none';
-      document.getElementById('tooltip-arrow-border').style.borderTop = '8px solid #ddd';
-      document.getElementById('tooltip-arrow').style.top = 'auto';
-      document.getElementById('tooltip-arrow').style.bottom = '-8px';
-      document.getElementById('tooltip-arrow-border').style.top = 'auto';
-      document.getElementById('tooltip-arrow-border').style.bottom = '-9px';
-    } else {
-      // 화살표를 위로 (기본)
-      document.getElementById('tooltip-arrow').style.borderTop = 'none';
-      document.getElementById('tooltip-arrow').style.borderBottom = '8px solid white';
-      document.getElementById('tooltip-arrow-border').style.borderTop = 'none';
-      document.getElementById('tooltip-arrow-border').style.borderBottom = '8px solid #ddd';
-      document.getElementById('tooltip-arrow').style.bottom = 'auto';
-      document.getElementById('tooltip-arrow').style.top = '-8px';
-      document.getElementById('tooltip-arrow-border').style.bottom = 'auto';
-      document.getElementById('tooltip-arrow-border').style.top = '-9px';
     }
     
     tooltip.style.top = `${top}px`;
