@@ -34,7 +34,17 @@ export async function renderDashboard(container) {
       <div class="space-y-3">
         <!-- 헤더 -->
         <div class="flex justify-between items-center">
-          <h2 class="text-lg font-bold text-gray-800">종합현황</h2>
+          <div class="flex items-center">
+            <h2 class="text-lg font-bold text-gray-800">종합현황</h2>
+            <i id="dashboard-info-icon" 
+               class="fas fa-info-circle cursor-pointer" 
+               style="font-size: 19px; color: #666; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               tabindex="0"
+               role="button"
+               aria-label="안내사항 보기"
+               onmouseover="this.style.color='#333'"
+               onmouseout="this.style.color='#666'"></i>
+          </div>
           <div class="flex space-x-2">
             <select id="dashboard-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">채널 전체</option>
@@ -67,6 +77,24 @@ export async function renderDashboard(container) {
           <div id="pending-orders-table"></div>
         </div>
       </div>
+      
+      <!-- 인포메이션 툴팁 -->
+      <div id="dashboard-info-tooltip" class="hidden fixed bg-white rounded-lg z-[1001]" 
+           style="width: 420px; padding: 20px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+        <div class="flex justify-between items-start mb-3">
+          <div class="flex items-center">
+            <span style="font-size: 16px; margin-right: 8px;">💡</span>
+            <h3 class="font-bold text-gray-800" style="font-size: 15px;">안내사항</h3>
+          </div>
+          <button id="close-dashboard-info-tooltip" class="text-gray-400 hover:text-gray-600 text-xl leading-none" style="margin-top: -4px;">&times;</button>
+        </div>
+        <div style="font-size: 14px; color: #333; line-height: 1.7;">
+          <p style="margin: 0;">• 전체 발주 및 공정 상황을 한눈에 파악하는 대시보드입니다. 주요 KPI 카드를 클릭하여 발주 진척사항을 확인해 주세요.</p>
+        </div>
+        <!-- 툴팁 화살표 -->
+        <div class="absolute" style="top: -8px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white;"></div>
+        <div class="absolute" style="top: -9px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #ddd;"></div>
+      </div>
     `;
     
     // 데이터 처리 및 렌더링
@@ -93,12 +121,167 @@ export async function renderDashboard(container) {
       updateDashboard();
     });
     
+    // 인포메이션 툴팁 기능
+    setupDashboardInfoTooltip();
+    
     UIUtils.hideLoading();
   } catch (error) {
     UIUtils.hideLoading();
     console.error('Dashboard render error:', error);
     container.innerHTML = renderEmptyState('데이터를 불러오는 중 오류가 발생했습니다.', 'fa-exclamation-circle');
   }
+}
+
+// 인포메이션 툴팁 기능 설정
+function setupDashboardInfoTooltip() {
+  const icon = document.getElementById('dashboard-info-icon');
+  const tooltip = document.getElementById('dashboard-info-tooltip');
+  const closeBtn = document.getElementById('close-dashboard-info-tooltip');
+  
+  if (!icon || !tooltip) return;
+  
+  let hoverTimeout = null;
+  let hideTimeout = null;
+  let isFixed = false;
+  
+  // 툴팁 위치 조정 함수
+  function positionTooltip() {
+    if (!icon || !tooltip) return;
+    
+    const iconRect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // 기본 위치: 아이콘 아래-오른쪽
+    let top = iconRect.bottom + 10;
+    let left = iconRect.left;
+    
+    // 화면 경계 체크 및 조정
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = window.innerWidth - tooltipRect.width - 20;
+    }
+    
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = iconRect.top - tooltipRect.height - 10;
+    }
+    
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+  }
+  
+  // 툴팁 표시
+  function showTooltip() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    tooltip.classList.remove('hidden');
+    positionTooltip();
+  }
+  
+  // 툴팁 숨기기
+  function hideTooltip() {
+    if (!isFixed) {
+      hideTimeout = setTimeout(() => {
+        tooltip.classList.add('hidden');
+      }, 300);
+    }
+  }
+  
+  // 마우스 호버
+  icon.addEventListener('mouseenter', () => {
+    if (!isFixed) {
+      hoverTimeout = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('mouseleave', () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = null;
+    }
+    hideTooltip();
+  });
+  
+  // 툴팁 위에 마우스
+  tooltip.addEventListener('mouseenter', () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    hideTooltip();
+  });
+  
+  // 클릭 고정
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFixed = !isFixed;
+    if (isFixed) {
+      showTooltip();
+    } else {
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 닫기 버튼
+  closeBtn.addEventListener('click', () => {
+    isFixed = false;
+    tooltip.classList.add('hidden');
+  });
+  
+  // 외부 클릭
+  document.addEventListener('click', (e) => {
+    if (isFixed && !tooltip.contains(e.target) && e.target !== icon) {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 키보드 접근성
+  icon.addEventListener('focus', () => {
+    if (!isFixed) {
+      showTooltip();
+    }
+  });
+  
+  icon.addEventListener('blur', () => {
+    if (!isFixed) {
+      hideTooltip();
+    }
+  });
+  
+  icon.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      isFixed = !isFixed;
+      if (isFixed) {
+        showTooltip();
+      } else {
+        tooltip.classList.add('hidden');
+      }
+    } else if (e.key === 'Escape') {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+      icon.blur();
+    }
+  });
+  
+  // ESC 키
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFixed) {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 창 크기 변경
+  window.addEventListener('resize', () => {
+    if (!tooltip.classList.contains('hidden')) {
+      positionTooltip();
+    }
+  });
 }
 
 function updateDashboard() {
