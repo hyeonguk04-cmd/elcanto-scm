@@ -197,6 +197,10 @@ export async function renderManufacturerManagement(container) {
                 <input type="number" id="leadTime_shipping" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">선적항-도착항</label>
+                <input type="text" id="shippingRoute" placeholder="예: 웨이하이-인천" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+              </div>
+              <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">입항</label>
                 <input type="number" id="leadTime_arrival" min="0" placeholder="일" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
@@ -389,6 +393,9 @@ function openModal(id = null) {
         document.getElementById('leadTime_shipping').value = supplier.leadTimes.shipping || '';
         document.getElementById('leadTime_arrival').value = supplier.leadTimes.arrival || '';
       }
+      
+      // 선적항-도착항 설정
+      document.getElementById('shippingRoute').value = supplier.shippingRoute || '';
     }
   } else {
     // 추가 모드
@@ -434,7 +441,8 @@ async function saveSupplier() {
         factory_shipment: parseInt(document.getElementById('leadTime_factory_shipment').value) || 0,
         shipping: parseInt(document.getElementById('leadTime_shipping').value) || 0,
         arrival: parseInt(document.getElementById('leadTime_arrival').value) || 0
-      }
+      },
+      shippingRoute: document.getElementById('shippingRoute').value.trim()
     };
 
     // 필수 필드 검증
@@ -501,7 +509,7 @@ function downloadTemplate() {
     'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
     '리드타임_자재', '리드타임_한도CFM', '리드타임_제갑&조립',
-    '리드타임_공장출고', '리드타임_선적', '리드타임_입항'
+    '리드타임_공장출고', '리드타임_선적', '선적항-도착항', '리드타임_입항'
   ];
   
   ExcelUtils.downloadTemplate(columns, 'elcanto_supplier_template.xlsx');
@@ -534,6 +542,7 @@ function downloadSuppliersAsExcel() {
       '리드타임_제갑&조립': supplier.leadTimes?.cutting_upper || 0,
       '리드타임_공장출고': supplier.leadTimes?.factory_shipment || 0,
       '리드타임_선적': supplier.leadTimes?.shipping || 0,
+      '선적항-도착항': supplier.shippingRoute || '',
       '리드타임_입항': supplier.leadTimes?.arrival || 0
     }));
     
@@ -595,7 +604,8 @@ async function handleExcelUpload(e) {
             factory_shipment: parseInt(row['리드타임_공장출고']) || 0,
             shipping: parseInt(row['리드타임_선적']) || 0,
             arrival: parseInt(row['리드타임_입항'] || row['리드타임_입고']) || 0
-          }
+          },
+          shippingRoute: row['선적항-도착항'] || ''
         };
         
         const username = row['username'];

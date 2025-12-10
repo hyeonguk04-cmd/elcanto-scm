@@ -99,8 +99,11 @@ function dateDiffInDays(targetDate, actualDate) {
 }
 
 // 공정 일정 자동 계산 (누적 방식)
-function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = null) {
-  console.log('📅 일정 계산 시작:', { orderDate, supplierLeadTimes, route });
+function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = null, supplier = null) {
+  console.log('📅 일정 계산 시작:', { orderDate, supplierLeadTimes, route, supplier });
+  
+  // supplier 객체에서 shippingRoute 가져오기
+  const supplierRoute = supplier?.shippingRoute || route;
   
   const schedule = {
     production: [],
@@ -132,9 +135,10 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
   PROCESS_CONFIG.shipping.forEach(process => {
     let leadTime = (supplierLeadTimes && supplierLeadTimes[process.key]) || process.defaultLeadTime;
     
-    // 입항의 경우 선적 경로에 따라 리드타임 결정
-    if (process.key === 'arrival' && route) {
-      leadTime = SHIPPING_LEAD_TIMES[route] || leadTime;
+    // 입항의 경우 선적 경로에 따라 리드타임 결정 (생산업체 설정 우선)
+    if (process.key === 'arrival' && supplierRoute) {
+      leadTime = SHIPPING_LEAD_TIMES[supplierRoute] || leadTime;
+      console.log(`🚢 생산업체 선적항 사용: ${supplierRoute}, 리드타임: ${leadTime}일`);
     }
     
     console.log(`🚢 ${process.name} (${process.key}): 리드타임 ${leadTime}일`);
@@ -152,7 +156,7 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     };
     
     if (process.hasRoute) {
-      processData.route = route;
+      processData.route = supplierRoute;
     }
     
     schedule.shipping.push(processData);

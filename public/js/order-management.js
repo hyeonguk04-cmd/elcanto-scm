@@ -872,12 +872,14 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     // 생산업체 정보 가져오기 (리드타임 포함)
     let supplierLeadTimes = null;
+    let supplier = null;
     if (order.supplier) {
       try {
-        const supplier = await getSupplierByName(order.supplier);
+        supplier = await getSupplierByName(order.supplier);
         if (supplier && supplier.leadTimes) {
           supplierLeadTimes = supplier.leadTimes;
           console.log('✅ 생산업체 리드타임 로드:', supplierLeadTimes);
+          console.log('✅ 생산업체 선적항:', supplier.shippingRoute);
         } else {
           console.warn('⚠️ 생산업체 리드타임 없음, 기본값 사용');
         }
@@ -886,8 +888,8 @@ async function handleOrderDateChange(orderId, newOrderDate) {
       }
     }
     
-    // 발주일 변경 시 전체 공정 일정 재계산 (생산업체 리드타임 반영)
-    const newSchedule = calculateProcessSchedule(newOrderDate, supplierLeadTimes, order.route);
+    // 발주일 변경 시 전체 공정 일정 재계산 (생산업체 리드타임 및 선적항 반영)
+    const newSchedule = calculateProcessSchedule(newOrderDate, supplierLeadTimes, order.route, supplier);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 발주 업데이트
