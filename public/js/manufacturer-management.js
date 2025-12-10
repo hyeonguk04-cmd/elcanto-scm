@@ -17,8 +17,17 @@ export async function renderManufacturerManagement(container) {
       <!-- 헤더 -->
       <div class="flex justify-between items-center mb-3">
         <div>
-          <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
-          <p class="text-xs text-gray-500 mt-0.5">생산업체 정보를 등록하고 관리합니다</p>
+          <div class="flex items-center">
+            <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
+            <i id="manufacturer-info-icon" 
+               class="fas fa-info-circle cursor-pointer" 
+               style="font-size: 19px; color: #666; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               tabindex="0"
+               role="button"
+               aria-label="안내사항 보기"
+               onmouseover="this.style.color='#333'"
+               onmouseout="this.style.color='#666'"></i>
+          </div>
         </div>
         <div class="space-x-2">
           <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
@@ -69,6 +78,26 @@ export async function renderManufacturerManagement(container) {
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- 정보 툴팁 -->
+    <div id="manufacturer-info-tooltip" class="hidden fixed bg-white border border-gray-300 rounded-lg shadow-lg" style="width: 420px; padding: 20px; z-index: 1001; font-size: 14px; line-height: 1.7; color: #333;">
+      <div class="flex justify-between items-start mb-3">
+        <span class="font-bold">💡 안내사항</span>
+        <button id="manufacturer-info-close" class="text-gray-400 hover:text-gray-600" style="font-size: 20px; line-height: 1; padding: 0; background: none; border: none; cursor: pointer;">&times;</button>
+      </div>
+      <div style="color: #555; margin-bottom: 16px;">
+        • 생산업체 정보를 등록하고 관리합니다. 생산 공정별 리드타임 설정을 통해 자동 일정 수립이 가능합니다.
+      </div>
+      <div class="font-bold mb-2">📌 사용 팁</div>
+      <div style="color: #555;">
+        • <strong>생산업체 일괄 등록:</strong> 템플릿 다운로드 → 정보 입력 → 엑셀 업로드<br>
+        • <strong>개별 등록:</strong> '+업체 추가' 버튼 클릭하여 수동 입력<br>
+        • <strong>정보 수정:</strong> 테이블의 '수정' 버튼 클릭하여 업체 정보 편집<br>
+        • <strong>엑셀 다운로드:</strong> 현재 등록된 모든 생산업체 정보를 엑셀로 다운로드
+      </div>
+      <div class="arrow" style="position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white; top: -8px; left: 20px;"></div>
+      <div class="arrow-border" style="position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #ddd; top: -9px; left: 20px;"></div>
     </div>
 
     <!-- 생산업체 정보 모달 -->
@@ -227,8 +256,156 @@ export async function renderManufacturerManagement(container) {
   // 이벤트 리스너 등록
   attachEventListeners();
 
+  // 정보 툴팁 설정
+  setupManufacturerInfoTooltip();
+
   // 데이터 로드
   await loadSuppliers();
+}
+
+// 정보 툴팁 설정
+function setupManufacturerInfoTooltip() {
+  const icon = document.getElementById('manufacturer-info-icon');
+  const tooltip = document.getElementById('manufacturer-info-tooltip');
+  const closeBtn = document.getElementById('manufacturer-info-close');
+  
+  if (!icon || !tooltip || !closeBtn) return;
+  
+  let showTimer = null;
+  let hideTimer = null;
+  let isFixed = false;
+  
+  // 툴팁 위치 설정
+  function positionTooltip() {
+    const iconRect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    let left = iconRect.left;
+    let top = iconRect.bottom + 8;
+    
+    // 오른쪽 경계 확인
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+    
+    // 하단 경계 확인
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = iconRect.top - tooltipRect.height - 8;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+  
+  // 툴팁 표시
+  function showTooltip() {
+    clearTimeout(hideTimer);
+    tooltip.classList.remove('hidden');
+    positionTooltip();
+  }
+  
+  // 툴팁 숨김
+  function hideTooltip() {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      tooltip.classList.add('hidden');
+    }
+  }
+  
+  // 아이콘 호버
+  icon.addEventListener('mouseenter', () => {
+    if (!isFixed) {
+      clearTimeout(hideTimer);
+      showTimer = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('mouseleave', () => {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  // 툴팁 호버 (툴팁 위에 있을 때 사라지지 않도록)
+  tooltip.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimer);
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    if (!isFixed) {
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  // 아이콘 클릭 (고정)
+  icon.addEventListener('click', () => {
+    isFixed = !isFixed;
+    if (isFixed) {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+      showTooltip();
+    } else {
+      hideTooltip();
+    }
+  });
+  
+  // 닫기 버튼
+  closeBtn.addEventListener('click', () => {
+    isFixed = false;
+    hideTooltip();
+  });
+  
+  // 외부 클릭
+  document.addEventListener('click', (e) => {
+    if (isFixed && !tooltip.contains(e.target) && !icon.contains(e.target)) {
+      isFixed = false;
+      hideTooltip();
+    }
+  });
+  
+  // ESC 키
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFixed) {
+      isFixed = false;
+      hideTooltip();
+    }
+  });
+  
+  // 윈도우 리사이즈
+  window.addEventListener('resize', () => {
+    if (!tooltip.classList.contains('hidden')) {
+      positionTooltip();
+    }
+  });
+  
+  // 키보드 접근성
+  icon.addEventListener('focus', () => {
+    if (!isFixed) {
+      showTimer = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('blur', () => {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  icon.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      isFixed = !isFixed;
+      if (isFixed) {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+        showTooltip();
+      } else {
+        hideTooltip();
+      }
+    }
+  });
 }
 
 // 이벤트 리스너 등록
