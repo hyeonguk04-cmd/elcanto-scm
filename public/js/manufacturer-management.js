@@ -119,10 +119,10 @@ export async function renderManufacturerManagement(container) {
                 <input type="email" id="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
 
-              <!-- 연락처 -->
+              <!-- 지역 -->
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">연락처</label>
-                <input type="tel" id="phone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <label class="block text-sm font-medium text-gray-700 mb-2">지역</label>
+                <input type="text" id="phone" placeholder="예: 칭다오, 호치민, 뭄바이" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               </div>
 
               <!-- 상태 -->
@@ -506,7 +506,7 @@ async function deleteCurrentSupplier() {
 // 템플릿 다운로드
 function downloadTemplate() {
   const columns = [
-    'username', '업체명', '국가', '담당자', '이메일', '연락처', '상태',
+    'username', '업체명', '국가', '담당자', '이메일', '지역', '상태',
     '인도조건', '포워딩업체', '주요채널', '주요품목', '결제조건',
     '리드타임_자재', '리드타임_한도CFM', '리드타임_제갑&조립',
     '리드타임_공장출고', '리드타임_선적', '선적항-도착항', '리드타임_입항'
@@ -530,7 +530,7 @@ function downloadSuppliersAsExcel() {
       '국가': supplier.location || supplier.country || '',
       '담당자': supplier.contact || '',
       '이메일': supplier.email || '',
-      '연락처': supplier.phone || '',
+      '지역': supplier.phone || '',
       '상태': supplier.status || '활성',
       '인도조건': supplier.deliveryTerms || '',
       '포워딩업체': supplier.forwarder || '',
@@ -590,7 +590,7 @@ async function handleExcelUpload(e) {
           location: row['국가'] || '',
           contact: row['담당자'] || '',
           email: row['이메일'] || '',
-          phone: row['연락처'] || '',
+          phone: row['지역'] || row['연락처'] || '',
           status: row['상태'] || '활성',
           deliveryTerms: row['인도조건'] || '',
           forwarder: row['포워딩업체'] || '',
