@@ -38,8 +38,17 @@ export async function renderOrderManagement(container) {
       <div class="space-y-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
-          <p class="text-xs text-gray-500 mt-0.5">승인된 발주 정보를 기준으로 생산 공정별 목표 일정을 수립합니다. 입고요구일과 입고예정일 차이를 확인해 주세요</p>
+          <div class="flex items-center">
+            <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
+            <i id="order-management-info-icon" 
+               class="fas fa-info-circle cursor-pointer" 
+               style="font-size: 19px; color: #666; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               tabindex="0"
+               role="button"
+               aria-label="안내사항 보기"
+               onmouseover="this.style.color='#333'"
+               onmouseout="this.style.color='#666'"></i>
+          </div>
         </div>     
           <div class="space-x-2">
             <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
@@ -66,6 +75,34 @@ export async function renderOrderManagement(container) {
         
         <div class="bg-white rounded-xl shadow-lg p-3">
           <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
+        </div>
+        
+        <!-- 인포메이션 툴팁 -->
+        <div id="order-management-info-tooltip" class="hidden fixed bg-white rounded-lg z-[1001]" 
+             style="width: 420px; padding: 20px; border: 1px solid #ddd; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+          <div class="flex justify-between items-start mb-3">
+            <div class="flex items-center">
+              <span style="font-size: 16px; margin-right: 8px;">💡</span>
+              <h3 class="font-bold text-gray-800" style="font-size: 15px;">안내사항</h3>
+            </div>
+            <button id="close-order-info-tooltip" class="text-gray-400 hover:text-gray-600 text-xl leading-none" style="margin-top: -4px;">&times;</button>
+          </div>
+          <div style="font-size: 14px; color: #333; line-height: 1.7; margin-bottom: 16px;">
+            <p style="margin: 0 0 8px 0;">• 승인된 발주정보 기준으로 생산 공정별 목표 일정을 수립합니다. 입고요구일과 입고예정일 차이를 확인해 주세요.</p>
+          </div>
+          <div class="flex items-start mb-2">
+            <span style="font-size: 16px; margin-right: 8px;">📌</span>
+            <h3 class="font-bold text-gray-800" style="font-size: 15px;">사용 팁</h3>
+          </div>
+          <div style="font-size: 14px; color: #333; line-height: 1.7;">
+            <p style="margin: 0 0 6px 0;">• 승인 발주정보 등록: 템플릿 양식에 발주 정보(사진 포함)를 붙여넣기 한 후 엑셀 업로드</p>
+            <p style="margin: 0 0 6px 0;">• 발주정보 수정: 일괄 업로드한 발주 정보에 수정이 필요한 경우, 보여지는 화면에서 직접 수정 가능</p>
+            <p style="margin: 0 0 6px 0;">• 물류 입고(예상일): 발주일 기준 공정별 표준 리드타임이 자동 반영되어 물류 입고일이 계산되는 로직</p>
+            <p style="margin: 0;">• 입고 요구일: MD가 계획한 발주서상 입고 요구일로, 표준 물류 입고일과 차이가 있을 경우, 부서간 협의후 입고 요구일 수정 필요</p>
+          </div>
+          <!-- 툴팁 화살표 -->
+          <div class="absolute" style="top: -8px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white;"></div>
+          <div class="absolute" style="top: -9px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #ddd;"></div>
         </div>
         
         <!-- 이미지 확대 팝업 -->
@@ -750,6 +787,161 @@ function setupEventListeners() {
   // 이미지 업로드 모달 - 저장
   document.getElementById('image-upload-save-btn')?.addEventListener('click', async () => {
     await handleImageUpload();
+  });
+  
+  // 인포메이션 툴팁 기능
+  setupOrderInfoTooltip();
+}
+
+// 인포메이션 툴팁 기능 설정
+function setupOrderInfoTooltip() {
+  const icon = document.getElementById('order-management-info-icon');
+  const tooltip = document.getElementById('order-management-info-tooltip');
+  const closeBtn = document.getElementById('close-order-info-tooltip');
+  
+  if (!icon || !tooltip) return;
+  
+  let hoverTimeout = null;
+  let hideTimeout = null;
+  let isFixed = false; // 클릭으로 고정된 상태
+  
+  // 툴팁 위치 조정 함수
+  function positionTooltip() {
+    if (!icon || !tooltip) return;
+    
+    const iconRect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // 기본 위치: 아이콘 아래-오른쪽
+    let top = iconRect.bottom + 10;
+    let left = iconRect.left;
+    
+    // 화면 경계 체크 및 조정
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = window.innerWidth - tooltipRect.width - 20;
+    }
+    
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = iconRect.top - tooltipRect.height - 10;
+    }
+    
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${left}px`;
+  }
+  
+  // 툴팁 표시
+  function showTooltip() {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    tooltip.classList.remove('hidden');
+    positionTooltip();
+  }
+  
+  // 툴팁 숨기기
+  function hideTooltip() {
+    if (!isFixed) {
+      hideTimeout = setTimeout(() => {
+        tooltip.classList.add('hidden');
+      }, 300);
+    }
+  }
+  
+  // 마우스 호버 이벤트
+  icon.addEventListener('mouseenter', () => {
+    if (!isFixed) {
+      hoverTimeout = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('mouseleave', () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = null;
+    }
+    hideTooltip();
+  });
+  
+  // 툴팁 위에 마우스 있을 때는 숨기지 않음
+  tooltip.addEventListener('mouseenter', () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    hideTooltip();
+  });
+  
+  // 클릭으로 고정
+  icon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isFixed = !isFixed;
+    if (isFixed) {
+      showTooltip();
+    } else {
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 닫기 버튼
+  closeBtn.addEventListener('click', () => {
+    isFixed = false;
+    tooltip.classList.add('hidden');
+  });
+  
+  // 툴팁 외부 클릭 시 닫기
+  document.addEventListener('click', (e) => {
+    if (isFixed && !tooltip.contains(e.target) && e.target !== icon) {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 키보드 접근성
+  icon.addEventListener('focus', () => {
+    if (!isFixed) {
+      showTooltip();
+    }
+  });
+  
+  icon.addEventListener('blur', () => {
+    if (!isFixed) {
+      hideTooltip();
+    }
+  });
+  
+  icon.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      isFixed = !isFixed;
+      if (isFixed) {
+        showTooltip();
+      } else {
+        tooltip.classList.add('hidden');
+      }
+    } else if (e.key === 'Escape') {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+      icon.blur();
+    }
+  });
+  
+  // ESC 키로 고정된 툴팁 닫기
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFixed) {
+      isFixed = false;
+      tooltip.classList.add('hidden');
+    }
+  });
+  
+  // 창 크기 변경 시 위치 재조정
+  window.addEventListener('resize', () => {
+    if (!tooltip.classList.contains('hidden')) {
+      positionTooltip();
+    }
   });
 }
 
