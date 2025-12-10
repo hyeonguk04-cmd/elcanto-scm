@@ -48,7 +48,7 @@ export async function renderManufacturerManagement(container) {
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">국가</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">담당자</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 140px;">이메일</th>
-                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">연락처</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">지역</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">인도조건</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">포워딩업체</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">주요채널</th>
