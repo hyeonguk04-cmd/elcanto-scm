@@ -1,7 +1,7 @@
 // 공정 입고진척 현황 - 완전 재설계
 import { getOrdersWithProcesses } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
-import { UIUtils, DateUtils, FormatUtils } from './utils.js';
+import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
