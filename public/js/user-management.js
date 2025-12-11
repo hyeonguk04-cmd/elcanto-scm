@@ -14,8 +14,17 @@ export async function renderUserManagement(container) {
       <div class="space-y-3">
         <div class="flex justify-between items-center">
         <div>
-          <h2 class="text-xl font-bold text-gray-800">사용자 관리</h2>
-          <p class="text-xs text-gray-500 mt-0.5">사용자 아이디 추가 및 패스워드 재설정을 관리합니다</p>
+          <div class="flex items-center">
+            <h2 class="text-xl font-bold text-gray-800">사용자 관리</h2>
+            <i id="user-info-icon" 
+               class="fas fa-info-circle cursor-pointer" 
+               style="font-size: 19px; color: #666; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               tabindex="0"
+               role="button"
+               aria-label="안내사항 보기"
+               onmouseover="this.style.color='#333'"
+               onmouseout="this.style.color='#666'"></i>
+          </div>
         </div>     
           <button id="add-user-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm">
             <i class="fas fa-plus mr-1"></i>사용자 추가
@@ -50,6 +59,26 @@ export async function renderUserManagement(container) {
             </table>
           </div>
         </div>
+      </div>
+      
+      <!-- 정보 툴팁 -->
+      <div id="user-info-tooltip" class="hidden fixed bg-white border border-gray-300 rounded-lg shadow-lg" style="width: 420px; padding: 20px; z-index: 1001; font-size: 14px; line-height: 1.7; color: #333;">
+        <div class="flex justify-between items-start mb-3">
+          <span class="font-bold">💡 안내사항</span>
+          <button id="user-info-close" class="text-gray-400 hover:text-gray-600" style="font-size: 20px; line-height: 1; padding: 0; background: none; border: none; cursor: pointer;">&times;</button>
+        </div>
+        <div style="color: #555; margin-bottom: 16px;">
+          • 시스템 사용자 계정을 생성하고 권한을 관리합니다.<br>
+          • 사용자(관리자/생산업체) 아이디 추가 및 패스워드 재설정을 관리합니다.
+        </div>
+        <div class="font-bold mb-2">📌 사용 팁</div>
+        <div style="color: #555;">
+          • <strong>사용자 관리:</strong> +사용자 추가 버튼 클릭하여 관리자(admin) 또는 생산업체(supplier) 사용자 추가 등록<br>
+          • <strong>관리자 (admin) 권한:</strong> 전 메뉴 신규등록, 수정, 삭제 가능<br>
+          • <strong>생산업체 (supplier):</strong> 내 대시보드 접근, 실적 입력(본인 발주만), 증빙 사진 업로드, 완료일 입력/수정
+        </div>
+        <div class="arrow" style="position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white; top: -8px; left: 20px;"></div>
+        <div class="arrow-border" style="position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #ddd; top: -9px; left: 20px;"></div>
       </div>
       
       <!-- 사용자 추가/수정 모달 -->
@@ -147,6 +176,7 @@ export async function renderUserManagement(container) {
     `;
     
     setupEventListeners();
+    setupUserInfoTooltip();
     UIUtils.hideLoading();
   } catch (error) {
     console.error('User management render error:', error);
@@ -206,6 +236,151 @@ function renderUserRow(user) {
       </td>
     </tr>
   `;
+}
+
+// 정보 툴팁 설정
+function setupUserInfoTooltip() {
+  const icon = document.getElementById('user-info-icon');
+  const tooltip = document.getElementById('user-info-tooltip');
+  const closeBtn = document.getElementById('user-info-close');
+  
+  if (!icon || !tooltip || !closeBtn) return;
+  
+  let showTimer = null;
+  let hideTimer = null;
+  let isFixed = false;
+  
+  // 툴팁 위치 설정
+  function positionTooltip() {
+    const iconRect = icon.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    let left = iconRect.left;
+    let top = iconRect.bottom + 8;
+    
+    // 오른쪽 경계 확인
+    if (left + tooltipRect.width > window.innerWidth) {
+      left = window.innerWidth - tooltipRect.width - 10;
+    }
+    
+    // 하단 경계 확인
+    if (top + tooltipRect.height > window.innerHeight) {
+      top = iconRect.top - tooltipRect.height - 8;
+    }
+    
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+  
+  // 툴팁 표시
+  function showTooltip() {
+    clearTimeout(hideTimer);
+    tooltip.classList.remove('hidden');
+    positionTooltip();
+  }
+  
+  // 툴팁 숨김
+  function hideTooltip() {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      tooltip.classList.add('hidden');
+    }
+  }
+  
+  // 아이콘 호버
+  icon.addEventListener('mouseenter', () => {
+    if (!isFixed) {
+      clearTimeout(hideTimer);
+      showTimer = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('mouseleave', () => {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  // 툴팁 호버 (툴팁 위에 있을 때 사라지지 않도록)
+  tooltip.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimer);
+  });
+  
+  tooltip.addEventListener('mouseleave', () => {
+    if (!isFixed) {
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  // 아이콘 클릭 (고정)
+  icon.addEventListener('click', () => {
+    isFixed = !isFixed;
+    if (isFixed) {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+      showTooltip();
+    } else {
+      hideTooltip();
+    }
+  });
+  
+  // 닫기 버튼
+  closeBtn.addEventListener('click', () => {
+    isFixed = false;
+    hideTooltip();
+  });
+  
+  // 외부 클릭
+  document.addEventListener('click', (e) => {
+    if (isFixed && !tooltip.contains(e.target) && !icon.contains(e.target)) {
+      isFixed = false;
+      hideTooltip();
+    }
+  });
+  
+  // ESC 키
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isFixed) {
+      isFixed = false;
+      hideTooltip();
+    }
+  });
+  
+  // 윈도우 리사이즈
+  window.addEventListener('resize', () => {
+    if (!tooltip.classList.contains('hidden')) {
+      positionTooltip();
+    }
+  });
+  
+  // 키보드 접근성
+  icon.addEventListener('focus', () => {
+    if (!isFixed) {
+      showTimer = setTimeout(showTooltip, 200);
+    }
+  });
+  
+  icon.addEventListener('blur', () => {
+    if (!isFixed) {
+      clearTimeout(showTimer);
+      hideTimer = setTimeout(hideTooltip, 300);
+    }
+  });
+  
+  icon.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      isFixed = !isFixed;
+      if (isFixed) {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+        showTooltip();
+      } else {
+        hideTooltip();
+      }
+    }
+  });
 }
 
 function setupEventListeners() {
