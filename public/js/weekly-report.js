@@ -1,7 +1,7 @@
 // 주간 KPI 요약 리포트
 import { getOrdersWithProcesses } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
-import { UIUtils, DateUtils, FormatUtils } from './utils.js';
+import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
@@ -33,6 +33,9 @@ export async function renderWeeklyReport(container) {
         <div class="flex justify-between items-center">
           <h2 class="text-lg font-bold text-gray-800">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
           <div class="flex space-x-2">
+            <button id="weekly-excel-download-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+              <i class="fas fa-download mr-1"></i>엑셀 다운로드
+            </button>
             <select id="weekly-country-filter" class="px-2 py-1.5 border rounded-lg text-sm">
               <option value="전체">생산국 전체</option>
               <option value="중국">중국</option>
@@ -79,6 +82,7 @@ export async function renderWeeklyReport(container) {
 function setupEventListeners() {
   document.getElementById('weekly-country-filter')?.addEventListener('change', filterOrders);
   document.getElementById('weekly-channel-filter')?.addEventListener('change', filterOrders);
+  document.getElementById('weekly-excel-download-btn')?.addEventListener('click', downloadWeeklyExcel);
 }
 
 function filterOrders() {
@@ -453,6 +457,86 @@ function formatDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// 엑셀 다운로드 함수
+function downloadWeeklyExcel() {
+  const countryFilter = document.getElementById('weekly-country-filter').value;
+  const channelFilter = document.getElementById('weekly-channel-filter').value;
+  
+  let filtered = allOrders;
+  
+  // 필터 적용
+  if (countryFilter !== '전체') {
+    filtered = filtered.filter(o => o.country === countryFilter);
+  }
+  if (channelFilter !== '전체') {
+    filtered = filtered.filter(o => o.channel === channelFilter);
+  }
+  
+  // 엑셀 데이터 준비
+  const excelData = filtered.map((order, idx) => {
+    const productionProcesses = order.schedule?.production || [];
+    const shippingProcesses = order.schedule?.shipping || [];
+    
+    // 공정률 계산
+    const allProcesses = [...productionProcesses, ...shippingProcesses];
+    const totalProcesses = PROCESS_CONFIG.production.length + PROCESS_CONFIG.shipping.length;
+    const completedProcesses = allProcesses.filter(p => p.actualDate).length;
+    const processRate = totalProcesses > 0 ? Math.round((completedProcesses / totalProcesses) * 100) : 0;
+    
+    // 입항 완료 여부
+    const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
+    const isReceived = !!arrivalProcess?.actualDate;
+    
+    // 누적입고
+    const cumulativeReceipt = isReceived ? (parseInt(order.qty) || 0) : 0;
+    
+    // 주입고량 (이번 주에 입항 완료된 경우)
+    let weeklyReceipt = 0;
+    if (isReceived && arrivalProcess.actualDate) {
+      const actualDate = new Date(arrivalProcess.actualDate);
+      if (actualDate >= currentWeekStart && actualDate <= currentWeekEnd) {
+        weeklyReceipt = parseInt(order.qty) || 0;
+      }
+    }
+    
+    // 물류입고 예정일
+    const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
+    
+    // 입고 구분
+    let statusText = '미입고';
+    if (isReceived) {
+      const requiredDelivery = order.requiredDelivery ? new Date(order.requiredDelivery) : null;
+      const expectedDate = expectedArrivalInfo.date ? new Date(expectedArrivalInfo.date) : null;
+      
+      if (requiredDelivery && expectedDate) {
+        statusText = expectedDate > requiredDelivery ? '지연입고' : '정상입고';
+      } else {
+        statusText = '정상입고';
+      }
+    }
+    
+    return {
+      'NO.': idx + 1,
+      '채널': order.channel || '',
+      '국가': order.country || '',
+      '생산업체': order.supplier || '',
+      '스타일': order.style || '',
+      '발주수량': order.qty || 0,
+      '입고요구일': order.requiredDelivery || '',
+      '공정률(%)': processRate,
+      '누적입고': cumulativeReceipt,
+      '주입고량': weeklyReceipt,
+      '물류입고예정일': expectedArrivalInfo.date || '',
+      '입고구분': statusText
+    };
+  });
+  
+  // ExcelUtils를 사용하여 다운로드
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+  const weekRange = `${formatDate(currentWeekStart)}_${formatDate(currentWeekEnd)}`;
+  ExcelUtils.downloadExcel(excelData, `주간KPI요약_${weekRange}_${timestamp}.xlsx`);
 }
 
 export default { renderWeeklyReport };
