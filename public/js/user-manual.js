@@ -193,6 +193,11 @@ export function renderUserManual() {
           <div class="space-y-2 text-sm text-gray-700">
             <p><strong>목적</strong>: 전체 발주 및 공정 상황을 한눈에 파악하는 대시보드</p>
             
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">ⓘ 안내사항 보기</h5>
+              <p class="text-xs text-indigo-800">페이지 제목 우측의 <strong>ⓘ 아이콘</strong>을 클릭하면 페이지 사용법과 주요 KPI 카드 활용 팁을 확인할 수 있습니다.</p>
+            </div>
+            
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
               <h5 class="font-bold text-blue-900 mb-2">📈 주요 KPI 카드</h5>
               <div class="grid grid-cols-2 gap-2 text-xs">
@@ -250,28 +255,41 @@ export function renderUserManual() {
             생산 목표일정 수립
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 발주을 등록하고 각 공정별 목표일을 설정하는 메뉴</p>
+            <p><strong>목적</strong>: 발주를 등록하고 각 공정별 목표일을 설정하는 메뉴</p>
+            
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">ⓘ 안내사항 보기</h5>
+              <p class="text-xs text-indigo-800">페이지 제목 우측의 <strong>ⓘ 아이콘</strong>을 클릭하면 승인 발주 정보 등록 방법, 템플릿 업로드, 발주 정보 수정, 물류 입고 예상일 계산 로직, 입고 요구일 조정 방법 등을 확인할 수 있습니다.</p>
+            </div>
             
             <div class="bg-green-50 border border-green-200 p-3 rounded">
               <h5 class="font-bold text-green-900 mb-2">📥 발주 등록 방법</h5>
               <ol class="text-xs text-green-800 space-y-1 list-decimal list-inside">
-                <li><strong>엑셀 업로드</strong>: "📤 엑셀 업로드" 버튼 클릭 → 엑셀 파일 선택
+                <li><strong>템플릿 다운로드</strong>: "📄 템플릿 다운로드" 버튼 클릭 → 엑셀 양식 다운로드</li>
+                <li><strong>템플릿 작성</strong>: 발주 정보와 이미지를 템플릿에 붙여넣기
                   <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
-                    <li>필수 컬럼: 스타일, 채널, 생산업체, 입고요구일 등</li>
-                    <li>업로드 시 자동으로 목표일이 계산됩니다</li>
+                    <li>필수 컬럼: 스타일, 채널, 생산업체, 국가, 색상, 수량, 발주일, 입고요구일</li>
+                    <li>스타일 이미지: 셀에 이미지를 직접 붙여넣기 (복사&붙여넣기)</li>
                   </ul>
                 </li>
-                <li><strong>수동 등록</strong>: "➕ 발주 추가" 버튼 클릭 → 폼 작성</li>
+                <li><strong>엑셀 업로드</strong>: "📤 엑셀 업로드" 버튼 클릭 → 작성한 엑셀 파일 선택
+                  <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
+                    <li>업로드 시 자동으로 각 공정별 목표일이 계산됩니다</li>
+                    <li>생산업체별 리드타임이 자동 반영됩니다</li>
+                  </ul>
+                </li>
+                <li><strong>수동 등록</strong>: "➕ 발주 추가" 버튼 클릭 → 폼 작성 (개별 등록 시)</li>
               </ol>
             </div>
 
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
-              <h5 class="font-bold text-blue-900 mb-2">⚙️ 공정 일정 설정</h5>
+              <h5 class="font-bold text-blue-900 mb-2">⚙️ 공정 일정 자동 설정</h5>
               <ul class="text-xs text-blue-800 space-y-1">
-                <li>• <strong>자동 계산</strong>: 입고요구일 기준으로 역산하여 각 공정별 목표일 자동 계산</li>
-                <li>• <strong>수동 조정</strong>: 각 공정의 목표일을 개별적으로 수정 가능</li>
-                <li>• <strong>리드타임 기반</strong>: 공정별 기본 리드타임이 적용됩니다</li>
-                <li>• 공정: 자재, 한도CFM, 제갑&조립, 공장출고, 선적, 입항</li>
+                <li>• <strong>자동 계산</strong>: 발주일 기준으로 각 공정별 목표일 자동 계산</li>
+                <li>• <strong>생산업체별 리드타임</strong>: 생산업체 관리에서 설정한 리드타임이 자동 반영</li>
+                <li>• <strong>선적항-도착항 반영</strong>: 생산업체의 선적 경로에 따른 운송 기간 자동 적용</li>
+                <li>• <strong>수동 조정</strong>: 발주일 변경 시 전체 일정이 자동 재계산됨</li>
+                <li>• <strong>공정 목록</strong>: 자재 → 한도CFM → 제갑&조립 → 공장출고 → 선적 → 입항</li>
               </ul>
             </div>
 
@@ -305,52 +323,61 @@ export function renderUserManual() {
           <div class="space-y-2 text-sm text-gray-700">
             <p><strong>목적</strong>: 모든 발주의 공정별 진척 상황을 한 테이블에서 확인</p>
             
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">ⓘ 안내사항 보기</h5>
+              <p class="text-xs text-indigo-800">페이지 제목 우측의 <strong>ⓘ 아이콘</strong>을 클릭하면 생산업체 공정 완료일 기준 지연 관리, 공정별 상세 진행 현황 확인 방법, 스타일코드 검색 팁 등을 확인할 수 있습니다.</p>
+            </div>
+            
             <div class="bg-purple-50 border border-purple-200 p-3 rounded">
               <h5 class="font-bold text-purple-900 mb-2">📊 테이블 구성</h5>
               <ul class="text-xs text-purple-800 space-y-1">
-                <li>• <strong>좌측 컬럼</strong>: 스타일, 채널, 생산업체, 입고요구일</li>
-                <li>• <strong>중앙 컬럼</strong>: 8개 생산 공정 (원단~공장출하)</li>
-                <li>• <strong>우측 컬럼</strong>: 2개 운송 공정 (출하~입고)</li>
-                <li>• <strong>각 셀 표시</strong>:
+                <li>• <strong>발주 정보</strong>: NO., 채널, 생산업체, 스타일, 이미지, 색상, 수량, 발주일, 입고요구일</li>
+                <li>• <strong>생산 공정 지연일수</strong>: 자재, 한도CFM, 제갑&조립, 공장출고 (일 단위)</li>
+                <li>• <strong>운송 상황 지연일수</strong>: 선적, 입항 (일 단위)</li>
+                <li>• <strong>최종 현황</strong>: 최종지연일수, 물류입고예정일</li>
+                <li>• <strong>지연일수 표시</strong>:
                   <ul class="ml-4 mt-1 space-y-1">
-                    <li>- 목표일 (상단)</li>
-                    <li>- 실제 완료일 (하단, 입력된 경우 <span class="text-blue-600 font-bold">파란색</span>)</li>
-                    <li>- 증빙 사진이 있으면 📷 아이콘 표시</li>
+                    <li>- <span class="text-red-600 font-bold">+3</span>: 지연 (목표일보다 늦음)</li>
+                    <li>- <span class="text-blue-600 font-bold">-2</span>: 앞당김 (목표일보다 빠름)</li>
+                    <li>- <span class="text-green-600 font-bold">0</span>: 정시 완료</li>
+                    <li>- 지연일수 클릭 시 상세 정보 모달 표시</li>
                   </ul>
                 </li>
               </ul>
             </div>
 
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
-              <h5 class="font-bold text-blue-900 mb-2">🎨 색상 코드</h5>
-              <div class="grid grid-cols-2 gap-2 text-xs">
-                <div class="flex items-center">
-                  <span class="inline-block w-4 h-4 bg-white border border-gray-300 mr-2"></span>
-                  <span>미완료 (목표일만 표시)</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="inline-block w-4 h-4 bg-blue-100 border border-blue-300 mr-2"></span>
-                  <span class="text-blue-800">완료 (실제일 입력됨)</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="inline-block w-4 h-4 bg-green-100 border border-green-300 mr-2"></span>
-                  <span class="text-green-800">정상 (목표일 이전 완료)</span>
-                </div>
-                <div class="flex items-center">
-                  <span class="inline-block w-4 h-4 bg-red-100 border border-red-300 mr-2"></span>
-                  <span class="text-red-800">지연 (목표일 초과)</span>
-                </div>
-              </div>
+              <h5 class="font-bold text-blue-900 mb-2">🔍 필터 및 검색 기능</h5>
+              <ul class="text-xs text-blue-800 space-y-1">
+                <li>• <strong>엑셀 다운로드</strong>: 좌측 상단의 파란색 버튼 클릭으로 현재 데이터 다운로드</li>
+                <li>• <strong>전체 채널 필터</strong>: 특정 채널(홈쇼핑, 백화점 등)만 표시</li>
+                <li>• <strong>전체 생산업체 필터</strong>: 특정 생산업체만 표시</li>
+                <li>• <strong>입고요구일 기준 필터</strong>: 시작일~종료일 날짜 범위 설정</li>
+                <li>• <strong>스타일코드 검색</strong>: Ctrl+F 로 스타일코드 검색</li>
+              </ul>
             </div>
 
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">📷 증빙 사진 확인</h5>
-              <p class="text-xs text-green-800">📷 아이콘을 클릭하면 생산업체가 업로드한 증빙 사진과 상세 정보를 확인할 수 있습니다.</p>
+              <h5 class="font-bold text-green-900 mb-2">📋 공정별 상세 정보</h5>
+              <p class="text-xs text-green-800">각 공정의 지연일수를 클릭하면 모달 창이 열리며 다음 정보를 확인할 수 있습니다:</p>
+              <ul class="text-xs text-green-800 space-y-1 ml-4 mt-1">
+                <li>• 스타일 정보 및 이미지</li>
+                <li>• 공정명 및 완료일 (목표일 vs 실제일)</li>
+                <li>• 차이일수 (+지연/-앞당김)</li>
+                <li>• 생산업체가 업로드한 증빙 사진</li>
+              </ul>
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
-              <h5 class="font-bold text-yellow-900 mb-2">📥 엑셀 다운로드</h5>
-              <p class="text-xs text-yellow-800">"📥 엑셀 다운로드" 버튼을 클릭하면 현재 테이블의 모든 데이터를 엑셀 파일로 내보낼 수 있습니다.</p>
+              <h5 class="font-bold text-yellow-900 mb-2">📥 엑셀 다운로드 상세</h5>
+              <p class="text-xs text-yellow-800 mb-2">"📥 엑셀 다운로드" 버튼 클릭 시 다음 정보가 포함된 엑셀 파일이 생성됩니다:</p>
+              <ul class="text-xs text-yellow-800 space-y-1 ml-4">
+                <li>• 발주 정보: NO., 채널, 생산업체, 스타일, 색상, 수량, 발주일, 입고요구일</li>
+                <li>• 생산공정 지연일수: 자재, 한도CFM, 제갑&조립, 공장출고</li>
+                <li>• 운송상황 지연일수: 선적, 입항</li>
+                <li>• 최종현황: 최종지연일수, 물류입고예정일</li>
+                <li>• 필터링된 데이터만 다운로드됩니다</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -360,10 +387,10 @@ export function renderUserManual() {
           <h4 class="font-bold text-gray-800 mb-2 flex items-center">
             <span class="mr-2">2.4.</span>
             <span class="text-xl mr-2">📅</span>
-            주간 리포트
+            주간 KPI 요약 (주간 리포트)
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 채널별 주간 입고 현황을 트래픽 라이트로 한눈에 파악</p>
+            <p><strong>목적</strong>: 주간 생산별 및 입고실적 현황을 트래픽 라이트로 한눈에 파악</p>
             
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
               <h5 class="font-bold text-yellow-900 mb-2">🚦 트래픽 라이트 시스템</h5>
@@ -393,20 +420,35 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
-              <h5 class="font-bold text-blue-900 mb-2">📊 테이블 구성</h5>
+              <h5 class="font-bold text-blue-900 mb-2">📊 주간 생산별 및 입고실적 현황 테이블</h5>
               <ul class="text-xs text-blue-800 space-y-1">
-                <li>• <strong>채널별 그룹화</strong>: 홈쇼핑, 백화점, 온라인몰 등으로 자동 분류</li>
-                <li>• <strong>주요 정보</strong>: 스타일, 생산업체, 입고요구일, 물류입고 예정일, 실제입고일</li>
-                <li>• <strong>상태 표시</strong>: 트래픽 라이트 + 텍스트 (정상입고/지연입고/미입고)</li>
+                <li>• <strong>기본 정보</strong>: NO., 채널, 국가, 생산업체, 스타일, 발주수량, 입고요구일</li>
+                <li>• <strong>공정률</strong>: 전체 공정 대비 완료된 공정 비율 (% 진행바)</li>
+                <li>• <strong>누적입고</strong>: 입항 완료된 총 수량</li>
+                <li>• <strong>주입고량</strong>: 이번 주(월~일)에 입항 완료된 수량</li>
+                <li>• <strong>물류입고예정일</strong>: 예상 입고 완료일</li>
+                <li>• <strong>입고 구분</strong>: 🟢 정상입고 / 🔴 지연입고 / ⚪ 미입고</li>
               </ul>
             </div>
 
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">🔍 필터 기능</h5>
+              <h5 class="font-bold text-green-900 mb-2">🔍 필터 및 다운로드 기능</h5>
               <ul class="text-xs text-green-800 space-y-1">
-                <li>• <strong>채널 필터</strong>: 특정 채널만 보기</li>
-                <li>• <strong>날짜 필터</strong>: 입고요구일 기준으로 기간 설정</li>
-                <li>• <strong>상태 필터</strong>: 정상/지연/미입고 중 선택</li>
+                <li>• <strong>엑셀 다운로드</strong>: 좌측 상단의 파란색 버튼으로 현재 주간 데이터 다운로드</li>
+                <li>• <strong>생산국 필터</strong>: 중국, 베트남, 인도 등으로 필터링</li>
+                <li>• <strong>채널 필터</strong>: IM, ELCANTO 등으로 필터링</li>
+                <li>• <strong>정렬</strong>: 채널, 국가, 생산업체, 스타일, 입고요구일 칼럼 클릭으로 정렬</li>
+              </ul>
+            </div>
+            
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">📥 엑셀 다운로드 내용</h5>
+              <p class="text-xs text-indigo-800">다운로드되는 엑셀에는 다음 정보가 포함됩니다:</p>
+              <ul class="text-xs text-indigo-800 space-y-1 ml-4 mt-1">
+                <li>• NO., 채널, 국가, 생산업체, 스타일, 발주수량, 입고요구일</li>
+                <li>• 공정률(%), 누적입고, 주입고량</li>
+                <li>• 물류입고예정일, 입고구분</li>
+                <li>• 파일명: 주간KPI요약_시작일_종료일_타임스탬프.xlsx</li>
               </ul>
             </div>
           </div>
@@ -420,36 +462,57 @@ export function renderUserManual() {
             생산업체 관리
           </h4>
           <div class="space-y-2 text-sm text-gray-700">
-            <p><strong>목적</strong>: 협력 생산업체 정보를 등록하고 관리</p>
+            <p><strong>목적</strong>: 협력 생산업체 정보 및 공정별 리드타임을 등록하고 관리</p>
+            
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">ⓘ 안내사항 보기</h5>
+              <p class="text-xs text-indigo-800">페이지 제목 우측의 <strong>ⓘ 아이콘</strong>을 클릭하면 생산업체 일괄 등록(템플릿 사용), 개별 등록, 정보 수정, 엑셀 다운로드 방법을 확인할 수 있습니다.</p>
+            </div>
             
             <div class="bg-orange-50 border border-orange-200 p-3 rounded">
-              <h5 class="font-bold text-orange-900 mb-2">➕ 업체 등록</h5>
-              <ol class="text-xs text-orange-800 space-y-1 list-decimal list-inside">
-                <li>"➕ 업체 추가" 버튼 클릭</li>
-                <li>업체 정보 입력:
-                  <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
-                    <li><strong>업체명</strong>: 생산업체 이름 (필수)</li>
-                    <li><strong>담당자</strong>: 연락 담당자 이름</li>
-                    <li><strong>연락처</strong>: 전화번호 또는 이메일</li>
-                    <li><strong>주소</strong>: 업체 주소</li>
-                  </ul>
-                </li>
-                <li>"저장" 버튼 클릭</li>
-              </ol>
+              <h5 class="font-bold text-orange-900 mb-2">➕ 업체 등록 방법</h5>
+              <div class="space-y-2 text-xs text-orange-800">
+                <div>
+                  <strong>방법 1: 일괄 등록 (템플릿 사용)</strong>
+                  <ol class="list-decimal list-inside ml-2 mt-1 space-y-1">
+                    <li>"📄 템플릿 다운로드" 버튼 클릭</li>
+                    <li>엑셀 템플릿에 업체 정보 입력</li>
+                    <li>"📤 엑셀 업로드" 버튼으로 파일 업로드</li>
+                  </ol>
+                </div>
+                <div>
+                  <strong>방법 2: 개별 등록</strong>
+                  <ol class="list-decimal list-inside ml-2 mt-1 space-y-1">
+                    <li>"➕ 업체 추가" 버튼 클릭</li>
+                    <li>기본 정보 입력: Username, 업체명, 국가, 담당자, 이메일, 지역</li>
+                    <li>거래 정보 입력: 인도조건, 포워딩업체, 주요채널, 주요품목, 결제조건</li>
+                    <li>공정별 리드타임 입력 (일수): 자재, 한도CFM, 제갑초조립, 공장출고</li>
+                    <li>선적항-도착항 입력: 예) 웨이하이-인천, 호치민-인천</li>
+                    <li>운송 리드타임 입력: 선적, 입항 (일수)</li>
+                    <li>"💾 저장" 버튼 클릭</li>
+                  </ol>
+                </div>
+              </div>
             </div>
 
             <div class="bg-blue-50 border border-blue-200 p-3 rounded">
-              <h5 class="font-bold text-blue-900 mb-2">✏️ 업체 수정/삭제</h5>
-              <ul class="text-xs text-blue-800 space-y-1">
-                <li>• <strong>수정</strong>: "✏️" 버튼 클릭 → 정보 수정 → 저장</li>
-                <li>• <strong>삭제</strong>: "🗑️" 버튼 클릭 → 확인 메시지 → 삭제</li>
-                <li>• <strong>주의</strong>: 해당 업체에 진행 중인 발주이 있으면 삭제 불가</li>
+              <h5 class="font-bold text-blue-900 mb-2">⚙️ 리드타임 자동 반영</h5>
+              <p class="text-xs text-blue-800 mb-2">생산업체 관리에서 설정한 리드타임은 다음과 같이 자동 반영됩니다:</p>
+              <ul class="text-xs text-blue-800 space-y-1 ml-4">
+                <li>• 발주 등록 시 생산업체의 리드타임이 자동 적용</li>
+                <li>• 발주일 변경 시 자동으로 전체 일정 재계산</li>
+                <li>• 선적항-도착항 정보로 정확한 운송 기간 계산</li>
+                <li>• 업체별 맞춤형 일정 관리 가능</li>
               </ul>
             </div>
-
+            
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">🔍 업체 검색</h5>
-              <p class="text-xs text-green-800">검색창에 업체명 또는 담당자명을 입력하여 빠르게 찾을 수 있습니다.</p>
+              <h5 class="font-bold text-green-900 mb-2">✏️ 업체 수정/삭제 및 다운로드</h5>
+              <ul class="text-xs text-green-800 space-y-1">
+                <li>• <strong>수정</strong>: 테이블의 "수정" 버튼 클릭 → 정보 수정 → 저장</li>
+                <li>• <strong>엑셀 다운로드</strong>: 현재 등록된 모든 생산업체 정보를 엑셀로 다운로드</li>
+                <li>• <strong>주의</strong>: 리드타임 변경 시 기존 발주의 일정은 자동 변경되지 않음</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -464,20 +527,26 @@ export function renderUserManual() {
           <div class="space-y-2 text-sm text-gray-700">
             <p><strong>목적</strong>: 시스템 사용자 계정을 생성하고 권한을 관리</p>
             
+            <div class="bg-indigo-50 border border-indigo-200 p-3 rounded">
+              <h5 class="font-bold text-indigo-900 mb-2">ⓘ 안내사항 보기</h5>
+              <p class="text-xs text-indigo-800">페이지 제목 우측의 <strong>ⓘ 아이콘</strong>을 클릭하면 관리자/생산업체 사용자 추가 방법, 권한 설명, 비밀번호 재설정 방법을 확인할 수 있습니다.</p>
+            </div>
+            
             <div class="bg-red-50 border border-red-200 p-3 rounded">
               <h5 class="font-bold text-red-900 mb-2">➕ 사용자 추가</h5>
               <ol class="text-xs text-red-800 space-y-1 list-decimal list-inside">
                 <li>"➕ 사용자 추가" 버튼 클릭</li>
                 <li>사용자 정보 입력:
                   <ul class="ml-6 mt-1 space-y-1 list-disc list-inside">
-                    <li><strong>아이디</strong>: 로그인 ID (중복 불가)</li>
+                    <li><strong>아이디</strong>: 로그인 ID (중복 불가, 영문/숫자)</li>
                     <li><strong>이름</strong>: 실명</li>
-                    <li><strong>비밀번호</strong>: 초기 비밀번호 (8자 이상)</li>
+                    <li><strong>이메일</strong>: 유효한 이메일 주소</li>
+                    <li><strong>비밀번호</strong>: 초기 비밀번호 (최소 6자 이상)</li>
                     <li><strong>역할</strong>: 관리자(admin) 또는 생산업체(supplier)</li>
-                    <li><strong>소속 업체</strong>: 생산업체 역할인 경우 업체 선택</li>
                   </ul>
                 </li>
                 <li>"저장" 버튼 클릭</li>
+                <li>사용자에게 아이디와 초기 비밀번호 전달</li>
               </ol>
             </div>
 
@@ -506,11 +575,12 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
-              <h5 class="font-bold text-yellow-900 mb-2">✏️ 사용자 수정/삭제</h5>
+              <h5 class="font-bold text-yellow-900 mb-2">🔐 비밀번호 재설정 및 삭제</h5>
               <ul class="text-xs text-yellow-800 space-y-1">
-                <li>• <strong>수정</strong>: "✏️" 버튼 → 정보 수정 (비밀번호는 입력 시에만 변경)</li>
-                <li>• <strong>삭제</strong>: "🗑️" 버튼 → 확인 후 삭제</li>
-                <li>• <strong>주의</strong>: 관리자 계정은 최소 1개 이상 유지되어야 합니다</li>
+                <li>• <strong>수정</strong>: "✏️" 버튼 → 사용자 정보 수정</li>
+                <li>• <strong>비밀번호 재설정</strong>: "🔑" 버튼 → 새 비밀번호 입력 → 재설정</li>
+                <li>• <strong>삭제</strong>: "🗑️" 버튼 → 확인 후 삭제 (신중히 진행)</li>
+                <li>• <strong>주의</strong>: 관리자 계정은 최소 1개 이상 유지 필요</li>
               </ul>
             </div>
           </div>
