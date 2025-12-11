@@ -849,7 +849,7 @@ function downloadExcel() {
   
   // ExcelUtils를 사용하여 다운로드
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-  ExcelUtils.exportToExcel(excelData, `공정입고진척현황_${timestamp}.xlsx`);
+  ExcelUtils.downloadExcel(excelData, `공정입고진척현황_${timestamp}.xlsx`);
 }
 
 export default { renderAnalytics };
