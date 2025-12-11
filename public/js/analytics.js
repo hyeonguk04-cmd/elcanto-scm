@@ -816,20 +816,32 @@ function downloadExcel() {
     
     // 생산 공정 추가
     PROCESS_CONFIG.production.forEach(p => {
-      const process = (order.schedule?.production || []).find(pr => pr.name === p.name);
-      const delayDays = process && process.actualDate && process.targetDate 
-        ? Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24))
-        : '';
-      row[p.name] = delayDays !== '' ? delayDays : '';
+      const process = (order.schedule?.production || []).find(pr => pr.processKey === p.key);
+      let delayValue = '';
+      if (process && process.actualDate && process.targetDate) {
+        const delayDays = Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
+        delayValue = delayDays > 0 ? `+${delayDays}` : delayDays < 0 ? `${delayDays}` : '0';
+      } else if (process && process.actualDate) {
+        delayValue = '완료';
+      } else if (process && process.targetDate) {
+        delayValue = '대기중';
+      }
+      row[p.name] = delayValue;
     });
     
     // 운송 공정 추가
     PROCESS_CONFIG.shipping.forEach(p => {
-      const process = (order.schedule?.shipping || []).find(pr => pr.name === p.name);
-      const delayDays = process && process.actualDate && process.targetDate 
-        ? Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24))
-        : '';
-      row[p.name] = delayDays !== '' ? delayDays : '';
+      const process = (order.schedule?.shipping || []).find(pr => pr.processKey === p.key);
+      let delayValue = '';
+      if (process && process.actualDate && process.targetDate) {
+        const delayDays = Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
+        delayValue = delayDays > 0 ? `+${delayDays}` : delayDays < 0 ? `${delayDays}` : '0';
+      } else if (process && process.actualDate) {
+        delayValue = '완료';
+      } else if (process && process.targetDate) {
+        delayValue = '대기중';
+      }
+      row[p.name] = delayValue;
     });
     
     // 최종 현황
