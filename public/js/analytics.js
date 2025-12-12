@@ -861,9 +861,17 @@ window.showProcessDetail = async function(orderId, processId, processKey, catego
 
 // 모달 닫기
 window.closeProcessDetailModal = function() {
-  const modal = document.getElementById('process-detail-modal');
-  if (modal) {
-    modal.classList.add('hidden');
+  // 정적 모달 닫기
+  const modal1 = document.getElementById('process-detail-modal');
+  if (modal1) {
+    modal1.classList.add('hidden');
+  }
+  
+  // 동적 모달 닫기 (공정상태 클릭 시 생성되는 모달)
+  const modal2 = document.getElementById('process-detail-modal-panel');
+  if (modal2) {
+    modal2.classList.add('hidden');
+    document.body.style.overflow = ''; // 스크롤 복원
   }
 };
 
@@ -985,6 +993,17 @@ window.toggleProcessDetailPanel = function(orderId) {
   // 모달 표시
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+  
+  // ESC 키로 모달 닫기
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      closeProcessDetailModal();
+    }
+  };
+  
+  // 이전 이벤트 제거 후 새로 추가
+  document.removeEventListener('keydown', escHandler);
+  document.addEventListener('keydown', escHandler);
 };
 
 // 모달 닫기 함수 (중복 제거 - 첫 번째 정의 사용)
