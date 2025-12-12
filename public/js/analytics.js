@@ -1131,7 +1131,7 @@ async function renderProcessDetailPanel(orderId, panelElement) {
           <tbody>
             <!-- 표준 공정 목표일 -->
             <tr class="bg-green-50">
-              <td class="px-3 py-2 border font-semibold text-center text-green-700">표준 공정<br>목표일</td>
+              <td class="px-3 py-2 border font-semibold text-center text-green-700" style="white-space: nowrap;">표준 공정 목표일</td>
               ${productionData.map(({ standardDate }) => `
                 <td class="px-3 py-2 border text-center text-green-600 text-xs">
                   ${standardDate || '-'}
