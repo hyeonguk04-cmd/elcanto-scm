@@ -949,141 +949,154 @@ function renderProcessDetailPanel(orderId, panelElement) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
+  // 모든 공정을 순서대로 배열
+  const allProcesses = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      name: config.name,
+      process: productionProcesses.find(p => p.processKey === config.key),
+      category: '생산 공정'
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      name: config.name,
+      process: shippingProcesses.find(p => p.processKey === config.key),
+      category: '운송 공정'
+    }))
+  ];
+  
   panelElement.innerHTML = `
-    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg p-6">
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-bold text-gray-800">
+    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg overflow-hidden">
+      <div class="bg-blue-50 px-6 py-4 flex justify-between items-center border-b-2 border-blue-500">
+        <h3 class="text-lg font-bold text-gray-800">
           📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
         </h3>
         <button onclick="toggleProcessDetailPanel('${orderId}')" 
-                class="text-gray-400 hover:text-gray-600 text-3xl leading-none font-light">
+                class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
           &times;
         </button>
       </div>
       
-      <!-- 타임라인 스타일 레이아웃 -->
-      <div class="space-y-8">
-        <!-- 원단검수(예정일) 행 -->
-        <div class="process-timeline-row">
-          <div class="text-sm font-semibold text-gray-600 mb-3">원단검수(예정일)</div>
-          <div class="grid grid-cols-6 gap-4">
-            ${renderTimelineProcesses(productionProcesses, shippingProcesses, 'row1')}
-          </div>
-        </div>
-        
-        <!-- 재단 / 선적 / 입항 행 -->
-        <div class="process-timeline-row">
-          <div class="text-sm font-semibold text-gray-600 mb-3">분할공정 상세</div>
-          <div class="grid grid-cols-6 gap-4">
-            ${renderTimelineProcesses(productionProcesses, shippingProcesses, 'row2')}
-          </div>
+      <!-- 테이블 형식 레이아웃 -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-100 border-b-2 border-gray-300">
+              <th class="px-4 py-3 text-center border-r" rowspan="2" style="min-width: 120px;">구분</th>
+              <th class="px-4 py-3 text-center border-b" colspan="4">생산 목표일정</th>
+              <th class="px-4 py-3 text-center border-l" colspan="4">운송 목표일정</th>
+            </tr>
+            <tr class="bg-gray-100 border-b-2 border-gray-300">
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">자재</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">원도CFM</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">재단&조립</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">공정출고</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">선적</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">입항</th>
+              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">통관</th>
+              <th class="px-3 py-2 text-center" style="min-width: 90px;">검수</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${renderProcessTableRows(allProcesses)}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- 증빙사진 섹션 -->
+      <div class="px-6 py-4 bg-gray-50 border-t">
+        <div class="text-sm font-semibold text-gray-700 mb-3">증빙사진</div>
+        <div class="grid grid-cols-4 gap-4">
+          ${renderProofPhotos(allProcesses)}
         </div>
       </div>
     </div>
   `;
 }
 
-// 타임라인 형식으로 공정 렌더링
-function renderTimelineProcesses(productionProcesses, shippingProcesses, rowType) {
-  let processes = [];
+// 공정 테이블 행 렌더링
+function renderProcessTableRows(allProcesses) {
+  // 생산공정 4개 + 운송공정 4개 = 총 8개
+  const productionProcs = allProcesses.slice(0, 4);
+  const shippingProcs = allProcesses.slice(4, 8);
   
-  if (rowType === 'row1') {
-    // 첫 번째 행: 원단검수, 재단, 봉제, 가공/검품, 선적, 운송
-    processes = [
-      { config: PROCESS_CONFIG.production[0], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[0]?.key), label: '원단' },
-      { config: PROCESS_CONFIG.production[1], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[1]?.key), label: '재단' },
-      { config: PROCESS_CONFIG.production[2], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[2]?.key), label: '봉제' },
-      { config: PROCESS_CONFIG.production[3], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[3]?.key), label: '가공' },
-      { config: PROCESS_CONFIG.shipping[0], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[0]?.key), label: '선적' },
-      { config: PROCESS_CONFIG.shipping[1], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[1]?.key), label: '운송' }
-    ];
-  } else {
-    // 두 번째 행: 통관, 입항 + 빈 칸
-    processes = [
-      { config: PROCESS_CONFIG.shipping[2], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[2]?.key), label: '통관' },
-      { config: PROCESS_CONFIG.shipping[3], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[3]?.key), label: '입항' },
-      null, null, null, null
-    ];
-  }
+  // 목표일 행
+  const targetRow = `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-3 text-left font-semibold bg-blue-50 border-r">목표일(엘칸토)</td>
+      ${productionProcs.map(p => `
+        <td class="px-3 py-3 text-center border-r text-gray-600">${p.process?.targetDate || '-'}</td>
+      `).join('')}
+      ${shippingProcs.map(p => `
+        <td class="px-3 py-3 text-center border-r text-gray-600">${p.process?.targetDate || '-'}</td>
+      `).join('')}
+    </tr>
+  `;
   
-  return processes.map(item => {
-    if (!item) return '<div></div>';
-    return renderTimelineCard(item.label, item.config?.name || item.label, item.process);
-  }).join('');
-}
-
-// 타임라인 카드 렌더링
-function renderTimelineCard(shortLabel, fullLabel, process) {
-  if (!process) {
-    return `
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <div class="text-center text-xs font-bold text-gray-400 mb-2">${shortLabel}</div>
-        <div class="text-center text-xs text-gray-400">-</div>
-      </div>
-    `;
-  }
+  // 실적일 행
+  const actualRow = `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-3 text-left font-semibold bg-green-50 border-r">실적일(생산업체)</td>
+      ${productionProcs.map(p => `
+        <td class="px-3 py-3 text-center border-r text-blue-600 font-semibold">${p.process?.actualDate || '-'}</td>
+      `).join('')}
+      ${shippingProcs.map(p => `
+        <td class="px-3 py-3 text-center border-r text-blue-600 font-semibold">${p.process?.actualDate || '-'}</td>
+      `).join('')}
+    </tr>
+  `;
   
-  // 차이일수 계산
-  let diffInfo = { days: '-', class: 'text-gray-400', bgClass: 'bg-gray-50' };
-  
-  if (process.targetDate && process.actualDate) {
-    const targetDate = new Date(process.targetDate);
-    const actualDate = new Date(process.actualDate);
+  // 차이일수 행
+  const diffCells = [...productionProcs, ...shippingProcs].map(p => {
+    if (!p.process || !p.process.targetDate || !p.process.actualDate) {
+      return '<td class="px-3 py-3 text-center border-r text-gray-400">-</td>';
+    }
+    
+    const targetDate = new Date(p.process.targetDate);
+    const actualDate = new Date(p.process.actualDate);
     const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
     
+    let cellClass = '';
+    let cellText = '';
+    
     if (diff > 0) {
-      diffInfo = { 
-        days: `+${diff}`, 
-        class: 'text-white font-bold', 
-        bgClass: 'bg-red-500',
-        label: '지연'
-      };
+      cellClass = 'bg-red-100 text-red-700 font-bold';
+      cellText = `+${diff}`;
     } else if (diff < 0) {
-      diffInfo = { 
-        days: `${diff}`, 
-        class: 'text-blue-600 font-bold', 
-        bgClass: 'bg-blue-50',
-        label: '앞당김'
-      };
+      cellClass = 'bg-blue-100 text-blue-700 font-bold';
+      cellText = `${diff}`;
     } else {
-      diffInfo = { 
-        days: '0', 
-        class: 'text-green-600 font-bold', 
-        bgClass: 'bg-green-50',
-        label: '정상'
-      };
+      cellClass = 'bg-green-100 text-green-700 font-bold';
+      cellText = '0';
     }
-  }
+    
+    return `<td class="px-3 py-3 text-center border-r ${cellClass}">${cellText}</td>`;
+  }).join('');
   
-  return `
-    <div class="${diffInfo.bgClass} border-2 ${diffInfo.bgClass === 'bg-red-500' ? 'border-red-600' : 'border-gray-200'} rounded-lg p-3 transition-all hover:shadow-md">
-      <div class="text-center text-xs font-bold text-gray-700 mb-2">${shortLabel}</div>
-      <div class="space-y-2 text-xs">
-        <div>
-          <div class="text-gray-500">목표일</div>
-          <div class="text-gray-700 font-medium">${process.targetDate || '-'}</div>
-        </div>
-        <div>
-          <div class="text-gray-500">실적일</div>
-          <div class="text-blue-600 font-semibold">${process.actualDate || '-'}</div>
-        </div>
-        <div class="pt-2 border-t">
-          <div class="text-center ${diffInfo.class} text-base font-bold">${diffInfo.days}</div>
-          ${diffInfo.label ? `<div class="text-center text-xs text-gray-600">${diffInfo.label}</div>` : ''}
-        </div>
-        ${process.proofPhoto ? `
-          <div class="pt-2 text-center">
-            <div class="text-xs text-gray-500 mb-1">📸</div>
-            <img src="${process.proofPhoto}" 
-                 alt="증빙" 
-                 class="h-12 w-auto mx-auto rounded cursor-pointer hover:opacity-80"
-                 onclick="openPhotoModal('${process.proofPhoto}')"
-                 onerror="this.style.display='none'">
-          </div>
-        ` : ''}
-      </div>
-    </div>
+  const diffRow = `
+    <tr class="border-b hover:bg-gray-50">
+      <td class="px-4 py-3 text-left font-semibold bg-yellow-50 border-r">차이일수</td>
+      ${diffCells}
+    </tr>
   `;
+  
+  return targetRow + actualRow + diffRow;
+}
+
+// 증빙사진 렌더링
+function renderProofPhotos(allProcesses) {
+  const photosHtml = allProcesses
+    .filter(p => p.process?.proofPhoto)
+    .map(p => `
+      <div class="text-center">
+        <div class="text-xs text-gray-600 mb-2 font-semibold">${p.name}</div>
+        <img src="${p.process.proofPhoto}" 
+             alt="${p.name} 증빙사진" 
+             class="h-24 w-auto mx-auto rounded border-2 border-gray-200 cursor-pointer hover:border-blue-500 hover:shadow-lg transition"
+             onclick="openPhotoModal('${p.process.proofPhoto}')"
+             onerror="this.parentElement.style.display='none'">
+      </div>
+    `).join('');
+  
+  return photosHtml || '<div class="text-gray-400 text-sm col-span-4 text-center py-4">등록된 증빙사진이 없습니다.</div>';
 }
 
 // 사진 확대 모달
