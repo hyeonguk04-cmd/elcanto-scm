@@ -1,5 +1,5 @@
 // 공정 입고진척 현황 - 완전 재설계
-import { getOrdersWithProcesses } from './firestore-service.js';
+import { getOrdersWithProcesses, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
@@ -1008,24 +1008,80 @@ window.toggleProcessDetailPanel = function(orderId) {
 
 // 모달 닫기 함수 (중복 제거 - 첫 번째 정의 사용)
 
+// 표준 공정 목표일 계산 (발주일 + 리드타임)
+function calculateStandardDates(orderDate, leadTimes, route) {
+  const result = {
+    production: {},
+    shipping: {}
+  };
+  
+  if (!orderDate) return result;
+  
+  let currentDate = new Date(orderDate);
+  
+  // 생산 공정 계산
+  PROCESS_CONFIG.production.forEach(config => {
+    const leadTime = leadTimes?.[config.key] || 0;
+    currentDate.setDate(currentDate.getDate() + leadTime);
+    result.production[config.key] = currentDate.toISOString().split('T')[0];
+  });
+  
+  // 운송 공정 계산
+  PROCESS_CONFIG.shipping.forEach(config => {
+    let leadTime = leadTimes?.[config.key] || 0;
+    
+    // 입항 공정은 경로에 따라 리드타임 조정
+    if (config.key === 'arrival') {
+      if (route === '항공') {
+        leadTime = 3;
+      } else if (route === '해상') {
+        leadTime = 21;
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + leadTime);
+    result.shipping[config.key] = currentDate.toISOString().split('T')[0];
+  });
+  
+  return result;
+}
+
 // 공정 상세 패널 내용 렌더링
-function renderProcessDetailPanel(orderId, panelElement) {
+async function renderProcessDetailPanel(orderId, panelElement) {
   const order = allOrders.find(o => o.id === orderId);
   if (!order) return;
   
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
+  // 생산업체 리드타임 가져오기
+  let supplierLeadTimes = null;
+  if (order.supplier) {
+    try {
+      const supplier = await getSupplierByName(order.supplier);
+      if (supplier && supplier.leadTimes) {
+        supplierLeadTimes = supplier.leadTimes;
+      }
+    } catch (error) {
+      console.warn('생산업체 리드타임 로드 실패:', error);
+    }
+  }
+  
+  // 표준 공정 목표일 계산 (발주일 기준 + 리드타임)
+  const standardDates = calculateStandardDates(order.orderDate, supplierLeadTimes, order.route);
+  
   // 생산 공정 데이터
   const productionData = PROCESS_CONFIG.production.map(config => ({
     ...config,
-    process: productionProcesses.find(p => p.processKey === config.key)
+    process: productionProcesses.find(p => p.processKey === config.key),
+    standardDate: standardDates.production[config.key]
   }));
   
   // 운송 공정 데이터
   const shippingData = PROCESS_CONFIG.shipping.map(config => ({
     ...config,
-    process: shippingProcesses.find(p => p.processKey === config.key)
+    process: shippingProcesses.find(p => p.processKey === config.key),
+    standardDate: standardDates.shipping[config.key]
   }));
   
   panelElement.innerHTML = `
@@ -1073,6 +1129,21 @@ function renderProcessDetailPanel(orderId, panelElement) {
             </tr>
           </thead>
           <tbody>
+            <!-- 표준 공정 목표일 -->
+            <tr class="bg-green-50">
+              <td class="px-3 py-2 border font-semibold text-center text-green-700">표준 공정<br>목표일</td>
+              ${productionData.map(({ standardDate }) => `
+                <td class="px-3 py-2 border text-center text-green-600 text-xs">
+                  ${standardDate || '-'}
+                </td>
+              `).join('')}
+              ${shippingData.map(({ standardDate }) => `
+                <td class="px-3 py-2 border text-center text-green-600 text-xs">
+                  ${standardDate || '-'}
+                </td>
+              `).join('')}
+            </tr>
+            
             <!-- 목표일 -->
             <tr class="bg-gray-50">
               <td class="px-3 py-2 border font-semibold text-center">목표일</td>
