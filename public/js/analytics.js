@@ -972,7 +972,7 @@ window.toggleProcessDetailPanel = function(orderId) {
     modal.id = 'process-detail-modal-panel';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-      <div class="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+      <div class="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
         <div id="modal-panel-content"></div>
       </div>
     `;
@@ -1038,7 +1038,7 @@ function renderProcessDetailPanel(orderId, panelElement) {
     <div class="p-6 overflow-y-auto">
       <!-- 주문 정보 -->
       <div class="bg-blue-50 rounded-lg p-4 mb-4">
-        <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <div class="flex-shrink-0">
             <span class="text-gray-600">채널:</span>
             <span class="font-medium ml-2">${order.channel || '-'}</span>
