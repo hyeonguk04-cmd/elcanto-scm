@@ -2478,11 +2478,14 @@ function renderDashboardProcessDetailModal(order, productionProcesses, shippingP
     process: shippingProcesses.find(p => p.processKey === config.key)
   }));
   
+  // 물류입고예정일 계산
+  const expectedArrivalDate = calculateExpectedArrival(order, productionData.map(p => p.process).filter(Boolean), shippingData.map(p => p.process).filter(Boolean));
+  
   const modalContent = document.getElementById('dashboard-modal-content');
   modalContent.innerHTML = `
     <!-- 주문 정보 -->
     <div class="bg-blue-50 rounded-lg p-4 mb-4">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
         <div>
           <span class="text-gray-600">채널:</span>
           <span class="font-medium ml-2">${order.channel || '-'}</span>
@@ -2498,6 +2501,10 @@ function renderDashboardProcessDetailModal(order, productionProcesses, shippingP
         <div>
           <span class="text-gray-600">입고요구일:</span>
           <span class="font-medium ml-2">${order.requiredDelivery || '-'}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">물류입고예정일:</span>
+          <span class="font-medium ml-2">${expectedArrivalDate || '-'}</span>
         </div>
       </div>
     </div>
