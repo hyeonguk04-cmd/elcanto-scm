@@ -45,7 +45,7 @@ function renderSuppliersTable(suppliers) {
       <table class="w-full text-sm">
         <thead class="bg-gray-50 text-xs uppercase">
           <tr>
-            <th class="px-4 py-3" style="min-width: 150px;">업체명</th>
+            <th class="px-4 py-3" style="min-width: 130px;">업체명</th>
             <th class="px-4 py-3">국가</th>
             <th class="px-4 py-3" style="min-width: 150px;">담당자</th>
             <th class="px-4 py-3">이메일</th>

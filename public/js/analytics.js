@@ -427,22 +427,21 @@ function renderAnalyticsTable(orders) {
           
           <!-- 생산 공정 -->
           ${productionHeaders.map((name, idx) => {
-            // 긴 이름은 두 줄로 표시하고 너비 축소
+            // 모든 항목 두 줄로 표시하고 너비 동일하게
             let displayName = name;
-            let width = '60px';
+            const width = '50px';
             
             if (name === '원단검수') {
               displayName = '원단<br>검수';
-              width = '50px';
             } else if (name === '원도CFM') {
               displayName = '원도<br>CFM';
-              width = '50px';
             } else if (name === '재단초조립') {
               displayName = '재단<br>조립';
-              width = '50px';
             } else if (name === '공정출고') {
               displayName = '공정<br>출고';
-              width = '50px';
+            } else if (name.length > 2) {
+              // 기타 긴 이름도 두 줄로
+              displayName = name.slice(0, 2) + '<br>' + name.slice(2);
             }
             
             return `<th class="px-1 py-2 border" style="min-width: ${width}; line-height: 1.2;">${displayName}</th>`;
@@ -456,9 +455,9 @@ function renderAnalyticsTable(orders) {
           }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-1 py-2 border" style="min-width: 50px; line-height: 1.2;">최종<br>지연<br>일수</th>
+          <th class="px-1 py-2 border" style="min-width: 50px; line-height: 1.2;">지연<br>일수</th>
           <th class="px-2 py-2 border" style="min-width: 90px;">물류입고<br>예정일</th>
-          <th class="px-2 py-2 border" style="min-width: 60px; line-height: 1.2;">공정<br>상태</th>
+          <th class="px-2 py-2 border" style="min-width: 50px; line-height: 1.2;">공정<br>상태</th>
         </tr>
       </thead>
       <tbody>
