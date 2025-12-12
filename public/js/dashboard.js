@@ -357,14 +357,21 @@ function processData(orders) {
         // 목표일이 오늘보다 과거면 지연
         if (today > targetDate) {
           hasDelayedProcess = true;
+          console.log(`🔴 지연 발주 발견: ${order.style} - 공정 ${process.name} 목표일(${process.targetDate}) 초과`);
           break;
         }
       }
     }
     
     // 입고요구일 초과 또는 공정 지연 중 하나라도 해당되면 지연 발주로 판단
-    return isOverdue || hasDelayedProcess;
+    const isDelayed = isOverdue || hasDelayedProcess;
+    if (isDelayed) {
+      console.log(`🚨 지연 발주: ${order.style} | 입고요구일초과: ${isOverdue}, 공정지연: ${hasDelayedProcess}`);
+    }
+    return isDelayed;
   });
+  
+  console.log(`📊 대시보드 데이터: 전체 ${orders.length}건, 미입고 ${pendingOrders.length}건, 지연 ${delayedOrders.length}건`);
   
   // KPI 계산
   const totalOrders = orders.length;
