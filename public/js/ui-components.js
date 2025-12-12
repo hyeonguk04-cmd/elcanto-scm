@@ -7,18 +7,34 @@ import { t } from './i18n.js';
 export function renderSidebar(role) {
   const sidebar = document.getElementById('sidebar-container');
   
-  const menuItems = role === 'admin' ? [
-    { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
-    { id: 'order-management', emoji: '📋', textKey: 'orderManagement' },
-    { id: 'analytics', emoji: '📈', textKey: 'analytics' },
-    { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
-    { id: 'manufacturer-management', emoji: '🏭', textKey: 'manufacturerManagement' },
-    { id: 'user-management', emoji: '👥', textKey: 'userManagement' },
-    { id: 'user-manual', emoji: '📖', textKey: 'userManual' }
-  ] : [
-    { id: 'supplier-dashboard', emoji: '📊', textKey: 'supplierDashboard' },
-    { id: 'supplier-orders', emoji: '✅', textKey: 'supplierOrders' }
-  ];
+  let menuItems;
+  
+  if (role === 'admin') {
+    // 관리자: 모든 메뉴 접근 가능
+    menuItems = [
+      { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
+      { id: 'order-management', emoji: '📋', textKey: 'orderManagement' },
+      { id: 'analytics', emoji: '📈', textKey: 'analytics' },
+      { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
+      { id: 'manufacturer-management', emoji: '🏭', textKey: 'manufacturerManagement' },
+      { id: 'user-management', emoji: '👥', textKey: 'userManagement' },
+      { id: 'user-manual', emoji: '📖', textKey: 'userManual' }
+    ];
+  } else if (role === 'viewer') {
+    // 조회자: 조회 전용 메뉴만 접근 가능
+    menuItems = [
+      { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
+      { id: 'analytics', emoji: '📈', textKey: 'analytics' },
+      { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
+      { id: 'user-manual', emoji: '📖', textKey: 'userManual' }
+    ];
+  } else {
+    // 생산업체: 실적 입력 메뉴만 접근 가능
+    menuItems = [
+      { id: 'supplier-dashboard', emoji: '📊', textKey: 'supplierDashboard' },
+      { id: 'supplier-orders', emoji: '✅', textKey: 'supplierOrders' }
+    ];
+  }
   
   sidebar.innerHTML = `
     <div class="space-y-2">

@@ -69,12 +69,13 @@ export async function renderUserManagement(container) {
         </div>
         <div style="color: #555; margin-bottom: 16px;">
           • 시스템 사용자 계정을 생성하고 권한을 관리합니다.<br>
-          • 사용자(관리자/생산업체) 아이디 추가 및 패스워드 재설정을 관리합니다.
+          • 사용자(관리자/조회자/생산업체) 아이디 추가 및 패스워드 재설정을 관리합니다.
         </div>
         <div class="font-bold mb-2">📌 사용 팁</div>
         <div style="color: #555;">
-          • <strong>사용자 관리:</strong> +사용자 추가 버튼 클릭하여 관리자(admin) 또는 생산업체(supplier) 사용자 추가 등록<br>
-          • <strong>관리자 (admin) 권한:</strong> 전 메뉴 신규등록, 수정, 삭제 가능<br>
+          • <strong>사용자 관리:</strong> +사용자 추가 버튼 클릭하여 관리자(admin), 조회자(viewer), 생산업체(supplier) 사용자 추가 등록<br>
+          • <strong>관리자 (admin):</strong> 전 메뉴 신규등록, 수정, 삭제 가능<br>
+          • <strong>조회자 (viewer):</strong> 발주 정보, 진척 현황, 통계 조회만 가능 (MD, 영업부 등)<br>
           • <strong>생산업체 (supplier):</strong> 내 대시보드 접근, 실적 입력(본인 발주만), 증빙 사진 업로드, 완료일 입력/수정
         </div>
         <div class="arrow" style="position: absolute; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid white; top: -8px; left: 20px;"></div>
@@ -120,6 +121,7 @@ export async function renderUserManagement(container) {
                 <select id="user-role" required 
                         class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="admin">관리자</option>
+                  <option value="viewer">조회자</option>
                   <option value="supplier">생산업체</option>
                 </select>
               </div>
@@ -186,10 +188,25 @@ export async function renderUserManagement(container) {
 }
 
 function renderUserRow(user) {
-  const roleText = user.role === 'admin' ? '관리자' : '생산업체';
-  const roleBadge = user.role === 'admin' 
-    ? 'bg-purple-100 text-purple-800' 
-    : 'bg-green-100 text-green-800';
+  let roleText, roleBadge;
+  
+  switch(user.role) {
+    case 'admin':
+      roleText = '관리자';
+      roleBadge = 'bg-blue-100 text-blue-800';
+      break;
+    case 'viewer':
+      roleText = '조회자';
+      roleBadge = 'bg-gray-100 text-gray-800';
+      break;
+    case 'supplier':
+      roleText = '생산업체';
+      roleBadge = 'bg-green-100 text-green-800';
+      break;
+    default:
+      roleText = user.role;
+      roleBadge = 'bg-gray-100 text-gray-600';
+  }
   
   const lastLogin = user.lastLogin 
     ? new Date(user.lastLogin.toDate()).toLocaleString('ko-KR', { 

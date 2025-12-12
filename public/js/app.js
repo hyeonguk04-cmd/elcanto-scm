@@ -1,5 +1,5 @@
 // 메인 앱 로직
-import { login, logout, getCurrentUser, isAdmin, isSupplier, initializeTestUsers } from './auth.js';
+import { login, logout, getCurrentUser, isAdmin, isSupplier, isViewer, canView, initializeTestUsers } from './auth.js';
 import { UIUtils } from './utils.js';
 import { renderSidebar } from './ui-components.js';
 import { renderDashboard } from './dashboard.js';
@@ -147,7 +147,24 @@ function showAppView(user) {
   document.getElementById('app-view').classList.remove('hidden');
   
   // 사용자 정보 표시
-  document.getElementById('user-display').textContent = `${user.name}`;
+  let roleText = '';
+  let roleBadge = '';
+  
+  if (user.role === 'admin') {
+    roleText = '관리자';
+    roleBadge = 'bg-blue-100 text-blue-800';
+  } else if (user.role === 'viewer') {
+    roleText = '조회자';
+    roleBadge = 'bg-gray-100 text-gray-800';
+  } else if (user.role === 'supplier') {
+    roleText = '생산업체';
+    roleBadge = 'bg-green-100 text-green-800';
+  }
+  
+  document.getElementById('user-display').innerHTML = `
+    ${user.name}
+    <span class="ml-2 px-2 py-0.5 text-xs rounded-full ${roleBadge}">${roleText}</span>
+  `;
   
   // 앱 타이틀 업데이트
   updateAppTitle();
@@ -297,5 +314,8 @@ function updateLogoutButton() {
 
 // 전역 함수로 export
 window.navigateTo = navigateTo;
+window.isAdmin = isAdmin;
+window.isViewer = isViewer;
+window.canView = canView;
 
 export { navigateTo, showLoginView, showAppView };

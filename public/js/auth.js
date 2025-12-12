@@ -129,6 +129,18 @@ export function isSupplier() {
   return user && user.role === 'supplier';
 }
 
+// 조회자 권한 확인
+export function isViewer() {
+  const user = getCurrentUser();
+  return user && user.role === 'viewer';
+}
+
+// 관리자 또는 조회자 권한 확인 (읽기 권한)
+export function canView() {
+  const user = getCurrentUser();
+  return user && (user.role === 'admin' || user.role === 'viewer');
+}
+
 // 인증 상태 확인
 export function isAuthenticated() {
   return getCurrentUser() !== null;
@@ -274,6 +286,8 @@ export default {
   getCurrentUser,
   isAdmin,
   isSupplier,
+  isViewer,
+  canView,
   isAuthenticated,
   onAuthStateChanged,
   initializeTestUsers
