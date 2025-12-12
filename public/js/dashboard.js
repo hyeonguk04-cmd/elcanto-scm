@@ -2479,7 +2479,7 @@ function renderDashboardProcessDetailModal(order, productionProcesses, shippingP
   }));
   
   // 물류입고예정일 계산
-  const expectedArrivalDate = calculateExpectedArrival(order, productionData.map(p => p.process).filter(Boolean), shippingData.map(p => p.process).filter(Boolean));
+  const expectedArrivalInfo = calculateExpectedArrival(order, productionData.map(p => p.process).filter(Boolean), shippingData.map(p => p.process).filter(Boolean));
   
   const modalContent = document.getElementById('dashboard-modal-content');
   modalContent.innerHTML = `
@@ -2504,7 +2504,7 @@ function renderDashboardProcessDetailModal(order, productionProcesses, shippingP
         </div>
         <div>
           <span class="text-gray-600">물류입고예정일:</span>
-          <span class="font-medium ml-2">${expectedArrivalDate || '-'}</span>
+          <span class="font-medium ml-2">${expectedArrivalInfo.date || '-'}</span>
         </div>
       </div>
     </div>
