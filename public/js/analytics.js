@@ -979,143 +979,203 @@ function renderProcessDetailPanel(orderId, panelElement) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
-  // 모든 공정을 순서대로 배열 (PROCESS_CONFIG 순서 사용)
-  const allProcesses = [
-    ...PROCESS_CONFIG.production.map(config => ({
-      name: config.name,
-      process: productionProcesses.find(p => p.processKey === config.key)
-    })),
-    ...PROCESS_CONFIG.shipping.map(config => ({
-      name: config.name,
-      process: shippingProcesses.find(p => p.processKey === config.key)
-    }))
-  ];
+  // 생산 공정 데이터
+  const productionData = PROCESS_CONFIG.production.map(config => ({
+    ...config,
+    process: productionProcesses.find(p => p.processKey === config.key)
+  }));
+  
+  // 운송 공정 데이터
+  const shippingData = PROCESS_CONFIG.shipping.map(config => ({
+    ...config,
+    process: shippingProcesses.find(p => p.processKey === config.key)
+  }));
   
   panelElement.innerHTML = `
-    <div class="bg-gray-100 px-6 py-4 flex justify-between items-center border-b border-gray-300">
-      <h3 class="text-lg font-bold text-gray-800">
-        📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
-      </h3>
-      <button onclick="closeProcessDetailModal()" 
-              class="text-gray-400 hover:text-gray-600 text-3xl leading-none hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition">
-        &times;
+    <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+      <h3 class="text-xl font-bold text-gray-800">공정별 목표대비 실적 현황</h3>
+      <button onclick="closeProcessDetailModal()" class="text-gray-500 hover:text-gray-700">
+        <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    
-    <div class="overflow-x-auto max-h-[calc(90vh-80px)]">
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="px-3 py-2 text-center text-xs border border-gray-300" style="min-width: 100px;"></th>
-              ${allProcesses.map(p => `
-                <th class="px-3 py-2 text-center text-xs font-bold border border-gray-300" style="min-width: 110px;">
-                  ${p.name}
-                </th>
-              `).join('')}
+    <div class="p-6 overflow-y-auto">
+      <!-- 주문 정보 -->
+      <div class="bg-blue-50 rounded-lg p-4 mb-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <span class="text-gray-600">채널:</span>
+            <span class="font-medium ml-2">${order.channel || '-'}</span>
+          </div>
+          <div>
+            <span class="text-gray-600">스타일:</span>
+            <span class="font-medium ml-2">${order.style || '-'}</span>
+          </div>
+          <div>
+            <span class="text-gray-600">생산업체:</span>
+            <span class="font-medium ml-2">${order.supplier || '-'}</span>
+          </div>
+          <div>
+            <span class="text-gray-600">입고요구일:</span>
+            <span class="font-medium ml-2">${order.requiredDelivery || '-'}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 공정 테이블 -->
+      <div class="bg-white border rounded-lg overflow-hidden">
+        <table class="w-full text-xs border-collapse">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-3 py-2 border text-center" style="min-width: 120px;">구분</th>
+              ${productionData.map(p => `<th class="px-3 py-2 border text-center" style="min-width: 100px;">${p.name}</th>`).join('')}
+              ${shippingData.map(p => `<th class="px-3 py-2 border text-center" style="min-width: 100px;">${p.name}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
-            <!-- 목표일 행 -->
-            <tr class="border-b">
-              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
-                목표일(엘칸토)
-              </td>
-              ${allProcesses.map(p => `
-                <td class="px-3 py-3 text-center text-xs border border-gray-300 ${p.process?.targetDate ? 'text-gray-700' : 'text-gray-400'}">
-                  ${p.process?.targetDate || '-'}
+            <!-- 목표일 -->
+            <tr class="bg-gray-50">
+              <td class="px-3 py-2 border font-semibold text-center">목표일</td>
+              ${productionData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center text-gray-600">
+                  ${process?.targetDate || '-'}
+                </td>
+              `).join('')}
+              ${shippingData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center text-gray-600">
+                  ${process?.targetDate || '-'}
                 </td>
               `).join('')}
             </tr>
             
-            <!-- 실적일 행 -->
-            <tr class="border-b bg-blue-50">
-              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
-                실적일(생산업체)
-              </td>
-              ${allProcesses.map(p => `
-                <td class="px-3 py-3 text-center text-xs font-semibold border border-gray-300 ${p.process?.actualDate ? 'text-blue-600' : 'text-gray-400'}">
-                  ${p.process?.actualDate || '-'}
+            <!-- 실적일 -->
+            <tr class="bg-blue-50">
+              <td class="px-3 py-2 border font-semibold text-center">실적일</td>
+              ${productionData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center text-blue-600 font-medium">
+                  ${process?.actualDate || '-'}
+                </td>
+              `).join('')}
+              ${shippingData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center text-blue-600 font-medium">
+                  ${process?.actualDate || '-'}
                 </td>
               `).join('')}
             </tr>
             
-            <!-- 차이일수 행 -->
-            <tr class="border-b">
-              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
-                차이일수
-              </td>
-              ${allProcesses.map(p => {
-                if (!p.process || !p.process.targetDate || !p.process.actualDate) {
-                  return '<td class="px-3 py-3 text-center text-xs border border-gray-300 text-gray-400">-</td>';
+            <!-- 차이일수 -->
+            <tr>
+              <td class="px-3 py-2 border font-semibold text-center">차이일수</td>
+              ${productionData.map(({ process }) => {
+                if (!process?.targetDate || !process?.actualDate) {
+                  return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
                 }
+                const target = new Date(process.targetDate);
+                const actual = new Date(process.actualDate);
+                const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
                 
-                const targetDate = new Date(p.process.targetDate);
-                const actualDate = new Date(p.process.actualDate);
-                const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
-                
-                let cellClass = '';
-                let cellText = '';
+                let className = 'px-3 py-2 border text-center font-bold';
+                let content = '';
                 
                 if (diff > 0) {
-                  cellClass = 'text-red-600 font-bold';
-                  cellText = `+${diff}`;
+                  className += ' text-red-600';
+                  content = `+${diff}일`;
                 } else if (diff < 0) {
-                  cellClass = 'text-blue-600 font-bold';
-                  cellText = `${diff}`;
+                  className += ' text-blue-600';
+                  content = `${diff}일`;
                 } else {
-                  cellClass = 'text-blue-600 font-bold';
-                  cellText = '0';
+                  className += ' text-green-600';
+                  content = '0일';
                 }
                 
-                return `<td class="px-3 py-3 text-center text-sm border border-gray-300 ${cellClass}">${cellText}</td>`;
+                return `<td class="${className}">${content}</td>`;
+              }).join('')}
+              ${shippingData.map(({ process }) => {
+                if (!process?.targetDate || !process?.actualDate) {
+                  return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
+                }
+                const target = new Date(process.targetDate);
+                const actual = new Date(process.actualDate);
+                const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
+                
+                let className = 'px-3 py-2 border text-center font-bold';
+                let content = '';
+                
+                if (diff > 0) {
+                  className += ' text-red-600';
+                  content = `+${diff}일`;
+                } else if (diff < 0) {
+                  className += ' text-blue-600';
+                  content = `${diff}일`;
+                } else {
+                  className += ' text-green-600';
+                  content = '0일';
+                }
+                
+                return `<td class="${className}">${content}</td>`;
               }).join('')}
             </tr>
             
-            <!-- 증빙사진 행 -->
-            <tr>
-              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
-                증빙사진
-              </td>
-              ${allProcesses.map(p => `
-                <td class="px-3 py-3 text-center border border-gray-300">
-                  ${p.process?.proofPhoto ? `
-                    <img src="${p.process.proofPhoto}" 
-                         alt="${p.name} 증빙" 
-                         class="h-16 w-auto mx-auto rounded border cursor-pointer hover:opacity-80 transition"
-                         onclick="openPhotoModal('${p.process.proofPhoto}')"
-                         onerror="this.parentElement.innerHTML='<span class=\\'text-gray-400 text-xs\\'>-</span>'">
-                  ` : '<span class="text-gray-400 text-xs">-</span>'}
+            <!-- 증빙사진 -->
+            <tr class="bg-yellow-50">
+              <td class="px-3 py-2 border font-semibold text-center">증빙사진</td>
+              ${productionData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center">
+                  ${process?.proofPhoto || process?.evidenceUrl ? `
+                    <img src="${process.proofPhoto || process.evidenceUrl}" 
+                         alt="증빙" 
+                         class="h-16 w-auto mx-auto cursor-pointer hover:opacity-80 rounded"
+                         onclick="openPhotoModal('${process.proofPhoto || process.evidenceUrl}')">
+                  ` : `<span class="text-gray-400 text-xs">-</span>`}
+                </td>
+              `).join('')}
+              ${shippingData.map(({ process }) => `
+                <td class="px-3 py-2 border text-center">
+                  ${process?.proofPhoto || process?.evidenceUrl ? `
+                    <img src="${process.proofPhoto || process.evidenceUrl}" 
+                         alt="증빙" 
+                         class="h-16 w-auto mx-auto cursor-pointer hover:opacity-80 rounded"
+                         onclick="openPhotoModal('${process.proofPhoto || process.evidenceUrl}')">
+                  ` : `<span class="text-gray-400 text-xs">-</span>`}
                 </td>
               `).join('')}
             </tr>
           </tbody>
         </table>
       </div>
+    </div>
   `;
 }
 
 // 사진 확대 모달
 window.openPhotoModal = function(photoUrl) {
-  const modal = document.createElement('div');
-  modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
-  modal.innerHTML = `
-    <div class="relative max-w-4xl max-h-[90vh] p-4">
-      <button onclick="this.closest('div').parentElement.remove()" 
-              class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75 text-2xl">
-        &times;
+  let photoModal = document.getElementById('analytics-photo-modal');
+  if (!photoModal) {
+    photoModal = document.createElement('div');
+    photoModal.id = 'analytics-photo-modal';
+    photoModal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] hidden';
+    photoModal.innerHTML = `
+      <button onclick="closeAnalyticsPhotoModal()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">
+        <i class="fas fa-times"></i>
       </button>
-      <img src="${photoUrl}" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl" alt="증빙사진">
-    </div>
-  `;
+      <img id="analytics-photo-modal-img" src="" alt="증빙사진" class="max-w-[90%] max-h-[90vh] rounded-lg">
+    `;
+    photoModal.onclick = function(e) {
+      if (e.target === photoModal) {
+        closeAnalyticsPhotoModal();
+      }
+    };
+    document.body.appendChild(photoModal);
+  }
   
-  // 모달 외부 클릭 시 닫기
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.remove();
-    }
-  });
-  
-  document.body.appendChild(modal);
+  document.getElementById('analytics-photo-modal-img').src = photoUrl;
+  photoModal.classList.remove('hidden');
+};
+
+window.closeAnalyticsPhotoModal = function() {
+  const photoModal = document.getElementById('analytics-photo-modal');
+  if (photoModal) {
+    photoModal.classList.add('hidden');
+  }
 };
 
 export default { renderAnalytics };
