@@ -427,22 +427,38 @@ function renderAnalyticsTable(orders) {
           
           <!-- 생산 공정 -->
           ${productionHeaders.map((name, idx) => {
-            // 한도CFM, 제갑초조립, 공정출고 컬럼 너비 축소
-            const width = (name === '한도CFM' || name === '제갑초조립' || name === '공정출고') ? '55px' : '70px';
-            return `<th class="px-2 py-2 border" style="min-width: ${width};">${name}</th>`;
+            // 긴 이름은 두 줄로 표시하고 너비 축소
+            let displayName = name;
+            let width = '60px';
+            
+            if (name === '원단검수') {
+              displayName = '원단<br>검수';
+              width = '50px';
+            } else if (name === '원도CFM') {
+              displayName = '원도<br>CFM';
+              width = '50px';
+            } else if (name === '재단초조립') {
+              displayName = '재단<br>조립';
+              width = '50px';
+            } else if (name === '공정출고') {
+              displayName = '공정<br>출고';
+              width = '50px';
+            }
+            
+            return `<th class="px-1 py-2 border" style="min-width: ${width}; line-height: 1.2;">${displayName}</th>`;
           }).join('')}
           
           <!-- 운송 상황 -->
           ${shippingHeaders.map(name => {
-            // 선적, 입항 컬럼 너비 축소
-            const width = (name === '선적' || name === '입항') ? '55px' : '70px';
-            return `<th class="px-2 py-2 border" style="min-width: ${width};">${name}</th>`;
+            // 모든 운송 상황 컬럼 너비 축소
+            const width = '50px';
+            return `<th class="px-1 py-2 border" style="min-width: ${width};">${name}</th>`;
           }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-2 py-2 border" style="min-width: 65px;">최종<br>지연일수</th>
+          <th class="px-1 py-2 border" style="min-width: 50px; line-height: 1.2;">최종<br>지연<br>일수</th>
           <th class="px-2 py-2 border" style="min-width: 90px;">물류입고<br>예정일</th>
-          <th class="px-2 py-2 border" style="min-width: 75px;">공정상태</th>
+          <th class="px-2 py-2 border" style="min-width: 60px; line-height: 1.2;">공정<br>상태</th>
         </tr>
       </thead>
       <tbody>
@@ -579,11 +595,11 @@ function renderOrderRow(order, rowNum) {
       }).join('')}
       
       <!-- 최종 현황 -->
-      <td class="px-3 py-2 border text-center ${finalDelayClass}">${finalDelayDays}</td>
-      <td class="px-3 py-2 border text-center">${expectedArrivalInfo.date || '-'}</td>
-      <td class="px-3 py-2 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
-          onclick="toggleProcessDetailPanel('${order.id}')">
-        ${processStatus.text}
+      <td class="px-1 py-2 border text-center ${finalDelayClass}">${finalDelayDays}</td>
+      <td class="px-2 py-2 border text-center">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-2 py-2 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
+          onclick="toggleProcessDetailPanel('${order.id}')" style="line-height: 1.3;">
+        ${processStatus.text.replace('(', '<br>(')}
       </td>
     </tr>
   `;
