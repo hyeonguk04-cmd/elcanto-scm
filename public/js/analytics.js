@@ -962,8 +962,8 @@ function renderProcessDetailPanel(orderId, panelElement) {
   ];
   
   panelElement.innerHTML = `
-    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg overflow-hidden mt-4">
-      <div class="bg-blue-50 px-6 py-3 flex justify-between items-center border-b-2 border-blue-500">
+    <div class="bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden mt-4">
+      <div class="bg-gray-100 px-6 py-3 flex justify-between items-center border-b border-gray-300">
         <h3 class="text-base font-bold text-gray-800">
           📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
         </h3>
@@ -1029,13 +1029,13 @@ function renderProcessDetailPanel(orderId, panelElement) {
                 let cellText = '';
                 
                 if (diff > 0) {
-                  cellClass = 'bg-red-500 text-white font-bold';
+                  cellClass = 'text-red-600 font-bold';
                   cellText = `+${diff}`;
                 } else if (diff < 0) {
                   cellClass = 'text-blue-600 font-bold';
                   cellText = `${diff}`;
                 } else {
-                  cellClass = 'text-green-600 font-bold';
+                  cellClass = 'text-blue-600 font-bold';
                   cellText = '0';
                 }
                 
