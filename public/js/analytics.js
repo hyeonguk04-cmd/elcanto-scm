@@ -834,12 +834,37 @@ window.showProcessDetail = async function(orderId, processId, processKey, catego
   `;
   
   // 모달 표시
-  document.getElementById('process-detail-modal').classList.remove('hidden');
+  const modal = document.getElementById('process-detail-modal');
+  modal.classList.remove('hidden');
+  
+  // ESC 키로 모달 닫기 이벤트 추가
+  const escHandler = (e) => {
+    if (e.key === 'Escape') {
+      window.closeProcessDetailModal();
+    }
+  };
+  
+  // 이전 이벤트 리스너 제거 후 새로 추가
+  document.removeEventListener('keydown', escHandler);
+  document.addEventListener('keydown', escHandler);
+  
+  // 모달 배경 클릭 시 닫기
+  const clickHandler = (e) => {
+    if (e.target.id === 'process-detail-modal') {
+      window.closeProcessDetailModal();
+    }
+  };
+  
+  modal.removeEventListener('click', clickHandler);
+  modal.addEventListener('click', clickHandler);
 };
 
 // 모달 닫기
 window.closeProcessDetailModal = function() {
-  document.getElementById('process-detail-modal').classList.add('hidden');
+  const modal = document.getElementById('process-detail-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
 };
 
 // 엑셀 다운로드
@@ -962,14 +987,7 @@ window.toggleProcessDetailPanel = function(orderId) {
   document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
 };
 
-// 모달 닫기 함수
-window.closeProcessDetailModal = function() {
-  const modal = document.getElementById('process-detail-modal-panel');
-  if (modal) {
-    modal.classList.add('hidden');
-    document.body.style.overflow = ''; // 스크롤 복원
-  }
-};
+// 모달 닫기 함수 (중복 제거 - 첫 번째 정의 사용)
 
 // 공정 상세 패널 내용 렌더링
 function renderProcessDetailPanel(orderId, panelElement) {
