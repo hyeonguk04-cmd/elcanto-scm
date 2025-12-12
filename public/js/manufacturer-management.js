@@ -20,13 +20,13 @@ export async function renderManufacturerManagement(container) {
           <div class="flex items-center">
             <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
             <i id="manufacturer-info-icon" 
-               class="fas fa-info-circle cursor-pointer" 
-               style="font-size: 19px; color: #666; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               class="fas fa-lightbulb cursor-pointer" 
+               style="font-size: 19px; color: #f59e0b; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
                tabindex="0"
                role="button"
                aria-label="안내사항 보기"
-               onmouseover="this.style.color='#333'"
-               onmouseout="this.style.color='#666'"></i>
+               onmouseover="this.style.color='#d97706'"
+               onmouseout="this.style.color='#f59e0b'"></i>
           </div>
         </div>
         <div class="space-x-2">

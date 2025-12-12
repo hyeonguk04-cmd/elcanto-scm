@@ -10,9 +10,8 @@ export function renderUserManual() {
       <div class="bg-white rounded-lg shadow-sm p-3">
         <h2 class="text-xl font-bold text-gray-800 flex items-center">
           <span class="text-2xl mr-2">📖</span>
-          사용 메뉴얼
+          엘칸토 SCM 포털 사용 가이드
         </h2>
-        <p class="text-sm text-gray-600 mt-1">엘칸토 SCM 포털 사용 가이드</p>
       </div>
 
       <!-- 목차 -->
@@ -34,7 +33,6 @@ export function renderUserManual() {
           <a href="#supplier-menu" class="block text-blue-600 hover:text-blue-800 hover:underline">3. 생산업체 메뉴</a>
           <a href="#supplier-dashboard" class="block text-blue-600 hover:text-blue-800 hover:underline ml-4">3.1. 📊 내 대시보드</a>
           <a href="#supplier-orders" class="block text-blue-600 hover:text-blue-800 hover:underline ml-4">3.2. ✅ 실적 입력</a>
-          <a href="#tips" class="block text-blue-600 hover:text-blue-800 hover:underline">4. 🎯 AI 분석 기능 활용법</a>
         </div>
       </div>
 
@@ -231,12 +229,14 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
-              <h5 class="font-bold text-yellow-900 mb-2">⚠️ 지연 위험 발주 테이블</h5>
+              <h5 class="font-bold text-yellow-900 mb-2">🚨 모니터링 (미입고 상세 현황)</h5>
               <p class="text-xs text-yellow-800 mb-2">입고요구일이 지났지만 아직 미입고된 발주을 표시합니다:</p>
               <ul class="text-xs text-yellow-800 space-y-1">
-                <li>• 스타일, 채널, 생산업체 정보</li>
-                <li>• 입고요구일 및 공정 진행률</li>
-                <li>• 발주 클릭 시 상세 정보 확인 가능</li>
+                <li>• <strong>기본 정보</strong>: 발주일, 스타일, 생산업체, 수량, 입고요구일</li>
+                <li>• <strong>지연 일수</strong>: 입고요구일 대비 현재까지 지연된 일수 (색상으로 위험도 표시)</li>
+                <li>• <strong>물류 입고예정일</strong>: 현재 공정 진행 상황 기반 예상 입고일</li>
+                <li>• <strong>현재 공정</strong>: 마지막으로 완료된 공정명 표시 (클릭 가능)</li>
+                <li>• <strong>공정 상세 보기</strong>: 현재 공정 클릭 시 팝업으로 공정별 목표대비 실적 현황 확인</li>
               </ul>
             </div>
 
@@ -332,15 +332,24 @@ export function renderUserManual() {
               <h5 class="font-bold text-purple-900 mb-2">📊 테이블 구성</h5>
               <ul class="text-xs text-purple-800 space-y-1">
                 <li>• <strong>발주 정보</strong>: NO., 채널, 생산업체, 스타일, 이미지, 색상, 수량, 발주일, 입고요구일</li>
-                <li>• <strong>생산 공정 지연일수</strong>: 자재, 한도CFM, 제갑&조립, 공장출고 (일 단위)</li>
-                <li>• <strong>운송 상황 지연일수</strong>: 선적, 입항 (일 단위)</li>
-                <li>• <strong>최종 현황</strong>: 최종지연일수, 물류입고예정일</li>
+                <li>• <strong>생산 공정 지연일수</strong>: 자재, 한도CFM, 제갑&조립, 공장출고 (일 단위, 컬럼 너비 55px)</li>
+                <li>• <strong>운송 상황 지연일수</strong>: 선적, 운송, 통관, 입항 (일 단위, 컬럼 너비 55px)</li>
+                <li>• <strong>최종 현황</strong>: 지연일수(55px), 물류입고예정일(90px), 공정상태(70px)</li>
                 <li>• <strong>지연일수 표시</strong>:
                   <ul class="ml-4 mt-1 space-y-1">
-                    <li>- <span class="text-red-600 font-bold">+3</span>: 지연 (목표일보다 늦음)</li>
+                    <li>- <span class="text-red-600 font-bold">+3</span>: 지연 (목표일보다 늦음, 배경색 제거됨)</li>
                     <li>- <span class="text-blue-600 font-bold">-2</span>: 앞당김 (목표일보다 빠름)</li>
                     <li>- <span class="text-green-600 font-bold">0</span>: 정시 완료</li>
                     <li>- 지연일수 클릭 시 상세 정보 모달 표시</li>
+                  </ul>
+                </li>
+                <li>• <strong>공정상태 컬럼 (NEW!)</strong>:
+                  <ul class="ml-4 mt-1 space-y-1">
+                    <li>- <span class="text-blue-600">생산중(정상)</span>: 파란색 텍스트</li>
+                    <li>- <span class="text-red-600">생산중(지연)</span>: 빨간색 텍스트</li>
+                    <li>- <span class="text-green-600">입고완료(정상)</span>: 녹색 텍스트</li>
+                    <li>- <span class="text-orange-600">입고완료(지연)</span>: 주황색 텍스트</li>
+                    <li>- 공정상태 클릭 시 공정별 목표대비 실적 현황 팝업 표시</li>
                   </ul>
                 </li>
               </ul>
@@ -358,13 +367,25 @@ export function renderUserManual() {
             </div>
 
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">📋 공정별 상세 정보</h5>
-              <p class="text-xs text-green-800">각 공정의 지연일수를 클릭하면 모달 창이 열리며 다음 정보를 확인할 수 있습니다:</p>
+              <h5 class="font-bold text-green-900 mb-2">📋 공정별 목표대비 실적 현황 (상세 모달)</h5>
+              <p class="text-xs text-green-800 mb-2">공정상태를 클릭하면 팝업 모달이 표시되며 다음 정보를 확인할 수 있습니다:</p>
               <ul class="text-xs text-green-800 space-y-1 ml-4 mt-1">
-                <li>• 스타일 정보 및 이미지</li>
-                <li>• 공정명 및 완료일 (목표일 vs 실제일)</li>
-                <li>• 차이일수 (+지연/-앞당김)</li>
-                <li>• 생산업체가 업로드한 증빙 사진</li>
+                <li>• <strong>주문 정보</strong>: 채널, 스타일, 생산업체, 입고요구일 (파란색 박스)</li>
+                <li>• <strong>공정 테이블 (가로형)</strong>:
+                  <ul class="ml-4 mt-1 space-y-1">
+                    <li>- 구분: 목표일, 실적일, 차이일수, 증빙사진</li>
+                    <li>- 생산공정: 자재, 원도CFM, 재단조립, 공정출고</li>
+                    <li>- 운송상황: 선적, 운송, 통관, 입항</li>
+                  </ul>
+                </li>
+                <li>• <strong>차이일수 색상 코딩</strong>:
+                  <ul class="ml-4 mt-1 space-y-1">
+                    <li>- <span class="text-red-600 font-bold">+2일</span>: 지연 (빨간색)</li>
+                    <li>- <span class="text-blue-600 font-bold">-1일</span>: 앞당김 (파란색)</li>
+                    <li>- <span class="text-green-600 font-bold">0일</span>: 정상 (녹색)</li>
+                  </ul>
+                </li>
+                <li>• <strong>증빙사진</strong>: 썸네일 클릭 시 전체화면 확대</li>
               </ul>
             </div>
 
@@ -507,9 +528,29 @@ export function renderUserManual() {
             </div>
             
             <div class="bg-green-50 border border-green-200 p-3 rounded">
-              <h5 class="font-bold text-green-900 mb-2">✏️ 업체 수정/삭제 및 다운로드</h5>
-              <ul class="text-xs text-green-800 space-y-1">
-                <li>• <strong>수정</strong>: 테이블의 "수정" 버튼 클릭 → 정보 수정 → 저장</li>
+              <h5 class="font-bold text-green-900 mb-2">📊 테이블 컬럼 구성</h5>
+              <p class="text-xs text-green-800 mb-2">생산업체 관리 테이블의 컬럼 구성:</p>
+              <ul class="text-xs text-green-800 space-y-1 ml-4">
+                <li>• <strong>NO.</strong>: 40px (순번)</li>
+                <li>• <strong>업체명</strong>: 100px (생산업체명)</li>
+                <li>• <strong>국가</strong>: 80px (생산 국가)</li>
+                <li>• <strong>담당자</strong>: 80px (업체 담당자명)</li>
+                <li>• <strong>이메일</strong>: 140px (연락처)</li>
+                <li>• <strong>지역</strong>: 100px (상세 지역)</li>
+                <li>• <strong>인도조건</strong>: 80px (FOB, CIF 등)</li>
+                <li>• <strong>포워딩업체</strong>: 100px</li>
+                <li>• <strong>주요채널</strong>: 100px</li>
+                <li>• <strong>주요품목</strong>: 100px</li>
+                <li>• <strong>결제조건</strong>: 100px</li>
+                <li>• <strong>상태</strong>: 60px (활성/비활성)</li>
+                <li>• <strong>관리</strong>: 50px (수정 버튼)</li>
+              </ul>
+            </div>
+            
+            <div class="bg-purple-50 border border-purple-200 p-3 rounded">
+              <h5 class="font-bold text-purple-900 mb-2">✏️ 업체 수정/삭제 및 다운로드</h5>
+              <ul class="text-xs text-purple-800 space-y-1">
+                <li>• <strong>수정</strong>: 테이블의 "📝" 버튼 클릭 → 정보 수정 → 저장</li>
                 <li>• <strong>엑셀 다운로드</strong>: 현재 등록된 모든 생산업체 정보를 엑셀로 다운로드</li>
                 <li>• <strong>주의</strong>: 리드타임 변경 시 기존 발주의 일정은 자동 변경되지 않음</li>
               </ul>
@@ -697,70 +738,6 @@ export function renderUserManual() {
                 <li>• <strong>검색</strong>: 스타일명으로 빠른 검색</li>
               </ul>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. AI 분석 기능 활용법 -->
-      <div id="tips" class="bg-white rounded-lg shadow-sm p-4 scroll-mt-20">
-        <h3 class="text-lg font-bold text-gray-800 mb-3 flex items-center">
-          <span class="mr-2">4.</span>
-          <span class="text-xl mr-2">🎯</span>
-          AI 분석 기능 활용법
-        </h3>
-        
-        <div class="space-y-3">
-          <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
-            <h4 class="font-bold text-blue-900 mb-2 flex items-center text-base">
-              <span class="text-xl mr-2">🤖</span>
-              AI 본석 분야 평가
-            </h4>
-            <p class="text-sm text-gray-700 mb-3">
-              종합현황 페이지 우측 상단의 <strong>"🤖 AI 분석 평가"</strong> 버튼을 통해 
-              Gemini AI가 현재 KPI와 데이터를 기반으로 생산 현황을 분석하고 개선 제안을 제공합니다.
-            </p>
-            
-            <div class="bg-white p-3 rounded border border-blue-100">
-              <h5 class="font-bold text-blue-900 mb-2 text-sm">📊 분석 내용</h5>
-              <ul class="text-xs text-gray-700 space-y-1 list-disc list-inside">
-                <li><strong>KPI 평가</strong>: 정시 입고율, 지연 발주 비율 등 주요 지표 분석</li>
-                <li><strong>문제점 파악</strong>: 지연이 발생하는 공정 및 업체 식별</li>
-                <li><strong>개선 제안</strong>: 구체적이고 실행 가능한 개선 방안 제시</li>
-                <li><strong>트렌드 분석</strong>: 시간에 따른 성과 변화 추세</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="bg-gradient-to-r from-green-50 to-teal-50 border border-green-200 p-4 rounded-lg">
-            <h4 class="font-bold text-green-900 mb-2 flex items-center text-base">
-              <span class="text-xl mr-2">💡</span>
-              활용 팁
-            </h4>
-            <div class="space-y-2 text-sm text-gray-700">
-              <div class="bg-white p-2 rounded border border-green-100">
-                <strong class="text-green-900">1. 주간 정기 분석</strong>
-                <p class="text-xs mt-1">매주 월요일 AI 분석을 실행하여 지난 주 성과를 검토하고 개선점을 파악하세요.</p>
-              </div>
-              <div class="bg-white p-2 rounded border border-green-100">
-                <strong class="text-green-900">2. 필터 활용</strong>
-                <p class="text-xs mt-1">특정 채널이나 업체별로 필터링한 후 AI 분석을 실행하면 더 구체적인 인사이트를 얻을 수 있습니다.</p>
-              </div>
-              <div class="bg-white p-2 rounded border border-green-100">
-                <strong class="text-green-900">3. 개선 조치 후 재분석</strong>
-                <p class="text-xs mt-1">AI가 제안한 개선 방안을 실행한 후 다시 분석하여 효과를 측정하세요.</p>
-              </div>
-              <div class="bg-white p-2 rounded border border-green-100">
-                <strong class="text-green-900">4. 팀 공유</strong>
-                <p class="text-xs mt-1">AI 분석 결과를 스크린샷하여 관련 팀원들과 공유하고 개선 방향을 논의하세요.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-yellow-50 border border-yellow-300 p-3 rounded">
-            <p class="text-sm text-yellow-900">
-              <i class="fas fa-lightbulb mr-2"></i>
-              <strong>Note:</strong> AI 분석은 참고용 정보입니다. 최종 의사결정은 현장 상황과 경험을 바탕으로 진행하세요.
-            </p>
           </div>
         </div>
       </div>
