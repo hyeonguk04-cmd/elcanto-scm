@@ -2485,7 +2485,7 @@ function renderDashboardProcessDetailModal(order, productionProcesses, shippingP
   modalContent.innerHTML = `
     <!-- 주문 정보 -->
     <div class="bg-blue-50 rounded-lg p-4 mb-4">
-      <div class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+      <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <div class="flex-shrink-0">
           <span class="text-gray-600">채널:</span>
           <span class="font-medium ml-2">${order.channel || '-'}</span>
