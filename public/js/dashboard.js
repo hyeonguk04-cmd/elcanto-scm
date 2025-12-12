@@ -3,13 +3,6 @@ import { getOrdersWithProcesses } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, DataUtils, FormatUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
-import { 
-  initializeAIAnalysis, 
-  analyzeKPI, 
-  analysisState,
-  updateKPIBadge,
-  showToast
-} from './ai-analysis.js';
 
 let allOrders = [];
 let dashboardData = null;
@@ -19,7 +12,6 @@ let currentStartDate = null;
 let currentEndDate = null;
 let selectedKPI = null; // 선택된 KPI 추적
 let charts = {}; // Chart.js 인스턴스 저장
-let aiAnalysisInitialized = false; // AI 분석 초기화 여부
 
 export async function renderDashboard(container) {
   try {
@@ -107,14 +99,6 @@ export async function renderDashboard(container) {
     
     // 데이터 처리 및 렌더링
     updateDashboard();
-    
-    // AI 분석 초기화 (1초 후)
-    if (!aiAnalysisInitialized) {
-      setTimeout(() => {
-        initializeAIAnalysis(dashboardData);
-        aiAnalysisInitialized = true;
-      }, 1000);
-    }
     
     // 이벤트 리스너
     document.getElementById('dashboard-channel-filter')?.addEventListener('change', (e) => {
@@ -486,255 +470,8 @@ function renderKPICards() {
   });
 }
 
-// AI 인사이트 렌더링 함수
-async function renderAIInsights(kpiId) {
-  const kpiMap = {
-    'ontime': 'ontime',
-    'progress': 'progress',
-    'delayed': 'delayed',
-    'total': 'total'
-  };
-  
-  const mappedKpiType = kpiMap[kpiId];
-  const state = analysisState[mappedKpiType];
-  
-  // 로딩 중
-  if (state.status === 'analyzing') {
-    return `
-      <div class="mt-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
-        <div class="flex items-center justify-center gap-3">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-          <div class="text-center">
-            <p class="text-sm font-semibold text-purple-900 mb-1">🤖 AI가 데이터를 분석하고 있습니다...</p>
-            <p class="text-xs text-purple-700">약 5-8초 소요됩니다</p>
-          </div>
-        </div>
-        <div class="mt-3 w-full bg-purple-200 rounded-full h-2 overflow-hidden">
-          <div class="h-full bg-purple-600 rounded-full animate-progress" style="width: 60%"></div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // 대기 중 - 분석 시작
-  if (state.status === 'pending' || !state.data) {
-    // KPI 데이터 준비
-    const kpiData = prepareKPIData(mappedKpiType);
-    
-    // 비동기 분석 시작
-    analyzeKPI(mappedKpiType, kpiData).then(result => {
-      // 분석 완료 후 UI 업데이트
-      if (selectedKPI === kpiId) {
-        renderDetailAnalysis(kpiId);
-      }
-    });
-    
-    return `
-      <div class="mt-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6">
-        <div class="flex items-center justify-center gap-3">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-          <div class="text-center">
-            <p class="text-sm font-semibold text-purple-900 mb-1">🤖 AI 분석을 시작합니다...</p>
-            <p class="text-xs text-purple-700">최신 데이터를 분석하고 있습니다</p>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  // 분석 완료 - 인사이트 표시
-  const aiData = state.data;
-  const source = state.source || 'api';
-  
-  return `
-    <div class="mt-4 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 border-2 border-purple-300 rounded-xl p-5 shadow-lg">
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center gap-2">
-          <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-            <i class="fas fa-robot"></i>
-            <span class="font-semibold">AI 분석 평가</span>
-          </div>
-          ${source === 'cache' ? 
-            '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">⚡ 캐시에서 즉시 로드됨</span>' : 
-            '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">✨ 방금 분석된 최신 인사이트</span>'
-          }
-        </div>
-        <button onclick="refreshAIAnalysis('${kpiId}')" class="text-purple-600 hover:text-purple-800 text-sm flex items-center gap-1">
-          <i class="fas fa-sync-alt"></i> 새로고침
-        </button>
-      </div>
-      
-      <!-- 현황 분석 -->
-      <div class="bg-white rounded-lg p-4 mb-3 shadow-sm">
-        <h4 class="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-          <span class="text-lg">📈</span> 현황 분석
-        </h4>
-        <p class="text-sm text-gray-700 leading-relaxed">${aiData.currentStatus}</p>
-      </div>
-      
-      <!-- 주요 이슈 -->
-      <div class="bg-white rounded-lg p-4 mb-3 shadow-sm">
-        <h4 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <span class="text-lg">⚠️</span> 주요 이슈
-        </h4>
-        <div class="space-y-2">
-          ${(aiData.issues || []).map(issue => {
-            const priorityColor = issue.priority === 'high' ? 'red' : issue.priority === 'medium' ? 'orange' : 'yellow';
-            const priorityIcon = issue.priority === 'high' ? '🔴' : issue.priority === 'medium' ? '🟡' : '🟢';
-            return `
-              <div class="flex items-start gap-2 p-2 bg-${priorityColor}-50 rounded-lg border-l-4 border-${priorityColor}-500">
-                <span class="text-base">${priorityIcon}</span>
-                <div class="flex-1">
-                  <p class="text-sm font-semibold text-${priorityColor}-900">${issue.title}</p>
-                  <p class="text-xs text-${priorityColor}-800 mt-0.5">${issue.description}</p>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-      
-      <!-- 개선 제안 -->
-      <div class="bg-white rounded-lg p-4 mb-3 shadow-sm">
-        <h4 class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-          <span class="text-lg">💡</span> 개선 제안
-        </h4>
-        <div class="space-y-2">
-          ${(aiData.suggestions || []).map((suggestion, idx) => {
-            const urgencyLabel = {immediate: '즉시 조치', short: '1주일 내', medium: '2주일 내', long: '1개월 내'}[suggestion.urgency] || '조치 필요';
-            const urgencyColor = {immediate: 'red', short: 'orange', medium: 'blue', long: 'green'}[suggestion.urgency] || 'gray';
-            return `
-              <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-1">
-                  <p class="text-sm font-semibold text-gray-800">${idx + 1}. ${suggestion.title}</p>
-                  <span class="text-xxs bg-${urgencyColor}-100 text-${urgencyColor}-700 px-2 py-0.5 rounded-full">${urgencyLabel}</span>
-                </div>
-                <p class="text-xs text-gray-600">${suggestion.detail}</p>
-                ${suggestion.expectedTime ? `<p class="text-xxs text-gray-500 mt-1">⏱ ${suggestion.expectedTime}</p>` : ''}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-      
-      <!-- 예상 효과 -->
-      <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
-        <h4 class="text-sm font-bold text-green-900 mb-2 flex items-center gap-2">
-          <span class="text-lg">📊</span> 예상 효과
-        </h4>
-        <p class="text-sm text-green-800 mb-3">${aiData.expectedImpact}</p>
-        ${aiData.impactMetrics && aiData.impactMetrics.length > 0 ? `
-          <div class="grid grid-cols-${Math.min(aiData.impactMetrics.length, 3)} gap-2">
-            ${aiData.impactMetrics.map(metric => `
-              <div class="bg-white rounded-lg p-2 text-center">
-                <p class="text-xxs text-gray-600 mb-1">${metric.name}</p>
-                <div class="flex items-center justify-center gap-2 text-xs">
-                  <span class="text-red-600">${metric.before}</span>
-                  <i class="fas fa-arrow-right text-gray-400"></i>
-                  <span class="text-green-600 font-bold">${metric.after}</span>
-                </div>
-                <p class="text-xxs text-green-700 font-semibold mt-1">${metric.improvement} 개선</p>
-              </div>
-            `).join('')}
-          </div>
-        ` : ''}
-      </div>
-    </div>
-  `;
-}
-
-// KPI 데이터 준비 함수
-function prepareKPIData(kpiType) {
-  switch(kpiType) {
-    case 'delayed':
-      return {
-        delayedQty: dashboardData.kpi.delayedQty,
-        delayedOrders: dashboardData.kpi.delayedOrders,
-        topSupplier: getTopDelayedSupplier(dashboardData.delayedOrders),
-        severity: getDelaySeverity(dashboardData.delayedOrders)
-      };
-    case 'progress':
-      return {
-        progressRate: dashboardData.kpi.progressRate,
-        completedQty: dashboardData.kpi.completedQty,
-        totalQty: dashboardData.kpi.totalQty,
-        processStatus: {},
-        channelStats: {}
-      };
-    case 'ontime':
-      return {
-        onTimeRate: dashboardData.kpi.onTimeRate,
-        onTimeOrders: dashboardData.kpi.onTimeOrders,
-        lateOrders: dashboardData.completedOrders.length - dashboardData.kpi.onTimeOrders,
-        supplierStats: {}
-      };
-    case 'total':
-      return {
-        totalQty: dashboardData.kpi.totalQty,
-        totalOrders: dashboardData.kpi.totalOrders,
-        supplierDistribution: {},
-        concentration: 'N/A'
-      };
-    default:
-      return {};
-  }
-}
-
-function getTopDelayedSupplier(delayedOrders) {
-  const supplierQty = {};
-  delayedOrders.forEach(order => {
-    if (order.supplier) {
-      supplierQty[order.supplier] = (supplierQty[order.supplier] || 0) + (order.qty || 0);
-    }
-  });
-  
-  const sorted = Object.entries(supplierQty).sort((a, b) => b[1] - a[1]);
-  return sorted.length > 0 ? sorted[0][0] : null;
-}
-
-function getDelaySeverity(delayedOrders) {
-  const today = new Date();
-  let maxDelay = 0;
-  
-  delayedOrders.forEach(order => {
-    if (order.requiredDelivery) {
-      const days = Math.floor((today - new Date(order.requiredDelivery)) / (1000 * 60 * 60 * 24));
-      maxDelay = Math.max(maxDelay, days);
-    }
-  });
-  
-  if (maxDelay >= 15) return 'high';
-  if (maxDelay >= 8) return 'medium';
-  return 'low';
-}
-
-// 글로벌 함수: AI 분석 새로고침
-window.refreshAIAnalysis = async function(kpiId) {
-  const kpiMap = {
-    'ontime': 'ontime',
-    'progress': 'progress',
-    'delayed': 'delayed',
-    'total': 'total'
-  };
-  
-  const mappedKpiType = kpiMap[kpiId];
-  
-  // 캐시 무효화
-  const { aiCache } = await import('./ai-analysis.js');
-  aiCache.invalidate(mappedKpiType);
-  
-  // 상태 초기화
-  analysisState[mappedKpiType].status = 'pending';
-  analysisState[mappedKpiType].data = null;
-  
-  // 재분석
-  renderDetailAnalysis(kpiId);
-  
-  showToast(`${kpiMap[kpiId]} AI 분석을 새로고침합니다`, 'info');
-};
-
 // 상세 분석 렌더링
-async function renderDetailAnalysis(kpiId) {
+function renderDetailAnalysis(kpiId) {
   const container = document.getElementById('detail-analysis');
   container.classList.remove('hidden');
   
@@ -760,13 +497,6 @@ async function renderDetailAnalysis(kpiId) {
   }
   
   container.innerHTML = content;
-  
-  // AI 인사이트 추가
-  const aiInsightsHtml = await renderAIInsights(kpiId);
-  const analysisContainer = container.querySelector('.bg-white');
-  if (analysisContainer) {
-    analysisContainer.insertAdjacentHTML('beforeend', aiInsightsHtml);
-  }
   
   // 닫기 버튼 이벤트 리스너 추가
   const closeBtn = container.querySelector('.close-detail-btn');
