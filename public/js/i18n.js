@@ -7,9 +7,9 @@ const translations = {
     username: '아이디',
     password: '비밀번호',
     loginButton: '로그인',
-    accountInquiry: '계정 관련 문의',
-    accountInquiryText1: '엘칸토 IT팀에 문의하여',
-    accountInquiryText2: '계정 정보를 받으세요.',
+    accountInquiry: '📧 계정 문의 : yang_hyeonguk@elcanto.co.kr',
+    accountInquiryText1: '👨‍💼 직원 ID / PW : 본인 이메일 ID / 사번',
+    accountInquiryText2: '🏭 업체 ID / PW : SCM 담당자에게 문의해 주세요.',
     
     // 헤더
     appTitle: '엘칸토 SCM 포털',
@@ -129,9 +129,9 @@ const translations = {
     username: 'Username',
     password: 'Password',
     loginButton: 'Login',
-    accountInquiry: 'Account Inquiry',
-    accountInquiryText1: 'Please contact ELCANTO IT Team',
-    accountInquiryText2: 'for account information.',
+    accountInquiry: '📧 Account Inquiry : yang_hyeonguk@elcanto.co.kr',
+    accountInquiryText1: '👨‍💼 Employee ID / PW : Your email ID / Employee number',
+    accountInquiryText2: '🏭 Supplier ID / PW : Contact SCM manager',
     
     // Header
     appTitle: 'ELCANTO SCM Portal',
