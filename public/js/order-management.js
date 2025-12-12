@@ -1269,6 +1269,34 @@ async function saveAllChanges() {
         const row = document.querySelector(`tr[data-order-id="${order.id}"]`);
         if (!row) continue;
         
+        // 🔥 공정 날짜 수집 (화면에서 입력된 값)
+        const updatedSchedule = {
+          production: [],
+          shipping: []
+        };
+        
+        // 생산 공정 날짜 수집
+        if (order.schedule && order.schedule.production) {
+          updatedSchedule.production = order.schedule.production.map(process => {
+            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-category="production"]`);
+            return {
+              ...process,
+              targetDate: input?.value || process.targetDate
+            };
+          });
+        }
+        
+        // 운송 공정 날짜 수집
+        if (order.schedule && order.schedule.shipping) {
+          updatedSchedule.shipping = order.schedule.shipping.map(process => {
+            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-category="shipping"]`);
+            return {
+              ...process,
+              targetDate: input?.value || process.targetDate
+            };
+          });
+        }
+        
         const updatedData = {
           channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
           seasonOrder: row.querySelector('[data-field="seasonOrder"]')?.value || order.seasonOrder || '',
@@ -1281,7 +1309,7 @@ async function saveAllChanges() {
           notes: row.querySelector('[data-field="notes"]')?.value || order.notes || '',
           orderDate: order.orderDate || '',
           requiredDelivery: order.requiredDelivery || '',
-          schedule: order.schedule || { production: [], shipping: [] }
+          schedule: updatedSchedule
         };
         
         // 새로운 행인 경우 (ID가 new_로 시작)
@@ -1292,6 +1320,30 @@ async function saveAllChanges() {
           const originalData = originalOrders[order.id];
           if (originalData !== JSON.stringify(updatedData)) {
             await updateOrder(order.id, updatedData);
+            
+            // 🔥 핵심: processes 컬렉션도 업데이트
+            console.log('🔄 processes 컬렉션 업데이트 시작...', order.id);
+            
+            // 생산 공정 업데이트
+            for (const process of updatedSchedule.production) {
+              if (process.id) {
+                await updateProcess(process.id, {
+                  targetDate: process.targetDate
+                });
+                console.log(`✅ 생산공정 저장: ${process.name} → ${process.targetDate}`);
+              }
+            }
+            
+            // 운송 공정 업데이트
+            for (const process of updatedSchedule.shipping) {
+              if (process.id) {
+                await updateProcess(process.id, {
+                  targetDate: process.targetDate
+                });
+                console.log(`✅ 운송공정 저장: ${process.name} → ${process.targetDate}`);
+              }
+            }
+            console.log('✅ processes 컬렉션 업데이트 완료');
           }
         }
         

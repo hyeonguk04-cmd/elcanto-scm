@@ -4,8 +4,12 @@ import {
   getAllSuppliers, 
   addSupplier,
   addSupplierWithUsername,
-  updateSupplier
+  updateSupplier,
+  getOrdersWithProcesses,
+  updateOrder,
+  updateProcess
 } from './firestore-service.js';
+import { PROCESS_CONFIG } from './process-config.js';
 
 let suppliers = [];
 let currentEditId = null;
@@ -633,7 +637,11 @@ async function saveSupplier() {
     if (currentEditId) {
       // 수정
       await updateSupplier(currentEditId, supplierData);
-      UIUtils.showAlert('생산업체 정보가 수정되었습니다.', 'success');
+      
+      // 🔥 리드타임 변경 시 해당 생산업체의 모든 발주 일정 재계산
+      await updateOrderSchedulesForSupplier(supplierData.name, supplierData.leadTimes, supplierData.shippingRoute);
+      
+      UIUtils.showAlert('생산업체 정보가 수정되고 발주 일정이 업데이트되었습니다.', 'success');
     } else {
       // 추가 - addSupplierWithUsername 사용
       await addSupplierWithUsername(supplierData, username);
@@ -812,6 +820,125 @@ async function handleExcelUpload(e) {
     UIUtils.showAlert(`엑셀 업로드 실패: ${error.message}`, 'error');
     e.target.value = '';
   }
+}
+
+// 생산업체 리드타임 변경 시 해당 업체의 모든 발주 일정 재계산
+async function updateOrderSchedulesForSupplier(supplierName, leadTimes, shippingRoute) {
+  try {
+    console.log('🔄 생산업체 일정 업데이트 시작:', supplierName);
+    
+    // 해당 생산업체의 모든 발주 가져오기
+    const allOrders = await getOrdersWithProcesses();
+    const supplierOrders = allOrders.filter(order => order.supplier === supplierName);
+    
+    console.log(`📦 ${supplierName}의 발주 ${supplierOrders.length}건 발견`);
+    
+    if (supplierOrders.length === 0) {
+      console.log('✅ 업데이트할 발주 없음');
+      return;
+    }
+    
+    // 각 발주의 일정 재계산
+    for (const order of supplierOrders) {
+      try {
+        // 새로운 일정 계산
+        const newSchedule = calculateScheduleWithLeadTimes(
+          order.orderDate,
+          leadTimes,
+          shippingRoute || order.route
+        );
+        
+        // orders 컬렉션 업데이트
+        await updateOrder(order.id, {
+          schedule: newSchedule
+        });
+        
+        // processes 컬렉션도 업데이트
+        const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
+        
+        // 생산 공정 업데이트
+        for (const newProcess of newSchedule.production) {
+          const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+          if (existingProcess && existingProcess.id) {
+            await updateProcess(existingProcess.id, {
+              targetDate: newProcess.targetDate,
+              leadTime: newProcess.leadTime
+            });
+          }
+        }
+        
+        // 운송 공정 업데이트
+        for (const newProcess of newSchedule.shipping) {
+          const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
+          if (existingProcess && existingProcess.id) {
+            await updateProcess(existingProcess.id, {
+              targetDate: newProcess.targetDate,
+              leadTime: newProcess.leadTime
+            });
+          }
+        }
+        
+        console.log(`✅ ${order.style} 일정 업데이트 완료`);
+      } catch (error) {
+        console.error(`❌ ${order.style} 업데이트 실패:`, error);
+      }
+    }
+    
+    console.log('✅ 모든 발주 일정 업데이트 완료');
+  } catch (error) {
+    console.error('❌ 발주 일정 업데이트 실패:', error);
+    throw error;
+  }
+}
+
+// 리드타임을 사용하여 일정 계산
+function calculateScheduleWithLeadTimes(orderDate, leadTimes, route) {
+  if (!orderDate) return { production: [], shipping: [] };
+  
+  const schedule = {
+    production: [],
+    shipping: []
+  };
+  
+  let currentDate = new Date(orderDate);
+  
+  // 생산 공정 계산
+  PROCESS_CONFIG.production.forEach((processConfig) => {
+    const leadTime = leadTimes[processConfig.key] || 0;
+    currentDate.setDate(currentDate.getDate() + leadTime);
+    
+    schedule.production.push({
+      processKey: processConfig.key,
+      name: processConfig.name,
+      targetDate: currentDate.toISOString().split('T')[0],
+      leadTime: leadTime
+    });
+  });
+  
+  // 운송 공정 계산
+  PROCESS_CONFIG.shipping.forEach((processConfig) => {
+    let leadTime = leadTimes[processConfig.key] || 0;
+    
+    // 입항 공정은 경로에 따라 리드타임 조정
+    if (processConfig.key === 'arrival') {
+      if (route === '항공') {
+        leadTime = 3;
+      } else if (route === '해상') {
+        leadTime = 21;
+      }
+    }
+    
+    currentDate.setDate(currentDate.getDate() + leadTime);
+    
+    schedule.shipping.push({
+      processKey: processConfig.key,
+      name: processConfig.name,
+      targetDate: currentDate.toISOString().split('T')[0],
+      leadTime: leadTime
+    });
+  });
+  
+  return schedule;
 }
 
 export default { renderManufacturerManagement };
