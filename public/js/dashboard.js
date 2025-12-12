@@ -2238,6 +2238,7 @@ function renderPendingOrdersTable(delayedOrders) {
             <th class="px-3 py-2 text-left font-semibold text-gray-700">수량</th>
             <th class="${getHeaderClass('requiredDelivery')}" data-pending-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
             <th class="${getHeaderClass('delayDays')}" data-pending-sort="delayDays">지연 일수 ${getSortIcon('delayDays')}</th>
+            <th class="px-3 py-2 text-left font-semibold text-gray-700">물류 입고예정일</th>
             <th class="px-3 py-2 text-left font-semibold text-gray-700">현재 공정</th>
           </tr>
         </thead>
@@ -2247,19 +2248,22 @@ function renderPendingOrdersTable(delayedOrders) {
               ? Math.floor((today - new Date(order.requiredDelivery)) / (1000 * 60 * 60 * 24))
               : 0;
             
+            // 공정 데이터 가져오기
+            const productionProcesses = order.schedule?.production || [];
+            const shippingProcesses = order.schedule?.shipping || [];
+            
+            // 물류입고예정일 계산
+            const expectedArrival = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
+            
             // 현재 공정 찾기
             let currentProcess = '미착수';
-            if (order.schedule) {
-              const productionProcesses = order.schedule.production || [];
-              const shippingProcesses = order.schedule.shipping || [];
-              const allProcesses = [...productionProcesses, ...shippingProcesses];
-              
-              // actualDate가 있는 공정 중 마지막 공정 찾기
-              const completedProcesses = allProcesses.filter(p => p && p.actualDate);
-              if (completedProcesses.length > 0) {
-                const lastCompleted = completedProcesses[completedProcesses.length - 1];
-                currentProcess = lastCompleted.name || lastCompleted.processName || '진행중';
-              }
+            const allProcesses = [...productionProcesses, ...shippingProcesses];
+            
+            // actualDate가 있는 공정 중 마지막 공정 찾기
+            const completedProcesses = allProcesses.filter(p => p && p.actualDate);
+            if (completedProcesses.length > 0) {
+              const lastCompleted = completedProcesses[completedProcesses.length - 1];
+              currentProcess = lastCompleted.name || lastCompleted.processName || '진행중';
             }
             
             const severityColor = diffDays >= 15 ? 'bg-red-50' : diffDays >= 8 ? 'bg-orange-50' : 'bg-yellow-50';
@@ -2280,7 +2284,11 @@ function renderPendingOrdersTable(delayedOrders) {
                     ${diffDays}일 ${diffDays >= 15 ? '🔴' : ''}
                   </span>
                 </td>
-                <td class="px-3 py-2">${currentProcess}</td>
+                <td class="px-3 py-2">${expectedArrival.date || '-'}</td>
+                <td class="px-3 py-2 text-blue-600 hover:text-blue-800 cursor-pointer hover:underline" 
+                    onclick="showDashboardProcessDetail('${order.id}')">
+                  ${currentProcess}
+                </td>
               </tr>
             `;
           }).join('')}
@@ -2317,6 +2325,307 @@ function renderPendingOrdersTable(delayedOrders) {
     });
   }, 0);
 }
+
+// 물류입고 예정일 계산 함수
+function calculateExpectedArrival(order, productionProcesses, shippingProcesses) {
+  // 모든 공정을 순서대로 배열
+  const allProcesses = [
+    ...PROCESS_CONFIG.production.map(config => ({
+      config,
+      process: productionProcesses.find(p => p.processKey === config.key)
+    })),
+    ...PROCESS_CONFIG.shipping.map(config => ({
+      config,
+      process: shippingProcesses.find(p => p.processKey === config.key)
+    }))
+  ];
+  
+  let currentDate = null;
+  let lastCompletedIndex = -1;
+  
+  // 완료된 마지막 공정 찾기
+  for (let i = allProcesses.length - 1; i >= 0; i--) {
+    if (allProcesses[i].process?.actualDate) {
+      currentDate = new Date(allProcesses[i].process.actualDate);
+      lastCompletedIndex = i;
+      break;
+    }
+  }
+  
+  // 완료된 공정이 없으면 발주일 기준으로 시작
+  if (!currentDate && order.orderDate) {
+    currentDate = new Date(order.orderDate);
+  }
+  
+  // 완료되지 않은 공정들의 리드타임을 누적
+  if (currentDate) {
+    for (let i = lastCompletedIndex + 1; i < allProcesses.length; i++) {
+      const { config, process } = allProcesses[i];
+      
+      // 목표일이 설정되어 있으면 목표일 사용, 없으면 리드타임 누적
+      if (process?.targetDate) {
+        currentDate = new Date(process.targetDate);
+      } else {
+        // 리드타임만큼 날짜 증가
+        const leadTime = process?.leadTime || config.defaultLeadTime || 0;
+        currentDate.setDate(currentDate.getDate() + leadTime);
+      }
+    }
+    
+    // 최종 날짜를 YYYY-MM-DD 형식으로 변환
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    
+    return {
+      date: `${year}-${month}-${day}`,
+      isEstimated: lastCompletedIndex < allProcesses.length - 1
+    };
+  }
+  
+  return { date: null, isEstimated: false };
+}
+
+// 공정 상세 모달 표시
+window.showDashboardProcessDetail = function(orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
+  
+  renderDashboardProcessDetailModal(order, productionProcesses, shippingProcesses);
+};
+
+// 공정 상세 모달 렌더링
+function renderDashboardProcessDetailModal(order, productionProcesses, shippingProcesses) {
+  // 모달이 없으면 생성
+  let modal = document.getElementById('dashboard-process-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'dashboard-process-modal';
+    modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+          <h3 class="text-xl font-bold text-gray-800" id="dashboard-modal-title">공정별 목표대비 실적 현황</h3>
+          <button onclick="closeDashboardProcessModal()" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <div id="dashboard-modal-content" class="p-6 overflow-y-auto">
+          <!-- 동적으로 채워짐 -->
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+  
+  // 모달 내용 생성
+  const productionData = PROCESS_CONFIG.production.map(config => ({
+    ...config,
+    process: productionProcesses.find(p => p.processKey === config.key)
+  }));
+  
+  const shippingData = PROCESS_CONFIG.shipping.map(config => ({
+    ...config,
+    process: shippingProcesses.find(p => p.processKey === config.key)
+  }));
+  
+  const modalContent = document.getElementById('dashboard-modal-content');
+  modalContent.innerHTML = `
+    <!-- 주문 정보 -->
+    <div class="bg-blue-50 rounded-lg p-4 mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div>
+          <span class="text-gray-600">채널:</span>
+          <span class="font-medium ml-2">${order.channel || '-'}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">스타일:</span>
+          <span class="font-medium ml-2">${order.style || '-'}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">생산업체:</span>
+          <span class="font-medium ml-2">${order.supplier || '-'}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">입고요구일:</span>
+          <span class="font-medium ml-2">${order.requiredDelivery || '-'}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 공정 테이블 -->
+    <div class="bg-white border rounded-lg overflow-hidden">
+      <table class="w-full text-xs border-collapse">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-3 py-2 border text-center" style="min-width: 120px;">구분</th>
+            ${productionData.map(p => `<th class="px-3 py-2 border text-center" style="min-width: 100px;">${p.name}</th>`).join('')}
+            ${shippingData.map(p => `<th class="px-3 py-2 border text-center" style="min-width: 100px;">${p.name}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          <!-- 목표일 -->
+          <tr class="bg-gray-50">
+            <td class="px-3 py-2 border font-semibold text-center">목표일</td>
+            ${productionData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center text-gray-600">
+                ${process?.targetDate || '-'}
+              </td>
+            `).join('')}
+            ${shippingData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center text-gray-600">
+                ${process?.targetDate || '-'}
+              </td>
+            `).join('')}
+          </tr>
+          
+          <!-- 실적일 -->
+          <tr class="bg-blue-50">
+            <td class="px-3 py-2 border font-semibold text-center">실적일</td>
+            ${productionData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center text-blue-600 font-medium">
+                ${process?.actualDate || '-'}
+              </td>
+            `).join('')}
+            ${shippingData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center text-blue-600 font-medium">
+                ${process?.actualDate || '-'}
+              </td>
+            `).join('')}
+          </tr>
+          
+          <!-- 차이일수 -->
+          <tr>
+            <td class="px-3 py-2 border font-semibold text-center">차이일수</td>
+            ${productionData.map(({ process }) => {
+              if (!process?.targetDate || !process?.actualDate) {
+                return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
+              }
+              const target = new Date(process.targetDate);
+              const actual = new Date(process.actualDate);
+              const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
+              
+              let className = 'px-3 py-2 border text-center font-bold';
+              let content = '';
+              
+              if (diff > 0) {
+                className += ' text-red-600';
+                content = `+${diff}일`;
+              } else if (diff < 0) {
+                className += ' text-blue-600';
+                content = `${diff}일`;
+              } else {
+                className += ' text-green-600';
+                content = '0일';
+              }
+              
+              return `<td class="${className}">${content}</td>`;
+            }).join('')}
+            ${shippingData.map(({ process }) => {
+              if (!process?.targetDate || !process?.actualDate) {
+                return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
+              }
+              const target = new Date(process.targetDate);
+              const actual = new Date(process.actualDate);
+              const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
+              
+              let className = 'px-3 py-2 border text-center font-bold';
+              let content = '';
+              
+              if (diff > 0) {
+                className += ' text-red-600';
+                content = `+${diff}일`;
+              } else if (diff < 0) {
+                className += ' text-blue-600';
+                content = `${diff}일`;
+              } else {
+                className += ' text-green-600';
+                content = '0일';
+              }
+              
+              return `<td class="${className}">${content}</td>`;
+            }).join('')}
+          </tr>
+          
+          <!-- 증빙사진 -->
+          <tr class="bg-yellow-50">
+            <td class="px-3 py-2 border font-semibold text-center">증빙사진</td>
+            ${productionData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center">
+                ${process?.evidenceUrl || process?.photo ? `
+                  <img src="${process.evidenceUrl || process.photo}" 
+                       alt="증빙" 
+                       class="h-16 w-auto mx-auto cursor-pointer hover:opacity-80 rounded"
+                       onclick="openPhotoModal('${process.evidenceUrl || process.photo}')">
+                ` : `<span class="text-gray-400 text-xs">-</span>`}
+              </td>
+            `).join('')}
+            ${shippingData.map(({ process }) => `
+              <td class="px-3 py-2 border text-center">
+                ${process?.evidenceUrl || process?.photo ? `
+                  <img src="${process.evidenceUrl || process.photo}" 
+                       alt="증빙" 
+                       class="h-16 w-auto mx-auto cursor-pointer hover:opacity-80 rounded"
+                       onclick="openPhotoModal('${process.evidenceUrl || process.photo}')">
+                ` : `<span class="text-gray-400 text-xs">-</span>`}
+              </td>
+            `).join('')}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  
+  // 모달 표시
+  modal.classList.remove('hidden');
+  
+  // 배경 스크롤 방지
+  document.body.style.overflow = 'hidden';
+}
+
+// 모달 닫기
+window.closeDashboardProcessModal = function() {
+  const modal = document.getElementById('dashboard-process-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+};
+
+// 사진 확대 모달
+window.openPhotoModal = function(photoUrl) {
+  let photoModal = document.getElementById('photo-modal');
+  if (!photoModal) {
+    photoModal = document.createElement('div');
+    photoModal.id = 'photo-modal';
+    photoModal.className = 'fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60] hidden';
+    photoModal.innerHTML = `
+      <button onclick="closePhotoModal()" class="absolute top-4 right-4 text-white text-3xl hover:text-gray-300">
+        <i class="fas fa-times"></i>
+      </button>
+      <img id="photo-modal-img" src="" alt="증빙사진" class="max-w-[90%] max-h-[90vh] rounded-lg">
+    `;
+    photoModal.onclick = function(e) {
+      if (e.target === photoModal) {
+        closePhotoModal();
+      }
+    };
+    document.body.appendChild(photoModal);
+  }
+  
+  document.getElementById('photo-modal-img').src = photoUrl;
+  photoModal.classList.remove('hidden');
+};
+
+window.closePhotoModal = function() {
+  const photoModal = document.getElementById('photo-modal');
+  if (photoModal) {
+    photoModal.classList.add('hidden');
+  }
+};
 
 // 유틸리티 함수
 function formatDate(date) {
