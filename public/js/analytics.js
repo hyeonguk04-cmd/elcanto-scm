@@ -78,6 +78,7 @@ export async function renderAnalytics(container) {
         <div style="font-size: 14px; color: #333; line-height: 1.7;">
           <p style="margin: 0 0 6px 0;">• 기간 선택: 입고요구일 기준</p>
           <p style="margin: 0 0 6px 0;">• 공정 지연일수 클릭: 생산업체의 공정별 진행현황 확인</p>
+          <p style="margin: 0 0 6px 0;">• 공정상태 클릭: 스타일별 상세 공정 현황 확인</p>
           <p style="margin: 0;">• 특정 스타일코드 검색: Ctrl+F 스타일코드 입력후 확인</p>
         </div>
         <!-- 툴팁 화살표 -->
@@ -409,7 +410,7 @@ function renderAnalyticsTable(orders) {
           <th colspan="8" class="px-3 py-2 border bg-blue-100">발주 정보</th>
           <th colspan="${productionHeaders.length}" class="px-3 py-2 border bg-green-100">생산 공정 (일)</th>
           <th colspan="${shippingHeaders.length}" class="px-3 py-2 border bg-yellow-100">운송 상황 (일)</th>
-          <th colspan="2" class="px-3 py-2 bg-purple-100">최종 현황</th>
+          <th colspan="3" class="px-3 py-2 bg-purple-100">최종 현황</th>
         </tr>
         
         <!-- 서브 헤더 -->
@@ -440,7 +441,8 @@ function renderAnalyticsTable(orders) {
           
           <!-- 최종 현황 -->
           <th class="px-2 py-2 border" style="min-width: 65px;">최종<br>지연일수</th>
-          <th class="px-2 py-2" style="min-width: 90px;">물류입고<br>예정일</th>
+          <th class="px-2 py-2 border" style="min-width: 90px;">물류입고<br>예정일</th>
+          <th class="px-2 py-2 border" style="min-width: 75px;">공정상태</th>
         </tr>
       </thead>
       <tbody>
@@ -473,6 +475,46 @@ function renderAnalyticsTable(orders) {
   }, 0);
 }
 
+// 공정상태 판단 함수
+function determineProcessStatus(order, productionProcesses, shippingProcesses) {
+  // 입항 완료 여부 확인
+  const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
+  const isArrivalCompleted = arrivalProcess?.actualDate;
+  
+  // 모든 공정의 지연일수 합산
+  let totalDelayDays = 0;
+  let hasDelay = false;
+  
+  [...productionProcesses, ...shippingProcesses].forEach(process => {
+    if (process.targetDate && process.actualDate) {
+      const targetDate = new Date(process.targetDate);
+      const actualDate = new Date(process.actualDate);
+      const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
+      
+      if (diff > 0) {
+        totalDelayDays += diff;
+        hasDelay = true;
+      }
+    }
+  });
+  
+  if (isArrivalCompleted) {
+    // 입고완료
+    if (hasDelay || totalDelayDays > 0) {
+      return { text: '입고완료(지연)', class: 'text-orange-600 font-semibold' };
+    } else {
+      return { text: '입고완료(정상)', class: 'text-green-600 font-semibold' };
+    }
+  } else {
+    // 생산중
+    if (hasDelay || totalDelayDays > 0) {
+      return { text: '생산중(지연)', class: 'text-red-600 font-semibold' };
+    } else {
+      return { text: '생산중(정상)', class: 'text-blue-600 font-semibold' };
+    }
+  }
+}
+
 function renderOrderRow(order, rowNum) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
@@ -490,15 +532,18 @@ function renderOrderRow(order, rowNum) {
     
     if (diff > 0) {
       finalDelayDays = `+${diff}`;
-      finalDelayClass = 'bg-red-100 text-red-700 font-bold';
+      finalDelayClass = 'text-red-700 font-bold';
     } else if (diff < 0) {
       finalDelayDays = `${diff}`;
-      finalDelayClass = 'bg-blue-100 text-blue-700 font-bold';
+      finalDelayClass = 'text-blue-700 font-bold';
     } else {
       finalDelayDays = '0';
-      finalDelayClass = 'bg-green-100 text-green-700 font-bold';
+      finalDelayClass = 'text-green-700 font-bold';
     }
   }
+  
+  // 공정상태 판단
+  const processStatus = determineProcessStatus(order, productionProcesses, shippingProcesses);
   
   return `
     <tr class="border-b hover:bg-gray-50">
@@ -535,7 +580,16 @@ function renderOrderRow(order, rowNum) {
       
       <!-- 최종 현황 -->
       <td class="px-3 py-2 border text-center ${finalDelayClass}">${finalDelayDays}</td>
-      <td class="px-3 py-2 text-center">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-3 py-2 border text-center">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-3 py-2 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
+          onclick="toggleProcessDetailPanel('${order.id}')">
+        ${processStatus.text}
+      </td>
+    </tr>
+    <tr id="detail-panel-${order.id}" class="hidden">
+      <td colspan="100%" class="p-0 border-t-0">
+        <!-- 상세 패널이 여기에 동적으로 삽입됩니다 -->
+      </td>
     </tr>
   `;
 }
@@ -621,18 +675,18 @@ function renderProcessCell(order, process, processConfig, category) {
     
     if (diff > 0) {
       cellContent = `+${diff}`;
-      cellClass = 'bg-red-100 text-red-700 font-bold cursor-pointer hover:bg-red-200';
+      cellClass = 'text-red-700 font-bold cursor-pointer hover:bg-gray-100';
     } else if (diff < 0) {
       cellContent = `${diff}`;
-      cellClass = 'bg-blue-100 text-blue-700 font-bold cursor-pointer hover:bg-blue-200';
+      cellClass = 'text-blue-700 font-bold cursor-pointer hover:bg-gray-100';
     } else {
       cellContent = '0';
-      cellClass = 'bg-green-100 text-green-700 font-bold cursor-pointer hover:bg-green-200';
+      cellClass = 'text-green-700 font-bold cursor-pointer hover:bg-gray-100';
     }
   } else if (process.actualDate) {
     // 목표일은 없지만 완료일은 있는 경우
     cellContent = '✓';
-    cellClass = 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200';
+    cellClass = 'text-green-700 cursor-pointer hover:bg-gray-100';
     isClickable = true;
   } else if (process.targetDate) {
     // 목표일만 있고 완료일이 없는 경우 - 대기중
@@ -863,5 +917,195 @@ function downloadExcel() {
   const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
   ExcelUtils.downloadExcel(excelData, `공정입고진척현황_${timestamp}.xlsx`);
 }
+
+// 공정 상세 패널 토글
+let currentOpenPanelId = null;
+
+window.toggleProcessDetailPanel = function(orderId) {
+  const panel = document.getElementById(`detail-panel-${orderId}`);
+  if (!panel) return;
+  
+  // 이미 열려있는 패널이 있으면 닫기
+  if (currentOpenPanelId && currentOpenPanelId !== orderId) {
+    const oldPanel = document.getElementById(`detail-panel-${currentOpenPanelId}`);
+    if (oldPanel) {
+      oldPanel.classList.add('hidden');
+    }
+  }
+  
+  // 현재 패널 토글
+  if (panel.classList.contains('hidden')) {
+    // 패널 열기
+    panel.classList.remove('hidden');
+    currentOpenPanelId = orderId;
+    
+    // 패널 내용 생성
+    renderProcessDetailPanel(orderId, panel);
+  } else {
+    // 패널 닫기
+    panel.classList.add('hidden');
+    currentOpenPanelId = null;
+  }
+};
+
+// 공정 상세 패널 내용 렌더링
+function renderProcessDetailPanel(orderId, panelElement) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  
+  const productionProcesses = order.schedule?.production || [];
+  const shippingProcesses = order.schedule?.shipping || [];
+  
+  panelElement.innerHTML = `
+    <div class="bg-gray-50 p-6 border-t-4 border-blue-500">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-bold text-gray-800">
+          공정별 목표대비 실적 현황 - ${order.style}
+        </h3>
+        <button onclick="toggleProcessDetailPanel('${orderId}')" 
+                class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
+          &times;
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-6">
+        <!-- 생산공정 -->
+        <div class="bg-white rounded-lg p-4 shadow">
+          <h4 class="text-sm font-bold text-green-700 mb-3 pb-2 border-b-2 border-green-200">
+            생산공정 목표대비 실적
+          </h4>
+          <div class="space-y-3">
+            ${PROCESS_CONFIG.production.map(processConfig => {
+              const process = productionProcesses.find(p => p.processKey === processConfig.key);
+              return renderProcessDetailRow(processConfig.name, process, order.id);
+            }).join('')}
+          </div>
+        </div>
+        
+        <!-- 운송상황 -->
+        <div class="bg-white rounded-lg p-4 shadow">
+          <h4 class="text-sm font-bold text-yellow-700 mb-3 pb-2 border-b-2 border-yellow-200">
+            운송상황 목표대비 실적
+          </h4>
+          <div class="space-y-3">
+            ${PROCESS_CONFIG.shipping.map(processConfig => {
+              const process = shippingProcesses.find(p => p.processKey === processConfig.key);
+              return renderProcessDetailRow(processConfig.name, process, order.id);
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 개별 공정 상세 행 렌더링
+function renderProcessDetailRow(processName, process, orderId) {
+  if (!process) {
+    return `
+      <div class="border rounded p-3 bg-gray-50">
+        <div class="text-sm font-semibold text-gray-700 mb-2">${processName}</div>
+        <div class="grid grid-cols-3 gap-2 text-xs">
+          <div>
+            <div class="text-gray-500">목표일(엘칸토)</div>
+            <div class="text-gray-400">-</div>
+          </div>
+          <div>
+            <div class="text-gray-500">실적일(생산업체)</div>
+            <div class="text-gray-400">-</div>
+          </div>
+          <div>
+            <div class="text-gray-500">차이일수</div>
+            <div class="text-gray-400">-</div>
+          </div>
+        </div>
+        <div class="mt-2 pt-2 border-t">
+          <div class="text-gray-500 text-xs mb-1">증빙사진</div>
+          <div class="text-gray-400 text-xs">-</div>
+        </div>
+      </div>
+    `;
+  }
+  
+  // 차이일수 계산
+  let diffDays = '-';
+  let diffClass = 'text-gray-700';
+  if (process.targetDate && process.actualDate) {
+    const targetDate = new Date(process.targetDate);
+    const actualDate = new Date(process.actualDate);
+    const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
+    
+    if (diff > 0) {
+      diffDays = `+${diff}일`;
+      diffClass = 'text-red-600 font-bold';
+    } else if (diff < 0) {
+      diffDays = `${diff}일`;
+      diffClass = 'text-blue-600 font-bold';
+    } else {
+      diffDays = '0일';
+      diffClass = 'text-green-600 font-bold';
+    }
+  } else if (process.actualDate) {
+    diffDays = '완료';
+    diffClass = 'text-green-600';
+  } else if (process.targetDate) {
+    diffDays = '대기중';
+    diffClass = 'text-gray-400';
+  }
+  
+  return `
+    <div class="border rounded p-3 ${process.actualDate ? 'bg-white' : 'bg-gray-50'}">
+      <div class="text-sm font-semibold text-gray-800 mb-2">${processName}</div>
+      <div class="grid grid-cols-3 gap-2 text-xs">
+        <div>
+          <div class="text-gray-500 mb-1">목표일(엘칸토)</div>
+          <div class="text-gray-600">${process.targetDate || '-'}</div>
+        </div>
+        <div>
+          <div class="text-gray-500 mb-1">실적일(생산업체)</div>
+          <div class="text-blue-600 font-medium">${process.actualDate || '-'}</div>
+        </div>
+        <div>
+          <div class="text-gray-500 mb-1">차이일수</div>
+          <div class="${diffClass}">${diffDays}</div>
+        </div>
+      </div>
+      <div class="mt-2 pt-2 border-t">
+        <div class="text-gray-500 text-xs mb-1">증빙사진</div>
+        ${process.proofPhoto ? `
+          <img src="${process.proofPhoto}" 
+               alt="증빙사진" 
+               class="h-16 w-auto rounded cursor-pointer hover:opacity-80 transition"
+               onclick="openPhotoModal('${process.proofPhoto}')"
+               onerror="this.parentElement.innerHTML='<span class=\\'text-gray-400 text-xs\\'>이미지 로드 실패</span>';">
+        ` : '<span class="text-gray-400 text-xs">-</span>'}
+      </div>
+    </div>
+  `;
+}
+
+// 사진 확대 모달
+window.openPhotoModal = function(photoUrl) {
+  const modal = document.createElement('div');
+  modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
+  modal.innerHTML = `
+    <div class="relative max-w-4xl max-h-[90vh] p-4">
+      <button onclick="this.closest('div').parentElement.remove()" 
+              class="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-75 text-2xl">
+        &times;
+      </button>
+      <img src="${photoUrl}" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl" alt="증빙사진">
+    </div>
+  `;
+  
+  // 모달 외부 클릭 시 닫기
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.remove();
+    }
+  });
+  
+  document.body.appendChild(modal);
+};
 
 export default { renderAnalytics };
