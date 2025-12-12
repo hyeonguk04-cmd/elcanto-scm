@@ -1135,18 +1135,73 @@ async function handleOrderDateChange(orderId, newOrderDate) {
   }
 }
 
-function handleProcessDateChange(orderId, category, processKey, newDate) {
+async function handleProcessDateChange(orderId, category, processKey, newDate) {
   const order = orders.find(o => o.id === orderId);
   if (!order) return;
   
-  // 해당 공정의 날짜만 수정
-  const processArray = category === 'production' ? order.schedule.production : order.schedule.shipping;
-  const process = processArray.find(p => p.processKey === processKey);
-  
-  if (process) {
-    process.targetDate = newDate;
-    markAsChanged(orderId);
+  // 생산업체 리드타임 가져오기
+  let supplierLeadTimes = null;
+  if (order.supplier) {
+    try {
+      const supplier = await getSupplierByName(order.supplier);
+      if (supplier && supplier.leadTimes) {
+        supplierLeadTimes = supplier.leadTimes;
+      }
+    } catch (error) {
+      console.warn('생산업체 리드타임 로드 실패:', error);
+    }
   }
+  
+  // 해당 공정의 날짜 수정
+  const processArray = category === 'production' ? order.schedule.production : order.schedule.shipping;
+  const processIndex = processArray.findIndex(p => p.processKey === processKey);
+  
+  if (processIndex === -1) return;
+  
+  // 수정된 공정의 날짜 업데이트
+  processArray[processIndex].targetDate = newDate;
+  
+  // 🔥 이후 공정들을 리드타임 기준으로 재계산
+  let currentDate = new Date(newDate);
+  
+  // 같은 카테고리 내의 이후 공정들 재계산
+  for (let i = processIndex + 1; i < processArray.length; i++) {
+    const nextProcess = processArray[i];
+    const leadTime = supplierLeadTimes ? (supplierLeadTimes[nextProcess.processKey] || nextProcess.leadTime || 0) : (nextProcess.leadTime || 0);
+    
+    currentDate.setDate(currentDate.getDate() + leadTime);
+    nextProcess.targetDate = currentDate.toISOString().split('T')[0];
+  }
+  
+  // 생산 공정을 수정한 경우, 운송 공정도 재계산
+  if (category === 'production' && order.schedule.shipping && order.schedule.shipping.length > 0) {
+    // 마지막 생산 공정의 날짜부터 운송 공정 시작
+    const lastProductionDate = processArray[processArray.length - 1].targetDate;
+    currentDate = new Date(lastProductionDate);
+    
+    for (let i = 0; i < order.schedule.shipping.length; i++) {
+      const shippingProcess = order.schedule.shipping[i];
+      let leadTime = supplierLeadTimes ? (supplierLeadTimes[shippingProcess.processKey] || shippingProcess.leadTime || 0) : (shippingProcess.leadTime || 0);
+      
+      // 입항 공정은 경로에 따라 리드타임 조정
+      if (shippingProcess.processKey === 'arrival') {
+        if (order.route === '항공') {
+          leadTime = 3;
+        } else if (order.route === '해상') {
+          leadTime = 21;
+        }
+      }
+      
+      currentDate.setDate(currentDate.getDate() + leadTime);
+      shippingProcess.targetDate = currentDate.toISOString().split('T')[0];
+    }
+  }
+  
+  // 테이블 다시 렌더링하여 변경된 날짜 표시
+  renderOrdersTable();
+  setupEventListeners();
+  
+  markAsChanged(orderId);
 }
 
 function markAsChanged(orderId) {
@@ -1278,7 +1333,7 @@ async function saveAllChanges() {
         // 생산 공정 날짜 수집
         if (order.schedule && order.schedule.production) {
           updatedSchedule.production = order.schedule.production.map(process => {
-            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-category="production"]`);
+            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-process-category="production"]`);
             return {
               ...process,
               targetDate: input?.value || process.targetDate
@@ -1289,7 +1344,7 @@ async function saveAllChanges() {
         // 운송 공정 날짜 수집
         if (order.schedule && order.schedule.shipping) {
           updatedSchedule.shipping = order.schedule.shipping.map(process => {
-            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-category="shipping"]`);
+            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-process-category="shipping"]`);
             return {
               ...process,
               targetDate: input?.value || process.targetDate
