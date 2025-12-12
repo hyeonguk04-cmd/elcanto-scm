@@ -949,24 +949,22 @@ function renderProcessDetailPanel(orderId, panelElement) {
   const productionProcesses = order.schedule?.production || [];
   const shippingProcesses = order.schedule?.shipping || [];
   
-  // 모든 공정을 순서대로 배열
+  // 모든 공정을 순서대로 배열 (PROCESS_CONFIG 순서 사용)
   const allProcesses = [
     ...PROCESS_CONFIG.production.map(config => ({
       name: config.name,
-      process: productionProcesses.find(p => p.processKey === config.key),
-      category: '생산 공정'
+      process: productionProcesses.find(p => p.processKey === config.key)
     })),
     ...PROCESS_CONFIG.shipping.map(config => ({
       name: config.name,
-      process: shippingProcesses.find(p => p.processKey === config.key),
-      category: '운송 공정'
+      process: shippingProcesses.find(p => p.processKey === config.key)
     }))
   ];
   
   panelElement.innerHTML = `
-    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg overflow-hidden">
-      <div class="bg-blue-50 px-6 py-4 flex justify-between items-center border-b-2 border-blue-500">
-        <h3 class="text-lg font-bold text-gray-800">
+    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg overflow-hidden mt-4">
+      <div class="bg-blue-50 px-6 py-3 flex justify-between items-center border-b-2 border-blue-500">
+        <h3 class="text-base font-bold text-gray-800">
           📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
         </h3>
         <button onclick="toggleProcessDetailPanel('${orderId}')" 
@@ -975,128 +973,98 @@ function renderProcessDetailPanel(orderId, panelElement) {
         </button>
       </div>
       
-      <!-- 테이블 형식 레이아웃 -->
+      <!-- 타임라인 테이블 -->
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="w-full border-collapse">
           <thead>
-            <tr class="bg-gray-100 border-b-2 border-gray-300">
-              <th class="px-4 py-3 text-center border-r" rowspan="2" style="min-width: 120px;">구분</th>
-              <th class="px-4 py-3 text-center border-b" colspan="4">생산 목표일정</th>
-              <th class="px-4 py-3 text-center border-l" colspan="4">운송 목표일정</th>
-            </tr>
-            <tr class="bg-gray-100 border-b-2 border-gray-300">
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">자재</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">원도CFM</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">재단&조립</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">공정출고</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">선적</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">입항</th>
-              <th class="px-3 py-2 text-center border-r" style="min-width: 90px;">통관</th>
-              <th class="px-3 py-2 text-center" style="min-width: 90px;">검수</th>
+            <tr class="bg-gray-200">
+              <th class="px-3 py-2 text-center text-xs border border-gray-300" style="min-width: 100px;"></th>
+              ${allProcesses.map(p => `
+                <th class="px-3 py-2 text-center text-xs font-bold border border-gray-300" style="min-width: 110px;">
+                  ${p.name}
+                </th>
+              `).join('')}
             </tr>
           </thead>
           <tbody>
-            ${renderProcessTableRows(allProcesses)}
+            <!-- 목표일 행 -->
+            <tr class="border-b">
+              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
+                목표일(엘칸토)
+              </td>
+              ${allProcesses.map(p => `
+                <td class="px-3 py-3 text-center text-xs border border-gray-300 ${p.process?.targetDate ? 'text-gray-700' : 'text-gray-400'}">
+                  ${p.process?.targetDate || '-'}
+                </td>
+              `).join('')}
+            </tr>
+            
+            <!-- 실적일 행 -->
+            <tr class="border-b bg-blue-50">
+              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
+                실적일(생산업체)
+              </td>
+              ${allProcesses.map(p => `
+                <td class="px-3 py-3 text-center text-xs font-semibold border border-gray-300 ${p.process?.actualDate ? 'text-blue-600' : 'text-gray-400'}">
+                  ${p.process?.actualDate || '-'}
+                </td>
+              `).join('')}
+            </tr>
+            
+            <!-- 차이일수 행 -->
+            <tr class="border-b">
+              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
+                차이일수
+              </td>
+              ${allProcesses.map(p => {
+                if (!p.process || !p.process.targetDate || !p.process.actualDate) {
+                  return '<td class="px-3 py-3 text-center text-xs border border-gray-300 text-gray-400">-</td>';
+                }
+                
+                const targetDate = new Date(p.process.targetDate);
+                const actualDate = new Date(p.process.actualDate);
+                const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
+                
+                let cellClass = '';
+                let cellText = '';
+                
+                if (diff > 0) {
+                  cellClass = 'bg-red-500 text-white font-bold';
+                  cellText = `+${diff}`;
+                } else if (diff < 0) {
+                  cellClass = 'text-blue-600 font-bold';
+                  cellText = `${diff}`;
+                } else {
+                  cellClass = 'text-green-600 font-bold';
+                  cellText = '0';
+                }
+                
+                return `<td class="px-3 py-3 text-center text-sm border border-gray-300 ${cellClass}">${cellText}</td>`;
+              }).join('')}
+            </tr>
+            
+            <!-- 증빙사진 행 -->
+            <tr>
+              <td class="px-3 py-3 text-left text-xs font-semibold bg-gray-100 border border-gray-300">
+                증빙사진
+              </td>
+              ${allProcesses.map(p => `
+                <td class="px-3 py-3 text-center border border-gray-300">
+                  ${p.process?.proofPhoto ? `
+                    <img src="${p.process.proofPhoto}" 
+                         alt="${p.name} 증빙" 
+                         class="h-16 w-auto mx-auto rounded border cursor-pointer hover:opacity-80 transition"
+                         onclick="openPhotoModal('${p.process.proofPhoto}')"
+                         onerror="this.parentElement.innerHTML='<span class=\\'text-gray-400 text-xs\\'>-</span>'">
+                  ` : '<span class="text-gray-400 text-xs">-</span>'}
+                </td>
+              `).join('')}
+            </tr>
           </tbody>
         </table>
       </div>
-      
-      <!-- 증빙사진 섹션 -->
-      <div class="px-6 py-4 bg-gray-50 border-t">
-        <div class="text-sm font-semibold text-gray-700 mb-3">증빙사진</div>
-        <div class="grid grid-cols-4 gap-4">
-          ${renderProofPhotos(allProcesses)}
-        </div>
-      </div>
     </div>
   `;
-}
-
-// 공정 테이블 행 렌더링
-function renderProcessTableRows(allProcesses) {
-  // 생산공정 4개 + 운송공정 4개 = 총 8개
-  const productionProcs = allProcesses.slice(0, 4);
-  const shippingProcs = allProcesses.slice(4, 8);
-  
-  // 목표일 행
-  const targetRow = `
-    <tr class="border-b hover:bg-gray-50">
-      <td class="px-4 py-3 text-left font-semibold bg-blue-50 border-r">목표일(엘칸토)</td>
-      ${productionProcs.map(p => `
-        <td class="px-3 py-3 text-center border-r text-gray-600">${p.process?.targetDate || '-'}</td>
-      `).join('')}
-      ${shippingProcs.map(p => `
-        <td class="px-3 py-3 text-center border-r text-gray-600">${p.process?.targetDate || '-'}</td>
-      `).join('')}
-    </tr>
-  `;
-  
-  // 실적일 행
-  const actualRow = `
-    <tr class="border-b hover:bg-gray-50">
-      <td class="px-4 py-3 text-left font-semibold bg-green-50 border-r">실적일(생산업체)</td>
-      ${productionProcs.map(p => `
-        <td class="px-3 py-3 text-center border-r text-blue-600 font-semibold">${p.process?.actualDate || '-'}</td>
-      `).join('')}
-      ${shippingProcs.map(p => `
-        <td class="px-3 py-3 text-center border-r text-blue-600 font-semibold">${p.process?.actualDate || '-'}</td>
-      `).join('')}
-    </tr>
-  `;
-  
-  // 차이일수 행
-  const diffCells = [...productionProcs, ...shippingProcs].map(p => {
-    if (!p.process || !p.process.targetDate || !p.process.actualDate) {
-      return '<td class="px-3 py-3 text-center border-r text-gray-400">-</td>';
-    }
-    
-    const targetDate = new Date(p.process.targetDate);
-    const actualDate = new Date(p.process.actualDate);
-    const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
-    
-    let cellClass = '';
-    let cellText = '';
-    
-    if (diff > 0) {
-      cellClass = 'bg-red-100 text-red-700 font-bold';
-      cellText = `+${diff}`;
-    } else if (diff < 0) {
-      cellClass = 'bg-blue-100 text-blue-700 font-bold';
-      cellText = `${diff}`;
-    } else {
-      cellClass = 'bg-green-100 text-green-700 font-bold';
-      cellText = '0';
-    }
-    
-    return `<td class="px-3 py-3 text-center border-r ${cellClass}">${cellText}</td>`;
-  }).join('');
-  
-  const diffRow = `
-    <tr class="border-b hover:bg-gray-50">
-      <td class="px-4 py-3 text-left font-semibold bg-yellow-50 border-r">차이일수</td>
-      ${diffCells}
-    </tr>
-  `;
-  
-  return targetRow + actualRow + diffRow;
-}
-
-// 증빙사진 렌더링
-function renderProofPhotos(allProcesses) {
-  const photosHtml = allProcesses
-    .filter(p => p.process?.proofPhoto)
-    .map(p => `
-      <div class="text-center">
-        <div class="text-xs text-gray-600 mb-2 font-semibold">${p.name}</div>
-        <img src="${p.process.proofPhoto}" 
-             alt="${p.name} 증빙사진" 
-             class="h-24 w-auto mx-auto rounded border-2 border-gray-200 cursor-pointer hover:border-blue-500 hover:shadow-lg transition"
-             onclick="openPhotoModal('${p.process.proofPhoto}')"
-             onerror="this.parentElement.style.display='none'">
-      </div>
-    `).join('');
-  
-  return photosHtml || '<div class="text-gray-400 text-sm col-span-4 text-center py-4">등록된 증빙사진이 없습니다.</div>';
 }
 
 // 사진 확대 모달
