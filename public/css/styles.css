@@ -26,6 +26,12 @@ body {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.table-responsive table {
+    margin-bottom: 0;
 }
 
 .editable-cell {
@@ -389,26 +395,77 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* Responsive Styles */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     #sidebar-container {
         position: fixed;
-        left: -100%;
+        left: 0;
         top: 0;
         height: 100vh;
-        z-index: 30;
-        transition: left 0.3s;
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
     }
     
     #sidebar-container.open {
-        left: 0;
+        transform: translateX(0);
+    }
+    
+    #sidebar-overlay.open {
+        display: block;
     }
     
     .table-responsive {
         font-size: 11px;
     }
     
+    table {
+        min-width: 800px; /* 테이블 최소 너비 보장 */
+    }
+    
     .kpi-card {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
+    }
+    
+    /* 모바일에서 헤더 간격 조정 */
+    h2, h3 {
+        font-size: 1.25rem;
+    }
+    
+    /* 모바일 모달 크기 조정 */
+    .modal-content {
+        width: 95%;
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        font-size: 12px;
+    }
+    
+    .table-responsive {
+        font-size: 10px;
+    }
+    
+    /* 모바일에서 버튼 크기 조정 */
+    button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    /* 입력 필드 크기 조정 */
+    input, select {
+        font-size: 12px;
+    }
+    
+    /* KPI 카드 패딩 감소 */
+    .kpi-card {
+        padding: 1rem;
+    }
+    
+    /* 차트 높이 감소 */
+    .chart-container {
+        height: 200px;
     }
 }
 

@@ -56,6 +56,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutBtn = document.getElementById('logout-btn');
   logoutBtn.addEventListener('click', handleLogout);
   
+  // 모바일 메뉴 토글 버튼
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const sidebarContainer = document.getElementById('sidebar-container');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidebarContainer.classList.toggle('open');
+      sidebarOverlay.classList.toggle('open');
+    });
+  }
+  
+  // 오버레이 클릭 시 사이드바 닫기
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebarContainer.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+    });
+  }
+  
   // 사이드바 클릭 이벤트 (이벤트 위임)
   const sidebar = document.getElementById('sidebar-container');
   sidebar.addEventListener('click', (e) => {
@@ -63,6 +83,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btn) {
       const view = btn.dataset.view;
       navigateTo(view);
+      // 모바일에서 메뉴 선택 시 사이드바 닫기
+      if (window.innerWidth < 1024) {
+        sidebarContainer.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+      }
     }
   });
   
