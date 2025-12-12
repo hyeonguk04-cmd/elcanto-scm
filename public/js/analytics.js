@@ -427,9 +427,9 @@ function renderAnalyticsTable(orders) {
           
           <!-- 생산 공정 -->
           ${productionHeaders.map((name, idx) => {
-            // 모든 항목 두 줄로 표시하고 너비 60px로 통일
+            // 모든 항목 두 줄로 표시하고 너비 55px로 통일
             let displayName = name;
-            const width = '60px';
+            const width = '55px';
             
             if (name === '원단검수') {
               displayName = '원단<br>검수';
@@ -449,15 +449,15 @@ function renderAnalyticsTable(orders) {
           
           <!-- 운송 상황 -->
           ${shippingHeaders.map(name => {
-            // 모든 운송 상황 컬럼 너비 60px로 통일
-            const width = '60px';
+            // 모든 운송 상황 컬럼 너비 55px로 통일
+            const width = '55px';
             return `<th class="px-1 py-2 border" style="min-width: ${width};">${name}</th>`;
           }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-1 py-2 border" style="min-width: 60px; line-height: 1.2;">지연<br>일수</th>
+          <th class="px-1 py-2 border" style="min-width: 55px; line-height: 1.2;">지연<br>일수</th>
           <th class="px-2 py-2 border" style="min-width: 90px;">물류입고<br>예정일</th>
-          <th class="px-2 py-2 border" style="min-width: 60px; line-height: 1.2;">공정<br>상태</th>
+          <th class="px-2 py-2 border" style="min-width: 70px; line-height: 1.2;">공정<br>상태</th>
         </tr>
       </thead>
       <tbody>
