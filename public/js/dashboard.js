@@ -328,15 +328,42 @@ function processData(orders) {
     return arrivalProcess?.actualDate;
   });
   
-  // 지연된 발주
+  // 지연된 발주 (입고요구일 초과 OR 공정 지연)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
   const delayedOrders = pendingOrders.filter(order => {
-    if (!order.requiredDelivery) return false;
-    const requiredDate = new Date(order.requiredDelivery);
-    requiredDate.setHours(0, 0, 0, 0);
-    return today > requiredDate;
+    // 조건 1: 입고요구일이 지났는지 확인
+    let isOverdue = false;
+    if (order.requiredDelivery) {
+      const requiredDate = new Date(order.requiredDelivery);
+      requiredDate.setHours(0, 0, 0, 0);
+      isOverdue = today > requiredDate;
+    }
+    
+    // 조건 2: 현재 진행 중인 공정이 목표일보다 지연되었는지 확인
+    let hasDelayedProcess = false;
+    const allProcesses = [
+      ...(order.schedule?.production || []),
+      ...(order.schedule?.shipping || [])
+    ];
+    
+    for (const process of allProcesses) {
+      // 실제 완료일이 없고 목표일이 있는 공정 (진행 중인 공정)
+      if (!process.actualDate && process.targetDate) {
+        const targetDate = new Date(process.targetDate);
+        targetDate.setHours(0, 0, 0, 0);
+        
+        // 목표일이 오늘보다 과거면 지연
+        if (today > targetDate) {
+          hasDelayedProcess = true;
+          break;
+        }
+      }
+    }
+    
+    // 입고요구일 초과 또는 공정 지연 중 하나라도 해당되면 지연 발주로 판단
+    return isOverdue || hasDelayedProcess;
   });
   
   // KPI 계산
