@@ -53,7 +53,7 @@ export async function renderManufacturerManagement(container) {
             <thead class="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 40px;">NO.</th>
-                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 120px;">업체명</th>
+                <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 100px;">업체명</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">국가</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 80px;">담당자</th>
                 <th class="px-2 py-2 border text-left text-xs font-semibold text-gray-600 uppercase" style="min-width: 140px;">이메일</th>
