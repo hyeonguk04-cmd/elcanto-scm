@@ -449,6 +449,9 @@ function renderAnalyticsTable(orders) {
         ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
     </table>
+    
+    <!-- 공정 상세 패널 (테이블 외부) -->
+    <div id="process-detail-panel" class="hidden mt-4"></div>
   `;
   
   // 정렬 이벤트 리스너 추가
@@ -584,11 +587,6 @@ function renderOrderRow(order, rowNum) {
       <td class="px-3 py-2 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
           onclick="toggleProcessDetailPanel('${order.id}')">
         ${processStatus.text}
-      </td>
-    </tr>
-    <tr id="detail-panel-${order.id}" class="hidden">
-      <td colspan="100%" class="p-0 border-t-0">
-        <!-- 상세 패널이 여기에 동적으로 삽입됩니다 -->
       </td>
     </tr>
   `;
@@ -922,30 +920,25 @@ function downloadExcel() {
 let currentOpenPanelId = null;
 
 window.toggleProcessDetailPanel = function(orderId) {
-  const panel = document.getElementById(`detail-panel-${orderId}`);
+  const panel = document.getElementById('process-detail-panel');
   if (!panel) return;
   
-  // 이미 열려있는 패널이 있으면 닫기
-  if (currentOpenPanelId && currentOpenPanelId !== orderId) {
-    const oldPanel = document.getElementById(`detail-panel-${currentOpenPanelId}`);
-    if (oldPanel) {
-      oldPanel.classList.add('hidden');
-    }
-  }
-  
-  // 현재 패널 토글
-  if (panel.classList.contains('hidden')) {
-    // 패널 열기
-    panel.classList.remove('hidden');
-    currentOpenPanelId = orderId;
-    
-    // 패널 내용 생성
-    renderProcessDetailPanel(orderId, panel);
-  } else {
-    // 패널 닫기
+  // 같은 패널을 다시 클릭하면 닫기
+  if (currentOpenPanelId === orderId) {
     panel.classList.add('hidden');
     currentOpenPanelId = null;
+    return;
   }
+  
+  // 패널 열기 및 내용 생성
+  panel.classList.remove('hidden');
+  currentOpenPanelId = orderId;
+  renderProcessDetailPanel(orderId, panel);
+  
+  // 패널로 부드럽게 스크롤
+  setTimeout(() => {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 100);
 };
 
 // 공정 상세 패널 내용 렌더링
@@ -957,41 +950,32 @@ function renderProcessDetailPanel(orderId, panelElement) {
   const shippingProcesses = order.schedule?.shipping || [];
   
   panelElement.innerHTML = `
-    <div class="bg-gray-50 p-6 border-t-4 border-blue-500">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-bold text-gray-800">
-          공정별 목표대비 실적 현황 - ${order.style}
+    <div class="bg-white border-2 border-blue-500 rounded-lg shadow-lg p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800">
+          📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
         </h3>
         <button onclick="toggleProcessDetailPanel('${orderId}')" 
-                class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
+                class="text-gray-400 hover:text-gray-600 text-3xl leading-none font-light">
           &times;
         </button>
       </div>
       
-      <div class="grid grid-cols-2 gap-6">
-        <!-- 생산공정 -->
-        <div class="bg-white rounded-lg p-4 shadow">
-          <h4 class="text-sm font-bold text-green-700 mb-3 pb-2 border-b-2 border-green-200">
-            생산공정 목표대비 실적
-          </h4>
-          <div class="space-y-3">
-            ${PROCESS_CONFIG.production.map(processConfig => {
-              const process = productionProcesses.find(p => p.processKey === processConfig.key);
-              return renderProcessDetailRow(processConfig.name, process, order.id);
-            }).join('')}
+      <!-- 타임라인 스타일 레이아웃 -->
+      <div class="space-y-8">
+        <!-- 원단검수(예정일) 행 -->
+        <div class="process-timeline-row">
+          <div class="text-sm font-semibold text-gray-600 mb-3">원단검수(예정일)</div>
+          <div class="grid grid-cols-6 gap-4">
+            ${renderTimelineProcesses(productionProcesses, shippingProcesses, 'row1')}
           </div>
         </div>
         
-        <!-- 운송상황 -->
-        <div class="bg-white rounded-lg p-4 shadow">
-          <h4 class="text-sm font-bold text-yellow-700 mb-3 pb-2 border-b-2 border-yellow-200">
-            운송상황 목표대비 실적
-          </h4>
-          <div class="space-y-3">
-            ${PROCESS_CONFIG.shipping.map(processConfig => {
-              const process = shippingProcesses.find(p => p.processKey === processConfig.key);
-              return renderProcessDetailRow(processConfig.name, process, order.id);
-            }).join('')}
+        <!-- 재단 / 선적 / 입항 행 -->
+        <div class="process-timeline-row">
+          <div class="text-sm font-semibold text-gray-600 mb-3">분할공정 상세</div>
+          <div class="grid grid-cols-6 gap-4">
+            ${renderTimelineProcesses(productionProcesses, shippingProcesses, 'row2')}
           </div>
         </div>
       </div>
@@ -999,86 +983,104 @@ function renderProcessDetailPanel(orderId, panelElement) {
   `;
 }
 
-// 개별 공정 상세 행 렌더링
-function renderProcessDetailRow(processName, process, orderId) {
+// 타임라인 형식으로 공정 렌더링
+function renderTimelineProcesses(productionProcesses, shippingProcesses, rowType) {
+  let processes = [];
+  
+  if (rowType === 'row1') {
+    // 첫 번째 행: 원단검수, 재단, 봉제, 가공/검품, 선적, 운송
+    processes = [
+      { config: PROCESS_CONFIG.production[0], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[0]?.key), label: '원단' },
+      { config: PROCESS_CONFIG.production[1], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[1]?.key), label: '재단' },
+      { config: PROCESS_CONFIG.production[2], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[2]?.key), label: '봉제' },
+      { config: PROCESS_CONFIG.production[3], process: productionProcesses.find(p => p.processKey === PROCESS_CONFIG.production[3]?.key), label: '가공' },
+      { config: PROCESS_CONFIG.shipping[0], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[0]?.key), label: '선적' },
+      { config: PROCESS_CONFIG.shipping[1], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[1]?.key), label: '운송' }
+    ];
+  } else {
+    // 두 번째 행: 통관, 입항 + 빈 칸
+    processes = [
+      { config: PROCESS_CONFIG.shipping[2], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[2]?.key), label: '통관' },
+      { config: PROCESS_CONFIG.shipping[3], process: shippingProcesses.find(p => p.processKey === PROCESS_CONFIG.shipping[3]?.key), label: '입항' },
+      null, null, null, null
+    ];
+  }
+  
+  return processes.map(item => {
+    if (!item) return '<div></div>';
+    return renderTimelineCard(item.label, item.config?.name || item.label, item.process);
+  }).join('');
+}
+
+// 타임라인 카드 렌더링
+function renderTimelineCard(shortLabel, fullLabel, process) {
   if (!process) {
     return `
-      <div class="border rounded p-3 bg-gray-50">
-        <div class="text-sm font-semibold text-gray-700 mb-2">${processName}</div>
-        <div class="grid grid-cols-3 gap-2 text-xs">
-          <div>
-            <div class="text-gray-500">목표일(엘칸토)</div>
-            <div class="text-gray-400">-</div>
-          </div>
-          <div>
-            <div class="text-gray-500">실적일(생산업체)</div>
-            <div class="text-gray-400">-</div>
-          </div>
-          <div>
-            <div class="text-gray-500">차이일수</div>
-            <div class="text-gray-400">-</div>
-          </div>
-        </div>
-        <div class="mt-2 pt-2 border-t">
-          <div class="text-gray-500 text-xs mb-1">증빙사진</div>
-          <div class="text-gray-400 text-xs">-</div>
-        </div>
+      <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+        <div class="text-center text-xs font-bold text-gray-400 mb-2">${shortLabel}</div>
+        <div class="text-center text-xs text-gray-400">-</div>
       </div>
     `;
   }
   
   // 차이일수 계산
-  let diffDays = '-';
-  let diffClass = 'text-gray-700';
+  let diffInfo = { days: '-', class: 'text-gray-400', bgClass: 'bg-gray-50' };
+  
   if (process.targetDate && process.actualDate) {
     const targetDate = new Date(process.targetDate);
     const actualDate = new Date(process.actualDate);
     const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
     
     if (diff > 0) {
-      diffDays = `+${diff}일`;
-      diffClass = 'text-red-600 font-bold';
+      diffInfo = { 
+        days: `+${diff}`, 
+        class: 'text-white font-bold', 
+        bgClass: 'bg-red-500',
+        label: '지연'
+      };
     } else if (diff < 0) {
-      diffDays = `${diff}일`;
-      diffClass = 'text-blue-600 font-bold';
+      diffInfo = { 
+        days: `${diff}`, 
+        class: 'text-blue-600 font-bold', 
+        bgClass: 'bg-blue-50',
+        label: '앞당김'
+      };
     } else {
-      diffDays = '0일';
-      diffClass = 'text-green-600 font-bold';
+      diffInfo = { 
+        days: '0', 
+        class: 'text-green-600 font-bold', 
+        bgClass: 'bg-green-50',
+        label: '정상'
+      };
     }
-  } else if (process.actualDate) {
-    diffDays = '완료';
-    diffClass = 'text-green-600';
-  } else if (process.targetDate) {
-    diffDays = '대기중';
-    diffClass = 'text-gray-400';
   }
   
   return `
-    <div class="border rounded p-3 ${process.actualDate ? 'bg-white' : 'bg-gray-50'}">
-      <div class="text-sm font-semibold text-gray-800 mb-2">${processName}</div>
-      <div class="grid grid-cols-3 gap-2 text-xs">
+    <div class="${diffInfo.bgClass} border-2 ${diffInfo.bgClass === 'bg-red-500' ? 'border-red-600' : 'border-gray-200'} rounded-lg p-3 transition-all hover:shadow-md">
+      <div class="text-center text-xs font-bold text-gray-700 mb-2">${shortLabel}</div>
+      <div class="space-y-2 text-xs">
         <div>
-          <div class="text-gray-500 mb-1">목표일(엘칸토)</div>
-          <div class="text-gray-600">${process.targetDate || '-'}</div>
+          <div class="text-gray-500">목표일</div>
+          <div class="text-gray-700 font-medium">${process.targetDate || '-'}</div>
         </div>
         <div>
-          <div class="text-gray-500 mb-1">실적일(생산업체)</div>
-          <div class="text-blue-600 font-medium">${process.actualDate || '-'}</div>
+          <div class="text-gray-500">실적일</div>
+          <div class="text-blue-600 font-semibold">${process.actualDate || '-'}</div>
         </div>
-        <div>
-          <div class="text-gray-500 mb-1">차이일수</div>
-          <div class="${diffClass}">${diffDays}</div>
+        <div class="pt-2 border-t">
+          <div class="text-center ${diffInfo.class} text-base font-bold">${diffInfo.days}</div>
+          ${diffInfo.label ? `<div class="text-center text-xs text-gray-600">${diffInfo.label}</div>` : ''}
         </div>
-      </div>
-      <div class="mt-2 pt-2 border-t">
-        <div class="text-gray-500 text-xs mb-1">증빙사진</div>
         ${process.proofPhoto ? `
-          <img src="${process.proofPhoto}" 
-               alt="증빙사진" 
-               class="h-16 w-auto rounded cursor-pointer hover:opacity-80 transition"
-               onclick="openPhotoModal('${process.proofPhoto}')"
-               onerror="this.parentElement.innerHTML='<span class=\\'text-gray-400 text-xs\\'>이미지 로드 실패</span>';">
-        ` : '<span class="text-gray-400 text-xs">-</span>'}
+          <div class="pt-2 text-center">
+            <div class="text-xs text-gray-500 mb-1">📸</div>
+            <img src="${process.proofPhoto}" 
+                 alt="증빙" 
+                 class="h-12 w-auto mx-auto rounded cursor-pointer hover:opacity-80"
+                 onclick="openPhotoModal('${process.proofPhoto}')"
+                 onerror="this.style.display='none'">
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
