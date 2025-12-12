@@ -449,9 +449,6 @@ function renderAnalyticsTable(orders) {
         ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
       </tbody>
     </table>
-    
-    <!-- 공정 상세 패널 (테이블 외부) -->
-    <div id="process-detail-panel" class="hidden mt-4"></div>
   `;
   
   // 정렬 이벤트 리스너 추가
@@ -916,29 +913,47 @@ function downloadExcel() {
   ExcelUtils.downloadExcel(excelData, `공정입고진척현황_${timestamp}.xlsx`);
 }
 
-// 공정 상세 패널 토글
-let currentOpenPanelId = null;
-
+// 공정 상세 패널 모달 열기
 window.toggleProcessDetailPanel = function(orderId) {
-  const panel = document.getElementById('process-detail-panel');
-  if (!panel) return;
+  // 모달 생성 또는 가져오기
+  let modal = document.getElementById('process-detail-modal-panel');
   
-  // 같은 패널을 다시 클릭하면 닫기
-  if (currentOpenPanelId === orderId) {
-    panel.classList.add('hidden');
-    currentOpenPanelId = null;
-    return;
+  if (!modal) {
+    // 모달이 없으면 생성
+    modal = document.createElement('div');
+    modal.id = 'process-detail-modal-panel';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+        <div id="modal-panel-content"></div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // 모달 외부 클릭 시 닫기
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeProcessDetailModal();
+      }
+    });
   }
   
-  // 패널 열기 및 내용 생성
-  panel.classList.remove('hidden');
-  currentOpenPanelId = orderId;
-  renderProcessDetailPanel(orderId, panel);
+  // 모달 내용 렌더링
+  const modalContent = document.getElementById('modal-panel-content');
+  renderProcessDetailPanel(orderId, modalContent);
   
-  // 패널로 부드럽게 스크롤
-  setTimeout(() => {
-    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 100);
+  // 모달 표시
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden'; // 배경 스크롤 방지
+};
+
+// 모달 닫기 함수
+window.closeProcessDetailModal = function() {
+  const modal = document.getElementById('process-detail-modal-panel');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = ''; // 스크롤 복원
+  }
 };
 
 // 공정 상세 패널 내용 렌더링
@@ -962,19 +977,17 @@ function renderProcessDetailPanel(orderId, panelElement) {
   ];
   
   panelElement.innerHTML = `
-    <div class="bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden mt-4">
-      <div class="bg-gray-100 px-6 py-3 flex justify-between items-center border-b border-gray-300">
-        <h3 class="text-base font-bold text-gray-800">
-          📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
-        </h3>
-        <button onclick="toggleProcessDetailPanel('${orderId}')" 
-                class="text-gray-400 hover:text-gray-600 text-2xl leading-none">
-          &times;
-        </button>
-      </div>
-      
-      <!-- 타임라인 테이블 -->
-      <div class="overflow-x-auto">
+    <div class="bg-gray-100 px-6 py-4 flex justify-between items-center border-b border-gray-300">
+      <h3 class="text-lg font-bold text-gray-800">
+        📋 공정별 목표대비 실적 현황 - <span class="text-blue-600">${order.style}</span>
+      </h3>
+      <button onclick="closeProcessDetailModal()" 
+              class="text-gray-400 hover:text-gray-600 text-3xl leading-none hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition">
+        &times;
+      </button>
+    </div>
+    
+    <div class="overflow-x-auto max-h-[calc(90vh-80px)]">
         <table class="w-full border-collapse">
           <thead>
             <tr class="bg-gray-200">
@@ -1063,7 +1076,6 @@ function renderProcessDetailPanel(orderId, panelElement) {
           </tbody>
         </table>
       </div>
-    </div>
   `;
 }
 
