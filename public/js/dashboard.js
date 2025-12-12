@@ -341,7 +341,9 @@ function processData(orders) {
       isOverdue = today > requiredDate;
     }
     
-    // 조건 2: 현재 진행 중인 공정이 목표일보다 지연되었는지 확인
+    // 조건 2: 공정별 지연 확인 (공정 입고진척 현황과 동일한 로직)
+    // - 실제 완료일이 목표일보다 늦은 경우 (완료된 공정의 지연)
+    // - 실제 완료일이 없고 목표일이 오늘보다 과거인 경우 (진행 중 공정의 지연)
     let hasDelayedProcess = false;
     const allProcesses = [
       ...(order.schedule?.production || []),
@@ -349,16 +351,26 @@ function processData(orders) {
     ];
     
     for (const process of allProcesses) {
-      // 실제 완료일이 없고 목표일이 있는 공정 (진행 중인 공정)
-      if (!process.actualDate && process.targetDate) {
+      if (process.targetDate) {
         const targetDate = new Date(process.targetDate);
         targetDate.setHours(0, 0, 0, 0);
         
-        // 목표일이 오늘보다 과거면 지연
-        if (today > targetDate) {
-          hasDelayedProcess = true;
-          console.log(`🔴 지연 발주 발견: ${order.style} - 공정 ${process.name} 목표일(${process.targetDate}) 초과`);
-          break;
+        if (process.actualDate) {
+          // 완료된 공정: 실제 완료일이 목표일보다 늦으면 지연
+          const actualDate = new Date(process.actualDate);
+          actualDate.setHours(0, 0, 0, 0);
+          if (actualDate > targetDate) {
+            hasDelayedProcess = true;
+            console.log(`🔴 지연 발주 발견: ${order.style} - 공정 ${process.name} 목표일(${process.targetDate}) < 실제(${process.actualDate})`);
+            break;
+          }
+        } else {
+          // 진행 중인 공정: 목표일이 오늘보다 과거면 지연
+          if (today > targetDate) {
+            hasDelayedProcess = true;
+            console.log(`🔴 지연 발주 발견: ${order.style} - 공정 ${process.name} 목표일(${process.targetDate}) 초과`);
+            break;
+          }
         }
       }
     }
