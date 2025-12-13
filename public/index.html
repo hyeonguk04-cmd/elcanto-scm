@@ -91,8 +91,9 @@
     <!-- App View (Initially Hidden) -->
     <div id="app-view" class="hidden w-full h-screen flex flex-col">
         <!-- Header -->
-        <div id="app-header" class="bg-blue-900 px-3 py-2 shadow-lg flex justify-between items-center shrink-0 z-20" style="flex-wrap: nowrap; min-height: 48px;">
-            <div class="flex items-center gap-2" style="flex-shrink: 1; min-width: 0;">
+        <div id="app-header" class="bg-blue-900 px-3 py-2 shadow-lg shrink-0 z-20" style="display: flex; flex-wrap: nowrap; min-height: 48px; align-items: center; justify-content: space-between;">
+            <!-- Left: Menu + Title -->
+            <div class="flex items-center gap-2" style="flex-shrink: 1; min-width: 0; justify-content: flex-start;">
                 <!-- Mobile Menu Toggle Button -->
                 <button id="mobile-menu-toggle" class="lg:hidden text-white hover:text-gray-200 focus:outline-none" style="flex-shrink: 0;">
                     <i class="fas fa-bars text-lg"></i>
@@ -102,7 +103,8 @@
                     <span id="app-title" style="overflow: hidden; text-overflow: ellipsis;">엘칸토 SCM 포털</span>
                 </h1>
             </div>
-            <div class="flex items-center gap-1" style="flex-shrink: 0;">
+            <!-- Right: Logout Button -->
+            <div class="flex items-center gap-1" style="flex-shrink: 0; justify-content: flex-end;">
                 <span id="status-message" class="text-green-300 font-bold text-xs hidden md:inline"></span>
                 <span id="user-display" class="text-gray-200 text-xs hidden md:inline"></span>
                 <button id="logout-btn" class="bg-white hover:bg-gray-100 text-blue-900 font-bold py-1 px-2 rounded-md text-xs flex items-center" style="flex-shrink: 0; white-space: nowrap;">
