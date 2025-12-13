@@ -12,7 +12,7 @@ const translations = {
     accountInquiryText2: '🏭 업체 ID / PW : 엘칸토 SCM 담당자에게 문의해 주세요.',
     
     // 헤더
-    appTitle: '엘칸토 SCM 포털',
+    appTitle: '생산관리 시스템',
     logout: '로그아웃',
     
     // 사이드바 메뉴
@@ -134,7 +134,7 @@ const translations = {
     accountInquiryText2: '🏭 Supplier ID / PW : Contact ELCANTO SCM manager',
     
     // Header
-    appTitle: 'ELCANTO SCM Portal',
+    appTitle: 'Production Management System',
     logout: 'Logout',
     
     // Sidebar menu
