@@ -459,22 +459,31 @@ input[type="file"]::file-selector-button:hover {
     /* 상단 헤더 완전 한 줄 고정 - 최우선 적용 */
     #app-header,
     #app-view > div:first-child {
+        display: flex !important;
         flex-wrap: nowrap !important;
-        gap: 0.25rem !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
         padding: 0.5rem 0.75rem !important;
         min-height: 48px !important;
         max-height: 48px !important;
     }
     
+    /* 왼쪽 섹션 (메뉴 + 제목) - 왼쪽 정렬 */
     #app-header > div:first-child {
         flex-shrink: 1 !important;
         min-width: 0 !important;
         gap: 0.5rem !important;
+        justify-content: flex-start !important;
+        margin-right: auto !important;
     }
     
+    /* 오른쪽 섹션 (로그아웃) - 오른쪽 정렬 */
     #app-header > div:last-child {
         flex-shrink: 0 !important;
         gap: 0.25rem !important;
+        justify-content: flex-end !important;
+        margin-left: auto !important;
     }
     
     #app-header h1,
@@ -514,6 +523,28 @@ input[type="file"]::file-selector-button:hover {
     
     #logout-btn span {
         display: none !important;
+    }
+    
+    /* 페이지 제목과 전구 아이콘 - 같은 줄에 유지 */
+    #main-content .flex.items-center:has(h2),
+    #main-content .flex.items-center:has(h1) {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        width: auto !important;
+    }
+    
+    #main-content .flex.items-center h2,
+    #main-content .flex.items-center h1 {
+        margin: 0 !important;
+        white-space: nowrap !important;
+    }
+    
+    #main-content .flex.items-center i.fa-lightbulb {
+        flex-shrink: 0 !important;
+        margin-left: 0.5rem !important;
+        position: static !important;
     }
     
     /* 페이지 제목 크기 조정 */
