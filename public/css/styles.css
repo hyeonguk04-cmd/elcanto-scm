@@ -462,14 +462,23 @@ input[type="file"]::file-selector-button:hover {
         font-size: 1.125rem !important;
         line-height: 1.5;
         margin-bottom: 0.75rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     
     #main-content h3 {
         font-size: 1rem !important;
-        white-space: nowrap;
+    }
+    
+    /* 제목과 전구 아이콘 영역 */
+    #main-content .flex.items-center > h1,
+    #main-content .flex.items-center > h2 {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+    
+    /* 전구 아이콘을 제목 바로 옆에 배치 */
+    #main-content .flex.items-center i.fa-lightbulb {
+        flex-shrink: 0;
     }
     
     /* 좌측 세로 제목 스타일 개선 */
@@ -653,6 +662,18 @@ input[type="file"]::file-selector-button:hover {
     #main-content {
         display: flex;
         flex-direction: column;
+    }
+    
+    /* 헤더 영역 - 한 줄 유지 */
+    #app-view > div:first-child {
+        flex-wrap: nowrap !important;
+    }
+    
+    /* 제목과 아이콘 그룹 */
+    #main-content > div:first-child .flex.items-center:first-child,
+    #main-content .flex.items-center:has(h1, h2) {
+        flex-wrap: nowrap;
+        white-space: nowrap;
     }
     
     /* 필터 버튼 그룹 */
