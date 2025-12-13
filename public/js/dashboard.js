@@ -35,11 +35,11 @@ export async function renderDashboard(container) {
         <!-- 헤더 -->
         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
           <!-- 제목 (첫 번째 줄) -->
-          <div class="flex items-center">
-            <h2 class="text-lg font-bold text-gray-800">종합현황</h2>
+          <div class="flex items-center" style="display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 0.5rem !important; width: auto !important;">
+            <h2 class="text-lg font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">종합현황</h2>
             <i id="dashboard-info-icon" 
                class="fas fa-lightbulb cursor-pointer" 
-               style="font-size: 19px; color: #f59e0b; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
                tabindex="0"
                role="button"
                aria-label="안내사항 보기"

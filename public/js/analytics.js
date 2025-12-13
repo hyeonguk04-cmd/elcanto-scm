@@ -22,11 +22,11 @@ export async function renderAnalytics(container) {
         <!-- 모바일 최적화 레이아웃 -->
         <div class="flex flex-col gap-3">
           <!-- 제목 (첫 번째 줄) -->
-          <div class="flex items-center">
-            <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
+          <div class="flex items-center" style="display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 0.5rem !important; width: auto !important;">
+            <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">공정 입고진척 현황</h2>
             <i id="analytics-info-icon" 
                class="fas fa-lightbulb cursor-pointer" 
-               style="font-size: 19px; color: #f59e0b; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+               style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
                tabindex="0"
                role="button"
                aria-label="안내사항 보기"

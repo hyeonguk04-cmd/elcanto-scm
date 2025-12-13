@@ -32,7 +32,7 @@ export async function renderWeeklyReport(container) {
         <!-- 모바일 최적화 레이아웃 -->
         <div class="flex flex-col gap-3">
           <!-- 제목 (첫 번째 줄) -->
-          <h2 class="text-lg font-bold text-gray-800">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
+          <h2 class="text-lg font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
           
           <!-- 필터 및 버튼 (두 번째 줄, 오른쪽 정렬) -->
           <div class="flex flex-wrap gap-2 justify-end items-center">
