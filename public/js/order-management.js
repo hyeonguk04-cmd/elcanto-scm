@@ -36,8 +36,9 @@ export async function renderOrderManagement(container) {
     
     container.innerHTML = `
       <div class="space-y-3">
-        <div class="flex justify-between items-center flex-wrap gap-4">
-        <div>
+        <!-- 모바일 최적화 레이아웃 -->
+        <div class="flex flex-col gap-3">
+          <!-- 제목 (첫 번째 줄) -->
           <div class="flex items-center">
             <h2 class="text-xl font-bold text-gray-800">생산 목표일정 수립</h2>
             <i id="order-management-info-icon" 
@@ -49,8 +50,9 @@ export async function renderOrderManagement(container) {
                onmouseover="this.style.color='#d97706'"
                onmouseout="this.style.color='#f59e0b'"></i>
           </div>
-        </div>     
-          <div class="space-x-2">
+          
+          <!-- 버튼 그룹 (두 번째 줄, 오른쪽 정렬) -->
+          <div class="flex flex-wrap gap-2 justify-end">
             <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
               <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>

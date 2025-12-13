@@ -33,7 +33,8 @@ export async function renderDashboard(container) {
     container.innerHTML = `
       <div class="space-y-3">
         <!-- 헤더 -->
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
+          <!-- 제목 (첫 번째 줄) -->
           <div class="flex items-center">
             <h2 class="text-lg font-bold text-gray-800">종합현황</h2>
             <i id="dashboard-info-icon" 
@@ -45,24 +46,33 @@ export async function renderDashboard(container) {
                onmouseover="this.style.color='#d97706'"
                onmouseout="this.style.color='#f59e0b'"></i>
           </div>
-          <div class="flex space-x-2">
-            <select id="dashboard-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
-              <option value="전체">채널 전체</option>
-              <option value="IM">IM</option>
-              <option value="ELCANTO">ELCANTO</option>
-            </select>
-            <select id="dashboard-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm">
-              <option value="전체">생산업체 전체</option>
-              ${suppliers.map(s => `<option value="${s}">${s}</option>`).join('')}
-            </select>
-            <input type="date" id="dashboard-start-date" value="${currentStartDate}" class="px-2 py-1.5 border rounded-lg text-sm">
-            <span class="self-center text-sm">~</span>
-            <input type="date" id="dashboard-end-date" value="${currentEndDate}" class="px-2 py-1.5 border rounded-lg text-sm">
+          
+          <!-- 필터 영역 (두 번째 줄: 채널/생산업체, 세 번째 줄: 기간) -->
+          <div class="flex flex-col sm:flex-row gap-2 items-end sm:items-center w-full lg:w-auto">
+            <!-- 채널 및 생산업체 선택 -->
+            <div class="flex gap-2 justify-end w-full sm:w-auto">
+              <select id="dashboard-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
+                <option value="전체">채널 전체</option>
+                <option value="IM">IM</option>
+                <option value="ELCANTO">ELCANTO</option>
+              </select>
+              <select id="dashboard-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
+                <option value="전체">생산업체 전체</option>
+                ${suppliers.map(s => `<option value="${s}">${s}</option>`).join('')}
+              </select>
+            </div>
+            
+            <!-- 기간 선택 -->
+            <div class="flex gap-2 items-center justify-end w-full sm:w-auto">
+              <input type="date" id="dashboard-start-date" value="${currentStartDate}" class="px-2 py-1.5 border rounded-lg text-sm">
+              <span class="text-sm">~</span>
+              <input type="date" id="dashboard-end-date" value="${currentEndDate}" class="px-2 py-1.5 border rounded-lg text-sm">
+            </div>
           </div>
         </div>
         
-        <!-- KPI 카드 (클릭 가능) -->
-        <div id="kpi-cards" class="grid grid-cols-4 gap-3">
+        <!-- KPI 카드 (네 번째 줄) -->
+        <div id="kpi-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <!-- 동적으로 생성 -->
         </div>
         

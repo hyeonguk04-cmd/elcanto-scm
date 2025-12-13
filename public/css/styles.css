@@ -526,6 +526,17 @@ input[type="file"]::file-selector-button:hover {
     .kpi-card {
         padding: 0.75rem !important;
         margin-bottom: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    /* KPI 카드 아이콘 중앙 정렬 */
+    .kpi-card i {
+        display: block;
+        text-align: center;
+        margin: 0 auto 0.5rem;
     }
     
     .kpi-card h3,
@@ -534,17 +545,23 @@ input[type="file"]::file-selector-button:hover {
     .kpi-card .text-3xl {
         font-size: 1rem !important;
         white-space: nowrap;
+        text-align: center;
+        width: 100%;
     }
     
     .kpi-card .text-4xl,
     .kpi-card .text-5xl {
         font-size: 1.5rem !important;
+        text-align: center;
+        width: 100%;
     }
     
     .kpi-card p,
     .kpi-card .text-sm,
     .kpi-card .text-xs {
         font-size: 0.625rem !important;
+        text-align: center;
+        width: 100%;
     }
     
     /* 차트 높이 감소 */
@@ -555,13 +572,58 @@ input[type="file"]::file-selector-button:hover {
     /* 필터 영역 최적화 */
     .filter-container,
     .filters {
-        flex-direction: column;
+        display: flex;
+        flex-wrap: wrap;
         gap: 0.5rem;
+        width: 100%;
+        justify-content: flex-end;
+        align-items: center;
     }
     
     .filter-container > *,
     .filters > * {
+        flex: 0 1 auto;
+        margin-bottom: 0;
+    }
+    
+    /* 모바일에서 필터 그룹 우측 정렬 */
+    .filter-container select,
+    .filters select {
+        min-width: 120px;
+        max-width: 200px;
+    }
+    
+    /* 기간 선택 영역 */
+    .date-filter-group,
+    .filter-container > div:has(input[type="date"]),
+    .filters > div:has(input[type="date"]) {
+        flex-basis: 100%;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    /* 날짜 입력 필드 */
+    input[type="date"] {
+        flex: 0 1 auto;
+        min-width: 130px;
+        max-width: 150px;
+    }
+    
+    /* 페이지 헤더 영역 */
+    #main-content > div:first-child,
+    #main-content > .flex:first-child {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+    
+    /* 제목과 필터 분리 */
+    #main-content h1,
+    #main-content h2 {
         width: 100%;
+        text-align: left;
         margin-bottom: 0.5rem;
     }
     
@@ -585,6 +647,61 @@ input[type="file"]::file-selector-button:hover {
     /* 툴팁 아이콘 최적화 */
     .tooltip i {
         font-size: 1rem;
+    }
+    
+    /* 모바일 레이아웃 순서 보장 */
+    #main-content {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* 필터 버튼 그룹 */
+    .button-group,
+    .flex.gap-2,
+    .flex.gap-3,
+    .flex.gap-4 {
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
+        width: 100%;
+    }
+    
+    .button-group button,
+    .flex.gap-2 button,
+    .flex.gap-3 button,
+    .flex.gap-4 button {
+        flex: 0 1 auto;
+    }
+    
+    /* 모니터링 섹션 */
+    .monitoring-section {
+        margin-top: 1.5rem;
+    }
+    
+    /* 섹션 제목 */
+    section h2,
+    section h3 {
+        width: 100%;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* 카드 그리드 */
+    .grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+    
+    /* 2열 그리드 (모바일에서 1열로) */
+    .grid-cols-2,
+    .grid-cols-3,
+    .grid-cols-4 {
+        grid-template-columns: repeat(1, 1fr) !important;
+    }
+    
+    /* KPI 카드는 2열 유지 */
+    .kpi-cards-grid,
+    .grid:has(.kpi-card) {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem;
     }
 }
 

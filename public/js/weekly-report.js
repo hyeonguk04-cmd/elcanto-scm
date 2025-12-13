@@ -29,10 +29,13 @@ export async function renderWeeklyReport(container) {
     
     container.innerHTML = `
       <div class="space-y-3">
-        <!-- 헤더 -->
-        <div class="flex justify-between items-center">
+        <!-- 모바일 최적화 레이아웃 -->
+        <div class="flex flex-col gap-3">
+          <!-- 제목 (첫 번째 줄) -->
           <h2 class="text-lg font-bold text-gray-800">주간 KPI 요약 (${formatDate(currentWeekStart)} ~ ${formatDate(currentWeekEnd)})</h2>
-          <div class="flex space-x-2">
+          
+          <!-- 필터 및 버튼 (두 번째 줄, 오른쪽 정렬) -->
+          <div class="flex flex-wrap gap-2 justify-end items-center">
             <button id="weekly-excel-download-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
               <i class="fas fa-download mr-1"></i>엑셀 다운로드
             </button>
@@ -50,8 +53,8 @@ export async function renderWeeklyReport(container) {
           </div>
         </div>
         
-        <!-- KPI 카드 -->
-        <div id="kpi-cards" class="grid grid-cols-3 gap-3">
+        <!-- KPI 카드 (세 번째 줄) -->
+        <div id="kpi-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <!-- 동적으로 생성 -->
         </div>
         

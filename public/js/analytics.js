@@ -19,8 +19,9 @@ export async function renderAnalytics(container) {
     
     container.innerHTML = `
       <div class="space-y-3">
-        <div class="flex justify-between items-center">
-        <div>
+        <!-- 모바일 최적화 레이아웃 -->
+        <div class="flex flex-col gap-3">
+          <!-- 제목 (첫 번째 줄) -->
           <div class="flex items-center">
             <h2 class="text-xl font-bold text-gray-800">공정 입고진척 현황</h2>
             <i id="analytics-info-icon" 
@@ -32,23 +33,31 @@ export async function renderAnalytics(container) {
                onmouseover="this.style.color='#d97706'"
                onmouseout="this.style.color='#f59e0b'"></i>
           </div>
-        </div>           
-          <div class="flex space-x-2 items-center">
-            <button id="analytics-download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+          
+          <!-- 필터 및 버튼 영역 (두 번째/세 번째 줄) -->
+          <div class="flex flex-col sm:flex-row gap-2 items-end sm:items-center justify-end">
+            <!-- 버튼 -->
+            <button id="analytics-download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm w-full sm:w-auto">
               <i class="fas fa-download mr-1"></i>엑셀 다운로드
             </button>
-            <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm">
-              <option value="전체">전체 채널</option>
-              <option value="IM">IM</option>
-              <option value="ELCANTO">ELCANTO</option>
-            </select>
-            <select id="analytics-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm">
-              ${supplierList.map(s => `<option value="${s}">${s === '전체' ? '전체 생산업체' : s}</option>`).join('')}
-            </select>
-            <div class="flex items-center space-x-1">
-              <input type="date" id="analytics-start-date" class="px-2 py-1.5 border rounded-lg text-sm" />
+            
+            <!-- 채널 및 생산업체 필터 -->
+            <div class="flex gap-2 w-full sm:w-auto">
+              <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
+                <option value="전체">전체 채널</option>
+                <option value="IM">IM</option>
+                <option value="ELCANTO">ELCANTO</option>
+              </select>
+              <select id="analytics-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
+                ${supplierList.map(s => `<option value="${s}">${s === '전체' ? '전체 생산업체' : s}</option>`).join('')}
+              </select>
+            </div>
+            
+            <!-- 기간 선택 -->
+            <div class="flex items-center gap-1 w-full sm:w-auto justify-end">
+              <input type="date" id="analytics-start-date" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none" />
               <span class="text-gray-500">~</span>
-              <input type="date" id="analytics-end-date" class="px-2 py-1.5 border rounded-lg text-sm" />
+              <input type="date" id="analytics-end-date" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none" />
             </div>
           </div>
         </div>

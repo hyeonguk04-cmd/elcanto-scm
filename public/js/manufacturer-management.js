@@ -18,22 +18,23 @@ let currentEditId = null;
 export async function renderManufacturerManagement(container) {
   container.innerHTML = `
     <div class="manufacturer-management">
-      <!-- 헤더 -->
-      <div class="flex justify-between items-center mb-3">
-        <div>
-          <div class="flex items-center">
-            <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
-            <i id="manufacturer-info-icon" 
-               class="fas fa-lightbulb cursor-pointer" 
-               style="font-size: 19px; color: #f59e0b; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
-               tabindex="0"
-               role="button"
-               aria-label="안내사항 보기"
-               onmouseover="this.style.color='#d97706'"
-               onmouseout="this.style.color='#f59e0b'"></i>
-          </div>
+      <!-- 모바일 최적화 레이아웃 -->
+      <div class="flex flex-col gap-3 mb-3">
+        <!-- 제목 (첫 번째 줄) -->
+        <div class="flex items-center">
+          <h2 class="text-xl font-bold text-gray-800">생산업체 관리</h2>
+          <i id="manufacturer-info-icon" 
+             class="fas fa-lightbulb cursor-pointer" 
+             style="font-size: 19px; color: #f59e0b; margin-left: 8px; vertical-align: middle; transition: color 0.2s;"
+             tabindex="0"
+             role="button"
+             aria-label="안내사항 보기"
+             onmouseover="this.style.color='#d97706'"
+             onmouseout="this.style.color='#f59e0b'"></i>
         </div>
-        <div class="space-x-2">
+        
+        <!-- 버튼 그룹 (두 번째 줄, 오른쪽 정렬) -->
+        <div class="flex flex-wrap gap-2 justify-end">
           <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
             <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
           </button>
