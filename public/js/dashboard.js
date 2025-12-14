@@ -2583,8 +2583,8 @@ async function renderDashboardProcessDetailModal(order, productionProcesses, shi
     </div>
     
     <!-- 공정 테이블 -->
-    <div class="bg-white border rounded-lg overflow-hidden">
-      <table class="w-full text-xs border-collapse">
+    <div class="bg-white border rounded-lg overflow-x-auto">
+      <table class="w-full text-xs border-collapse" style="min-width: 1200px;">
         <thead class="bg-gray-50">
           <tr>
             <th class="px-3 py-2 border text-center" style="min-width: 120px;">구분</th>

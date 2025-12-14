@@ -319,6 +319,23 @@ td input[type="text"].process-date-input {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
 }
 
+/* 모달 내부 테이블 가로 스크롤 */
+#modal-content .overflow-x-auto,
+#modal-panel-content .overflow-x-auto,
+#dashboard-modal-content .overflow-x-auto {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* 테이블 최소 너비 보장 */
+#modal-content table,
+#modal-panel-content table,
+#dashboard-modal-content table {
+    min-width: 1200px !important;
+    table-layout: auto !important;
+}
+
 @media (max-width: 640px) {
     #process-detail-modal > div,
     #process-detail-modal-panel > div,
@@ -332,6 +349,14 @@ td input[type="text"].process-date-input {
     .close-dashboard-process-modal-btn {
         min-width: 48px !important;
         min-height: 48px !important;
+    }
+    
+    /* 모바일에서 테이블 가로 스크롤 강제 적용 */
+    #modal-content .overflow-x-auto,
+    #modal-panel-content .overflow-x-auto,
+    #dashboard-modal-content .overflow-x-auto {
+        max-width: 100% !important;
+        overflow-x: scroll !important;
     }
 }
 
