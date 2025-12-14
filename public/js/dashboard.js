@@ -2501,18 +2501,25 @@ async function renderDashboardProcessDetailModal(order, productionProcesses, shi
     modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden';
     modal.innerHTML = `
       <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+        <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center flex-shrink-0">
           <h3 class="text-xl font-bold text-gray-800" id="dashboard-modal-title">공정별 목표대비 실적 현황</h3>
-          <button onclick="closeDashboardProcessModal()" class="text-gray-500 hover:text-gray-700">
+          <button onclick="closeDashboardProcessModal()" class="text-gray-500 hover:text-gray-700 close-dashboard-process-modal-btn" type="button">
             <i class="fas fa-times text-xl"></i>
           </button>
         </div>
-        <div id="dashboard-modal-content" class="p-6 overflow-y-auto">
+        <div id="dashboard-modal-content" class="p-6 overflow-y-auto flex-1">
           <!-- 동적으로 채워짐 -->
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+    
+    // 모달 외부 클릭 시 닫기
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        closeDashboardProcessModal();
+      }
+    });
   }
   
   // 생산업체 리드타임 가져오기
@@ -2728,6 +2735,29 @@ window.closeDashboardProcessModal = function() {
     document.body.style.overflow = '';
   }
 };
+
+// 모바일 터치 이벤트를 위한 추가 리스너
+// DOMContentLoaded 이벤트가 발생하면 닫기 버튼에 터치 이벤트 추가
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', function(e) {
+      // analytics 모달 닫기 버튼
+      if (e.target.closest('.close-process-modal-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof closeProcessDetailModal === 'function') {
+          closeProcessDetailModal();
+        }
+      }
+      // dashboard 모달 닫기 버튼
+      if (e.target.closest('.close-dashboard-process-modal-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeDashboardProcessModal();
+      }
+    });
+  });
+}
 
 // 사진 확대 모달
 window.openPhotoModal = function(photoUrl) {

@@ -96,15 +96,15 @@ export async function renderAnalytics(container) {
       </div>
       
       <!-- 공정 상세 정보 모달 -->
-      <div id="process-detail-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+      <div id="process-detail-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50" onclick="if(event.target === this) closeProcessDetailModal();">
+        <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center flex-shrink-0">
             <h3 class="text-xl font-bold text-gray-800" id="modal-title">공정 상세 정보</h3>
-            <button onclick="closeProcessDetailModal()" class="text-gray-500 hover:text-gray-700">
+            <button onclick="closeProcessDetailModal()" class="text-gray-500 hover:text-gray-700 close-process-modal-btn" type="button">
               <i class="fas fa-times text-xl"></i>
             </button>
           </div>
-          <div id="modal-content" class="p-6">
+          <div id="modal-content" class="p-6 overflow-y-auto flex-1">
             <!-- 동적으로 채워짐 -->
           </div>
         </div>
@@ -981,8 +981,8 @@ window.toggleProcessDetailPanel = function(orderId) {
     modal.id = 'process-detail-modal-panel';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
     modal.innerHTML = `
-      <div class="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden">
-        <div id="modal-panel-content"></div>
+      <div class="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div id="modal-panel-content" class="flex flex-col flex-1 overflow-hidden"></div>
       </div>
     `;
     document.body.appendChild(modal);
@@ -1094,13 +1094,13 @@ async function renderProcessDetailPanel(orderId, panelElement) {
   }));
   
   panelElement.innerHTML = `
-    <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+    <div class="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center flex-shrink-0">
       <h3 class="text-xl font-bold text-gray-800">공정별 목표대비 실적 현황</h3>
-      <button onclick="closeProcessDetailModal()" class="text-gray-500 hover:text-gray-700">
+      <button onclick="closeProcessDetailModal()" class="text-gray-500 hover:text-gray-700 close-process-modal-btn" type="button">
         <i class="fas fa-times text-xl"></i>
       </button>
     </div>
-    <div class="p-6 overflow-y-auto">
+    <div class="p-6 overflow-y-auto flex-1">
       <!-- 주문 정보 -->
       <div class="bg-blue-50 rounded-lg p-4 mb-4">
         <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
