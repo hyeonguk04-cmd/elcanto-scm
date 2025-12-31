@@ -18,7 +18,7 @@ const translations = {
     // 사이드바 메뉴
     dashboard: '종합 현황',
     orderManagement: '생산 목표일정 수립',
-    processCompletion: '생산공정 완료일 등록',
+    processCompletion: '공정별 완료일 등록',
     analytics: '공정 입고진척 현황',
     weeklyReport: '주간 리포트',
     manufacturerManagement: '생산업체 관리',

@@ -1,4 +1,4 @@
-// 생산공정 완료일 등록
+// 공정별 완료일 등록
 import { getOrdersWithProcesses, updateProcess } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
@@ -23,7 +23,7 @@ export async function renderProcessCompletion(container) {
         <div class="flex flex-col gap-3">
           <!-- 제목 (첫 번째 줄) -->
           <div class="flex items-center" style="display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 0.5rem !important; width: auto !important;">
-            <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">생산공정 완료일 등록</h2>
+            <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">공정별 완료일 등록</h2>
             <i id="process-completion-info-icon" 
                class="fas fa-lightbulb cursor-pointer" 
                style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
