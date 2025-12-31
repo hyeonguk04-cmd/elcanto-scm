@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Storage 사용량 확인</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .stat-card .unit {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #result {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .folder-list {
+            margin-top: 20px;
+        }
+        .folder-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .folder-name {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        .folder-stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Firebase Storage 사용량 분석</h1>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>총 파일 수</h3>
+                <p class="value" id="totalFiles">-</p>
+                <p class="unit">files</p>
+            </div>
+            <div class="stat-card">
+                <h3>추정 용량</h3>
+                <p class="value" id="totalSize">-</p>
+                <p class="unit">MB</p>
+            </div>
+            <div class="stat-card">
+                <h3>스타일 이미지</h3>
+                <p class="value" id="styleImages">-</p>
+                <p class="unit">files</p>
+            </div>
+            <div class="stat-card">
+                <h3>증빙 사진</h3>
+                <p class="value" id="evidences">-</p>
+                <p class="unit">files</p>
+            </div>
+        </div>
+
+        <button id="checkBtn" onclick="checkStorage()">📊 사용량 확인하기</button>
+        
+        <div id="result"></div>
+        
+        <div class="folder-list" id="folderList"></div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <script>
+        // Firebase 초기화
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWJIH7zKLx8jHm9BqYH7SRl1a4cI6lj0Y",
+            authDomain: "elcanto-scm.firebaseapp.com",
+            projectId: "elcanto-scm",
+            storageBucket: "elcanto-scm.firebasestorage.app",
+            messagingSenderId: "447672332333",
+            appId: "1:447672332333:web:cdf79c2aef8481b2e3b5be",
+            measurementId: "G-MDYBWEE1ZR"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+        
+        async function checkStorage() {
+            const btn = document.getElementById('checkBtn');
+            const result = document.getElementById('result');
+            const folderList = document.getElementById('folderList');
+            
+            btn.disabled = true;
+            result.innerHTML = '<div class="loading"><div class="spinner"></div><p>분석 중...</p></div>';
+            folderList.innerHTML = '';
+            
+            try {
+                let totalFiles = 0;
+                let totalSize = 0;
+                let styleImagesCount = 0;
+                let evidencesCount = 0;
+                const folders = {};
+                
+                // 루트 디렉토리의 모든 폴더 확인
+                const rootRef = storage.ref();
+                const rootList = await rootRef.listAll();
+                
+                console.log('📁 발견된 폴더:', rootList.prefixes.map(p => p.name));
+                
+                // 각 폴더별로 파일 확인
+                for (const folderRef of rootList.prefixes) {
+                    const folderName = folderRef.name;
+                    folders[folderName] = { count: 0, size: 0, files: [] };
+                    
+                    try {
+                        // 폴더 내 모든 파일 리스트
+                        const listResult = await folderRef.listAll();
+                        
+                        for (const itemRef of listResult.items) {
+                            try {
+                                const metadata = await itemRef.getMetadata();
+                                const size = metadata.size || 0;
+                                
+                                totalFiles++;
+                                totalSize += size;
+                                folders[folderName].count++;
+                                folders[folderName].size += size;
+                                folders[folderName].files.push({
+                                    name: itemRef.name,
+                                    size: size,
+                                    contentType: metadata.contentType,
+                                    updated: metadata.updated
+                                });
+                                
+                                if (folderName === 'style-images') styleImagesCount++;
+                                if (folderName === 'evidences') evidencesCount++;
+                                
+                            } catch (err) {
+                                console.warn(`파일 메타데이터 로드 실패: ${itemRef.fullPath}`, err);
+                            }
+                        }
+                        
+                        // 하위 폴더도 확인 (evidences의 경우 주문별 폴더 있음)
+                        for (const subfolderRef of listResult.prefixes) {
+                            const subList = await subfolderRef.listAll();
+                            for (const itemRef of subList.items) {
+                                try {
+                                    const metadata = await itemRef.getMetadata();
+                                    const size = metadata.size || 0;
+                                    
+                                    totalFiles++;
+                                    totalSize += size;
+                                    folders[folderName].count++;
+                                    folders[folderName].size += size;
+                                    evidencesCount++;
+                                    
+                                } catch (err) {
+                                    console.warn(`하위 파일 메타데이터 로드 실패: ${itemRef.fullPath}`, err);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`폴더 ${folderName} 접근 오류:`, err);
+                    }
+                }
+                
+                // 통계 업데이트
+                document.getElementById('totalFiles').textContent = totalFiles;
+                document.getElementById('totalSize').textContent = (totalSize / 1024 / 1024).toFixed(2);
+                document.getElementById('styleImages').textContent = styleImagesCount;
+                document.getElementById('evidences').textContent = evidencesCount;
+                
+                // 상세 결과 표시
+                let output = `
+🔥 Firebase Storage 사용량 분석 결과
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 전체 통계:
+   총 파일 수: ${totalFiles}개
+   총 용량: ${(totalSize / 1024 / 1024).toFixed(2)} MB (${(totalSize / 1024 / 1024 / 1024).toFixed(3)} GB)
+   
+📁 폴더별 상세:
+`;
+                
+                for (const [folder, data] of Object.entries(folders)) {
+                    const avgSize = data.count > 0 ? (data.size / data.count / 1024).toFixed(1) : 0;
+                    output += `
+   ${folder}/
+      파일 수: ${data.count}개
+      총 용량: ${(data.size / 1024 / 1024).toFixed(2)} MB
+      평균 크기: ${avgSize} KB
+`;
+                }
+                
+                output += `
+💰 무료 플랜 기준:
+   저장 용량: ${(totalSize / 1024 / 1024).toFixed(2)} MB / 5,000 MB (${((totalSize / 1024 / 1024 / 5000) * 100).toFixed(2)}% 사용)
+   다운로드: 확인 불가 (Firebase Console에서 확인 필요)
+   
+⚠️ 참고:
+   - 정확한 다운로드 트래픽은 Firebase Console에서 확인하세요
+   - 실시간 데이터가 아닐 수 있습니다
+   - 삭제된 파일은 즉시 반영되지 않을 수 있습니다
+`;
+                
+                result.textContent = output;
+                
+                // 폴더별 상세 정보 카드
+                let folderHTML = '<h2 style="margin-top: 30px; color: #333;">📁 폴더별 상세 정보</h2>';
+                for (const [folder, data] of Object.entries(folders)) {
+                    folderHTML += `
+                        <div class="folder-item">
+                            <div class="folder-name">📂 ${folder}/</div>
+                            <div class="folder-stats">
+                                <span>📄 ${data.count}개 파일</span>
+                                <span>💾 ${(data.size / 1024 / 1024).toFixed(2)} MB</span>
+                                <span>📊 평균 ${(data.count > 0 ? data.size / data.count / 1024 : 0).toFixed(1)} KB</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                folderList.innerHTML = folderHTML;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                result.innerHTML = `
+                    <div style="color: red;">
+                        ❌ 오류 발생: ${error.message}
+                        
+                        Firebase Console에서 직접 확인해주세요:
+                        https://console.firebase.google.com/project/elcanto-scm/storage
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
