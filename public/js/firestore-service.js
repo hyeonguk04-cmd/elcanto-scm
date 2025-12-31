@@ -473,6 +473,9 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
         let width = img.width;
         let height = img.height;
         
+        // 📊 원본 크기 로깅
+        console.log(`  📐 원본 크기: ${width} × ${height} (비율: ${(width/height).toFixed(2)}:1)`);
+        
         // 비율 유지하면서 리사이징
         if (width > height) {
           if (width > maxWidth) {
@@ -485,6 +488,8 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
             height = maxHeight;
           }
         }
+        
+        console.log(`  📏 압축 후 크기: ${width} × ${height} (비율: ${(width/height).toFixed(2)}:1)`);
         
         canvas.width = width;
         canvas.height = height;

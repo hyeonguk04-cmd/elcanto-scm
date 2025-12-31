@@ -317,15 +317,34 @@ export const ExcelUtils = {
                 }
               }
               
-              console.log(`  🖼️ ${fileName} → 행 ${rowIndex !== null ? rowIndex + 1 : '?'} (rId: ${rid || '없음'})`);
-              
-              return {
-                name: fileName,
-                relativePath: relativePath,
-                rowIndex: rowIndex, // 엑셀 행 인덱스 (0-based)
-                blob: new Blob([blob], { type: mimeType }),
-                file: new File([blob], fileName, { type: mimeType })
-              };
+              // 📊 이미지 크기 확인
+              return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                  console.log(`  🖼️ ${fileName} → 행 ${rowIndex !== null ? rowIndex + 1 : '?'} (${img.width}×${img.height}, ${(blob.size / 1024).toFixed(1)}KB, rId: ${rid || '없음'})`);
+                  
+                  resolve({
+                    name: fileName,
+                    relativePath: relativePath,
+                    rowIndex: rowIndex,
+                    blob: new Blob([blob], { type: mimeType }),
+                    file: new File([blob], fileName, { type: mimeType }),
+                    originalWidth: img.width,
+                    originalHeight: img.height
+                  });
+                };
+                img.onerror = () => {
+                  console.warn(`  ⚠️ ${fileName} - 크기 확인 실패`);
+                  resolve({
+                    name: fileName,
+                    relativePath: relativePath,
+                    rowIndex: rowIndex,
+                    blob: new Blob([blob], { type: mimeType }),
+                    file: new File([blob], fileName, { type: mimeType })
+                  });
+                };
+                img.src = URL.createObjectURL(blob);
+              });
             })
           );
         }
