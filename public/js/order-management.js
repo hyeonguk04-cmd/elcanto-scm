@@ -1678,12 +1678,20 @@ async function handleExcelUpload(e) {
       throw new Error('엑셀 파일이 비어있습니다.');
     }
     
-    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성 (병렬 처리로 속도 개선!)
+    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성 (병렬 처리 + 셀 위치 기반 매칭!)
     const imageUrlMap = {};
     if (images && images.length > 0) {
       console.log(`🖼️ 이미지 업로드 시작... (총 ${images.length}개)`);
       console.log(`📊 데이터 행 수: ${data.length}`);
       console.log(`⚡ 병렬 처리 모드: 10개씩 동시 업로드`);
+      
+      // 이미지 행 위치 로깅
+      console.log('\n📍 이미지 위치 매핑:');
+      images.forEach((img, idx) => {
+        const dataIndex = img.rowIndex !== null ? img.rowIndex - 1 : idx; // rowIndex는 1-based (헤더 포함), data는 0-based (헤더 제외)
+        const style = data[dataIndex]?.['스타일'] || '?';
+        console.log(`  ${idx + 1}. ${img.name} → 엑셀 행 ${img.rowIndex !== null ? img.rowIndex + 1 : '?'} → 데이터[${dataIndex}] → 스타일: ${style}`);
+      });
       
       // 배치 크기 설정 (동시에 처리할 이미지 수)
       const BATCH_SIZE = 10;
@@ -1694,38 +1702,46 @@ async function handleExcelUpload(e) {
         batches.push(images.slice(i, i + BATCH_SIZE));
       }
       
-      console.log(`📦 총 ${batches.length}개 배치로 나누어 처리 (배치당 최대 ${BATCH_SIZE}개)`);
+      console.log(`\n📦 총 ${batches.length}개 배치로 나누어 처리 (배치당 최대 ${BATCH_SIZE}개)`);
       
       // 각 배치를 병렬로 처리
       for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
         const batch = batches[batchIndex];
-        const startIndex = batchIndex * BATCH_SIZE;
         
         console.log(`\n📦 배치 ${batchIndex + 1}/${batches.length} 처리 중... (${batch.length}개 이미지)`);
         
         // 배치 내의 모든 이미지를 동시에 업로드
-        const uploadPromises = batch.map(async (image, localIndex) => {
-          const globalIndex = startIndex + localIndex;
-          const style = data[globalIndex]?.['스타일'] || `style_${globalIndex + 1}`;
+        const uploadPromises = batch.map(async (image) => {
+          // rowIndex 기반으로 데이터 행 찾기
+          // rowIndex는 엑셀 행 번호 (0-based, 헤더 포함)
+          // data 배열은 헤더 제외 (0-based)
+          const dataIndex = image.rowIndex !== null ? image.rowIndex - 1 : null;
+          
+          if (dataIndex === null || dataIndex < 0 || dataIndex >= data.length) {
+            console.warn(`  ⚠️ ${image.name} - 유효하지 않은 행 위치 (rowIndex: ${image.rowIndex})`);
+            return { dataIndex: null, url: null, success: false, error: '유효하지 않은 행 위치' };
+          }
+          
+          const style = data[dataIndex]?.['스타일'] || `unknown_${dataIndex}`;
           
           try {
-            console.log(`  📤 [${globalIndex + 1}/${images.length}] ${style} 업로드 시작...`);
+            console.log(`  📤 [데이터 ${dataIndex + 1}] ${style} 업로드 시작... (${image.name})`);
             const imageUrl = await uploadStyleImage(style, image.file);
-            console.log(`  ✅ [${globalIndex + 1}/${images.length}] ${style} 완료`);
-            return { index: globalIndex, url: imageUrl, success: true };
+            console.log(`  ✅ [데이터 ${dataIndex + 1}] ${style} 완료`);
+            return { dataIndex: dataIndex, url: imageUrl, success: true };
           } catch (error) {
-            console.error(`  ❌ [${globalIndex + 1}/${images.length}] ${style} 실패:`, error.message);
-            return { index: globalIndex, error: error.message, success: false };
+            console.error(`  ❌ [데이터 ${dataIndex + 1}] ${style} 실패:`, error.message);
+            return { dataIndex: dataIndex, error: error.message, success: false };
           }
         });
         
         // 배치의 모든 업로드가 완료될 때까지 대기
         const results = await Promise.all(uploadPromises);
         
-        // 결과를 imageUrlMap에 저장
+        // 결과를 imageUrlMap에 저장 (dataIndex 기준)
         results.forEach(result => {
-          if (result.success) {
-            imageUrlMap[result.index] = result.url;
+          if (result.success && result.dataIndex !== null) {
+            imageUrlMap[result.dataIndex] = result.url;
           }
         });
         
@@ -1734,6 +1750,11 @@ async function handleExcelUpload(e) {
       }
       
       console.log(`\n🎉 전체 이미지 업로드 완료! 매핑된 이미지: ${Object.keys(imageUrlMap).length}/${images.length}개`);
+      console.log('📊 최종 매핑 결과:');
+      Object.entries(imageUrlMap).forEach(([dataIndex, url]) => {
+        const style = data[dataIndex]?.['스타일'] || '?';
+        console.log(`  데이터[${dataIndex}] ${style} → ${url.substring(0, 50)}...`);
+      });
     } else {
       console.log('ℹ️ 업로드할 이미지가 없습니다.');
     }

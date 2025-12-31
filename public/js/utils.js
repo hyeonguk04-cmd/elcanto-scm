@@ -220,45 +220,82 @@ export const ExcelUtils = {
     });
   },
 
-  // 엑셀 파일에서 이미지 추출
+  // 엑셀 파일에서 이미지 추출 (셀 위치 기반)
   async extractImagesFromExcel(file) {
     try {
       console.log('🔍 ZIP 파일 로딩 시작...');
       const zip = await JSZip.loadAsync(file);
       
-      // ZIP 파일 구조 확인 (디버깅용)
-      console.log('📦 ZIP 파일 내용:');
-      zip.forEach((relativePath, zipEntry) => {
-        console.log(`  - ${relativePath} (dir: ${zipEntry.dir})`);
-      });
+      // 이미지 위치 정보 추출 (xl/drawings/drawing1.xml)
+      const drawingXml = await zip.file('xl/drawings/drawing1.xml')?.async('text');
+      const imagePositions = {};
       
+      if (drawingXml) {
+        console.log('📍 이미지 위치 정보 파싱 중...');
+        
+        // XML 파서 사용
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(drawingXml, 'text/xml');
+        
+        // <xdr:twoCellAnchor> 태그에서 이미지 위치 정보 추출
+        const anchors = xmlDoc.getElementsByTagName('xdr:twoCellAnchor');
+        
+        for (let i = 0; i < anchors.length; i++) {
+          const anchor = anchors[i];
+          
+          // 시작 셀 위치 (from)
+          const fromCol = anchor.getElementsByTagName('xdr:from')[0]?.getElementsByTagName('xdr:col')[0]?.textContent;
+          const fromRow = anchor.getElementsByTagName('xdr:from')[0]?.getElementsByTagName('xdr:row')[0]?.textContent;
+          
+          // 이미지 파일 참조 (rId)
+          const blip = anchor.getElementsByTagName('a:blip')[0];
+          const imageRid = blip?.getAttribute('r:embed');
+          
+          if (fromRow !== undefined && imageRid) {
+            const rowIndex = parseInt(fromRow);
+            console.log(`  📌 이미지 ${i + 1}: 행 ${rowIndex + 1} (rId: ${imageRid})`);
+            imagePositions[imageRid] = rowIndex;
+          }
+        }
+      }
+      
+      // rId와 실제 파일명 매핑 (xl/drawings/_rels/drawing1.xml.rels)
+      const drawingRels = await zip.file('xl/drawings/_rels/drawing1.xml.rels')?.async('text');
+      const ridToFile = {};
+      
+      if (drawingRels) {
+        console.log('🔗 rId와 파일명 매핑 중...');
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(drawingRels, 'text/xml');
+        const relationships = xmlDoc.getElementsByTagName('Relationship');
+        
+        for (let i = 0; i < relationships.length; i++) {
+          const rel = relationships[i];
+          const rid = rel.getAttribute('Id');
+          const target = rel.getAttribute('Target');
+          
+          if (rid && target) {
+            const fileName = target.split('/').pop();
+            ridToFile[rid] = fileName;
+            console.log(`  🔗 ${rid} → ${fileName}`);
+          }
+        }
+      }
+      
+      // 이미지 파일 추출
       const images = [];
       const mediaFolder = zip.folder('xl/media');
       
       if (!mediaFolder) {
-        console.warn('⚠️ xl/media 폴더가 없습니다. 엑셀 파일에 이미지가 포함되지 않았을 수 있습니다.');
-        // 대체 경로 확인
-        const altPaths = ['xl/media/', 'media/', 'images/'];
-        for (const altPath of altPaths) {
-          const altFolder = zip.folder(altPath);
-          if (altFolder) {
-            console.log(`✅ 대체 경로 발견: ${altPath}`);
-            break;
-          }
-        }
+        console.warn('⚠️ xl/media 폴더가 없습니다.');
         return images;
       }
 
-      console.log('📁 xl/media 폴더 발견, 이미지 추출 시작...');
+      console.log('📁 xl/media 폴더에서 이미지 추출 중...');
       
-      // 이미지 파일 추출
       const imagePromises = [];
-      let imageCount = 0;
-      
       mediaFolder.forEach((relativePath, zipEntry) => {
         if (!zipEntry.dir) {
-          imageCount++;
-          console.log(`  🖼️ 이미지 발견: ${relativePath}`);
           imagePromises.push(
             zipEntry.async('blob').then(blob => {
               const ext = relativePath.split('.').pop().toLowerCase();
@@ -268,11 +305,24 @@ export const ExcelUtils = {
                               ext === 'bmp' ? 'image/bmp' : 'image/png';
               
               const fileName = relativePath.split('/').pop();
-              console.log(`    ✓ 변환: ${fileName} (${mimeType})`);
+              
+              // rId 찾기
+              let rid = null;
+              let rowIndex = null;
+              for (const [r, fn] of Object.entries(ridToFile)) {
+                if (fn === fileName) {
+                  rid = r;
+                  rowIndex = imagePositions[r];
+                  break;
+                }
+              }
+              
+              console.log(`  🖼️ ${fileName} → 행 ${rowIndex !== null ? rowIndex + 1 : '?'} (rId: ${rid || '없음'})`);
               
               return {
                 name: fileName,
                 relativePath: relativePath,
+                rowIndex: rowIndex, // 엑셀 행 인덱스 (0-based)
                 blob: new Blob([blob], { type: mimeType }),
                 file: new File([blob], fileName, { type: mimeType })
               };
@@ -282,9 +332,17 @@ export const ExcelUtils = {
       });
 
       const extractedImages = await Promise.all(imagePromises);
-      console.log(`✅ 총 ${extractedImages.length}개의 이미지 추출 완료`);
+      
+      // 행 인덱스 순서로 정렬
+      extractedImages.sort((a, b) => {
+        if (a.rowIndex === null) return 1;
+        if (b.rowIndex === null) return -1;
+        return a.rowIndex - b.rowIndex;
+      });
+      
+      console.log(`✅ 총 ${extractedImages.length}개의 이미지 추출 완료 (행 순서대로 정렬)`);
       extractedImages.forEach((img, idx) => {
-        console.log(`  ${idx + 1}. ${img.name} (크기: ${img.file.size} bytes)`);
+        console.log(`  ${idx + 1}. ${img.name} → 행 ${img.rowIndex !== null ? img.rowIndex + 1 : '?'}`);
       });
       
       return extractedImages;
