@@ -10,6 +10,7 @@ const MASTER_DATA = {
 };
 
 let orders = [];
+let allOrders = []; // 전체 데이터 저장 (필터링용)
 let selectedOrderIds = new Set();
 let originalOrders = {}; // 원본 데이터 저장 (변경 감지용)
 let hasUnsavedChanges = false;
@@ -17,6 +18,9 @@ let dynamicSuppliersByCountry = {}; // Firebase에서 가져온 동적 생산업
 let sortState = {
   column: null,
   direction: null // null, 'asc', 'desc'
+};
+let filterState = {
+  seasonOrder: '' // 연도시즌+차수 필터
 };
 
 export async function renderOrderManagement(container) {
@@ -28,6 +32,7 @@ export async function renderOrderManagement(container) {
     console.log('동적 생산업체 목록 로드:', dynamicSuppliersByCountry);
     
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 복사
     
     // 원본 데이터 저장
     orders.forEach(order => {
@@ -52,7 +57,28 @@ export async function renderOrderManagement(container) {
           </div>
           
           <!-- 버튼 그룹 (두 번째 줄, 오른쪽 정렬) -->
-          <div class="flex flex-wrap gap-2 justify-end">
+          <div class="flex flex-wrap gap-2 justify-end items-center">
+            <!-- 연도시즌+차수 검색 -->
+            <div class="relative">
+              <input type="text" 
+                     id="season-filter-input" 
+                     placeholder="연도시즌+차수 검색" 
+                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     style="padding-right: 60px;">
+              <div class="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <button id="season-filter-apply" 
+                        class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                        title="검색">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button id="season-filter-clear" 
+                        class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
+                        title="초기화">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
             <button id="template-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
               <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>
@@ -202,6 +228,10 @@ function sortOrders() {
         aVal = a.channel || '';
         bVal = b.channel || '';
         break;
+      case 'seasonOrder':
+        aVal = a.seasonOrder || '';
+        bVal = b.seasonOrder || '';
+        break;
       case 'country':
         aVal = a.country || '';
         bVal = b.country || '';
@@ -238,6 +268,23 @@ function sortOrders() {
   });
 }
 
+function applySeasonFilter() {
+  const filterValue = filterState.seasonOrder.trim().toLowerCase();
+  
+  if (!filterValue) {
+    // 필터가 비어있으면 전체 데이터 표시
+    orders = [...allOrders];
+  } else {
+    // 필터링 적용
+    orders = allOrders.filter(order => {
+      const seasonOrder = (order.seasonOrder || '').toLowerCase();
+      return seasonOrder.includes(filterValue);
+    });
+  }
+  
+  console.log(`🔍 연도시즌+차수 필터: "${filterValue}" → ${orders.length}/${allOrders.length}건 표시`);
+}
+
 function renderOrdersTable() {
   const tableContainer = document.getElementById('orders-table');
   const headers = createProcessTableHeaders();
@@ -262,7 +309,9 @@ function renderOrdersTable() {
             <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'channel' ? 'bg-blue-100' : ''}" data-sort="channel">
               채널 ${getSortIcon('channel')}
             </th>
-            <th class="px-2 py-2 border">연도시즌+차수</th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'seasonOrder' ? 'bg-blue-100' : ''}" data-sort="seasonOrder">
+              연도시즌+차수 ${getSortIcon('seasonOrder')}
+            </th>
             <th class="px-2 py-2 border">스타일</th>
             <th class="px-2 py-2 border">이미지</th>
             <th class="px-2 py-2 border">색상</th>
@@ -690,6 +739,35 @@ function setupEventListeners() {
     }
   });
   
+  // Season Filter
+  const seasonFilterInput = document.getElementById('season-filter-input');
+  const seasonFilterApply = document.getElementById('season-filter-apply');
+  const seasonFilterClear = document.getElementById('season-filter-clear');
+  
+  seasonFilterInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      filterState.seasonOrder = seasonFilterInput.value;
+      applySeasonFilter();
+      renderOrdersTable();
+      setupEventListeners();
+    }
+  });
+  
+  seasonFilterApply?.addEventListener('click', () => {
+    filterState.seasonOrder = seasonFilterInput.value;
+    applySeasonFilter();
+    renderOrdersTable();
+    setupEventListeners();
+  });
+  
+  seasonFilterClear?.addEventListener('click', () => {
+    filterState.seasonOrder = '';
+    seasonFilterInput.value = '';
+    applySeasonFilter();
+    renderOrdersTable();
+    setupEventListeners();
+  });
+  
   // Buttons
   document.getElementById('template-btn')?.addEventListener('click', downloadTemplate);
   document.getElementById('upload-btn')?.addEventListener('click', () => {
@@ -1046,8 +1124,10 @@ async function handleRouteChangeInline(routeSelect) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 업데이트
     console.log('🔄 발주 목록 새로고침 완료');
     
+    applySeasonFilter(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     console.log('🎨 테이블 렌더링 완료');
@@ -1133,8 +1213,10 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 업데이트
     console.log('🔄 발주 목록 새로고침 완료');
     
+    applySeasonFilter(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     console.log('🎨 테이블 렌더링 완료');
@@ -1422,10 +1504,12 @@ async function saveAllChanges() {
     
     // 데이터 새로고침
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 업데이트
     orders.forEach(order => {
       originalOrders[order.id] = JSON.stringify(order);
     });
     
+    applySeasonFilter(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
@@ -1881,9 +1965,11 @@ async function handleExcelUpload(e) {
     }
     
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 업데이트
     orders.forEach(order => {
       originalOrders[order.id] = JSON.stringify(order);
     });
+    applySeasonFilter(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
@@ -1917,9 +2003,11 @@ async function deleteSelectedOrders() {
     
     selectedOrderIds.clear();
     orders = await getOrdersWithProcesses();
+    allOrders = [...orders]; // 전체 데이터 업데이트
     orders.forEach(order => {
       originalOrders[order.id] = JSON.stringify(order);
     });
+    applySeasonFilter(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
