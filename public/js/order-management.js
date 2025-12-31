@@ -1717,20 +1717,35 @@ async function handleExcelUpload(e) {
           // data 배열은 헤더 제외 (0-based)
           const dataIndex = image.rowIndex !== null ? image.rowIndex - 1 : null;
           
+          // ✅ 안전성 검사 1: dataIndex 유효성 확인
           if (dataIndex === null || dataIndex < 0 || dataIndex >= data.length) {
-            console.warn(`  ⚠️ ${image.name} - 유효하지 않은 행 위치 (rowIndex: ${image.rowIndex})`);
-            return { dataIndex: null, url: null, success: false, error: '유효하지 않은 행 위치' };
+            console.warn(`  ⚠️ ${image.name} - 유효하지 않은 행 위치 (rowIndex: ${image.rowIndex}, 데이터 길이: ${data.length})`);
+            return { dataIndex: null, url: null, success: false, error: '유효하지 않은 행 위치', skipped: true };
           }
           
-          const style = data[dataIndex]?.['스타일'] || `unknown_${dataIndex}`;
+          // ✅ 안전성 검사 2: 데이터 행 존재 확인
+          const row = data[dataIndex];
+          if (!row || typeof row !== 'object') {
+            console.warn(`  ⚠️ ${image.name} - 데이터가 없음 (dataIndex: ${dataIndex})`);
+            return { dataIndex: null, url: null, success: false, error: '데이터 행이 없음', skipped: true };
+          }
+          
+          // ✅ 안전성 검사 3: 스타일명 유효성 확인
+          const style = row['스타일'];
+          if (!style || typeof style !== 'string' || style.trim() === '') {
+            console.warn(`  ⚠️ ${image.name} - 스타일명이 비어있음 (dataIndex: ${dataIndex})`);
+            return { dataIndex: null, url: null, success: false, error: '스타일명이 비어있음', skipped: true };
+          }
+          
+          const trimmedStyle = style.trim();
           
           try {
-            console.log(`  📤 [데이터 ${dataIndex + 1}] ${style} 업로드 시작... (${image.name})`);
-            const imageUrl = await uploadStyleImage(style, image.file);
-            console.log(`  ✅ [데이터 ${dataIndex + 1}] ${style} 완료`);
+            console.log(`  📤 [데이터 ${dataIndex + 1}] ${trimmedStyle} 업로드 시작... (${image.name})`);
+            const imageUrl = await uploadStyleImage(trimmedStyle, image.file);
+            console.log(`  ✅ [데이터 ${dataIndex + 1}] ${trimmedStyle} 완료`);
             return { dataIndex: dataIndex, url: imageUrl, success: true };
           } catch (error) {
-            console.error(`  ❌ [데이터 ${dataIndex + 1}] ${style} 실패:`, error.message);
+            console.error(`  ❌ [데이터 ${dataIndex + 1}] ${trimmedStyle} 실패:`, error.message);
             return { dataIndex: dataIndex, error: error.message, success: false };
           }
         });
@@ -1746,7 +1761,10 @@ async function handleExcelUpload(e) {
         });
         
         const successCount = results.filter(r => r.success).length;
-        console.log(`  ✅ 배치 ${batchIndex + 1} 완료: ${successCount}/${batch.length}개 성공`);
+        const skippedCount = results.filter(r => r.skipped).length;
+        const failedCount = results.filter(r => !r.success && !r.skipped).length;
+        
+        console.log(`  ✅ 배치 ${batchIndex + 1} 완료: 성공 ${successCount}개, 건너뜀 ${skippedCount}개, 실패 ${failedCount}개`);
       }
       
       console.log(`\n🎉 전체 이미지 업로드 완료! 매핑된 이미지: ${Object.keys(imageUrlMap).length}/${images.length}개`);
