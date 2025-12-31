@@ -6,6 +6,7 @@ import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 let orders = [];
 let allOrders = [];
 let filterState = {
+  supplier: '',
   seasonOrder: ''
 };
 
@@ -19,31 +20,49 @@ export async function renderProcessCompletion(container) {
     container.innerHTML = `
       <div class="space-y-3">
         <!-- 헤더 -->
-        <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg p-4">
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-xl font-bold flex items-center">
-              <i class="fas fa-clipboard-check mr-2"></i>
+        <div class="bg-white rounded-xl shadow-lg p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
               생산공정 완료일 등록
+              <i class="fas fa-info-circle text-yellow-500 hover:text-yellow-600 cursor-pointer text-lg ml-2" 
+                 id="process-completion-info-icon"
+                 title="안내사항"></i>
             </h2>
-            <i class="fas fa-info-circle text-yellow-300 hover:text-yellow-100 cursor-pointer text-xl" 
-               id="process-completion-info-icon"
-               title="안내사항"
-               onmouseover="this.style.color='#fde047'"
-               onmouseout="this.style.color='#fcd34d'"></i>
           </div>
           
           <!-- 버튼 그룹 -->
           <div class="flex flex-wrap gap-2 justify-end items-center">
+            <!-- 생산업체 검색 -->
+            <div class="relative">
+              <input type="text" 
+                     id="supplier-filter-input-completion" 
+                     placeholder="생산업체 검색" 
+                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     style="padding-right: 60px;">
+              <div class="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <button id="supplier-filter-apply-completion" 
+                        class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                        title="검색">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button id="supplier-filter-clear-completion" 
+                        class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
+                        title="초기화">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
             <!-- 연도시즌+차수 검색 -->
             <div class="relative">
               <input type="text" 
                      id="season-filter-input-completion" 
                      placeholder="연도시즌+차수 검색" 
-                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-gray-800"
+                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                      style="padding-right: 60px;">
               <div class="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
                 <button id="season-filter-apply-completion" 
-                        class="bg-purple-600 text-white px-2 py-1 rounded text-xs hover:bg-purple-700"
+                        class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
                         title="검색">
                   <i class="fas fa-search"></i>
                 </button>
@@ -108,19 +127,41 @@ export async function renderProcessCompletion(container) {
   }
 }
 
-function applySeasonFilter() {
-  const filterValue = filterState.seasonOrder.trim().toLowerCase();
+function applyFilters() {
+  const supplierValue = filterState.supplier.trim().toLowerCase();
+  const seasonValue = filterState.seasonOrder.trim().toLowerCase();
   
-  if (!filterValue) {
+  if (!supplierValue && !seasonValue) {
     orders = [...allOrders];
   } else {
     orders = allOrders.filter(order => {
-      const seasonOrder = (order.seasonOrder || '').toLowerCase();
-      return seasonOrder.includes(filterValue);
+      const supplierMatch = !supplierValue || (order.supplier || '').toLowerCase().includes(supplierValue);
+      const seasonMatch = !seasonValue || (order.seasonOrder || '').toLowerCase().includes(seasonValue);
+      return supplierMatch && seasonMatch;
     });
   }
   
-  console.log(`🔍 연도시즌+차수 필터: "${filterValue}" → ${orders.length}/${allOrders.length}건 표시`);
+  console.log(`🔍 필터: 생산업체="${supplierValue}", 연도시즌+차수="${seasonValue}" → ${orders.length}/${allOrders.length}건 표시`);
+}
+
+function getRegisteredBy(processes) {
+  // 완료일이 등록된 프로세스 찾기
+  const completedProcesses = processes.filter(p => p.completedDate);
+  
+  if (completedProcesses.length === 0) {
+    return '-';
+  }
+  
+  // updatedBy 필드로 판별
+  // updatedBy가 있으면 생산업체가 직접 등록한 것
+  // updatedBy가 없으면 관리자가 템플릿으로 업로드한 것
+  const hasSupplierUpdate = completedProcesses.some(p => p.updatedBy);
+  
+  if (hasSupplierUpdate) {
+    return '<span class="text-blue-600 font-semibold">생산업체</span>';
+  } else {
+    return '<span class="text-purple-600 font-semibold">관리자</span>';
+  }
 }
 
 function renderCompletionTable() {
@@ -135,6 +176,7 @@ function renderCompletionTable() {
           <th colspan="6" class="px-2 py-2 border bg-blue-100">발주 정보</th>
           <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 공정 완료일</th>
           <th colspan="2" class="px-2 py-2 border bg-yellow-100">운송 공정 완료일</th>
+          <th rowspan="2" class="px-2 py-2 border bg-purple-100">등록자</th>
         </tr>
         <tr>
           <th class="px-2 py-2 border">채널</th>
@@ -151,7 +193,7 @@ function renderCompletionTable() {
       <tbody id="completion-tbody">
         ${orders.length === 0 ? `
           <tr>
-            <td colspan="${8 + headers.production.length}" class="text-center py-8 text-gray-500">
+            <td colspan="${9 + headers.production.length}" class="text-center py-8 text-gray-500">
               <i class="fas fa-inbox text-4xl mb-2"></i>
               <p>등록된 발주 정보가 없습니다.</p>
             </td>
@@ -190,6 +232,9 @@ function renderCompletionTable() {
               <td class="px-2 py-2 border text-center ${arrivalProcess?.completedDate ? 'bg-green-50' : ''}">
                 ${arrivalProcess?.completedDate || '-'}
               </td>
+              <td class="px-2 py-2 border text-center">
+                ${getRegisteredBy(productionProcesses.concat(shippingProcesses))}
+              </td>
             </tr>
           `;
         }).join('')}
@@ -199,6 +244,35 @@ function renderCompletionTable() {
 }
 
 function setupEventListeners() {
+  // Supplier Filter
+  const supplierFilterInput = document.getElementById('supplier-filter-input-completion');
+  const supplierFilterApply = document.getElementById('supplier-filter-apply-completion');
+  const supplierFilterClear = document.getElementById('supplier-filter-clear-completion');
+  
+  supplierFilterInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      filterState.supplier = supplierFilterInput.value;
+      applyFilters();
+      renderCompletionTable();
+      setupEventListeners();
+    }
+  });
+  
+  supplierFilterApply?.addEventListener('click', () => {
+    filterState.supplier = supplierFilterInput.value;
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+  });
+  
+  supplierFilterClear?.addEventListener('click', () => {
+    filterState.supplier = '';
+    supplierFilterInput.value = '';
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+  });
+  
   // Season Filter
   const seasonFilterInput = document.getElementById('season-filter-input-completion');
   const seasonFilterApply = document.getElementById('season-filter-apply-completion');
@@ -207,7 +281,7 @@ function setupEventListeners() {
   seasonFilterInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       filterState.seasonOrder = seasonFilterInput.value;
-      applySeasonFilter();
+      applyFilters();
       renderCompletionTable();
       setupEventListeners();
     }
@@ -215,7 +289,7 @@ function setupEventListeners() {
   
   seasonFilterApply?.addEventListener('click', () => {
     filterState.seasonOrder = seasonFilterInput.value;
-    applySeasonFilter();
+    applyFilters();
     renderCompletionTable();
     setupEventListeners();
   });
@@ -223,7 +297,7 @@ function setupEventListeners() {
   seasonFilterClear?.addEventListener('click', () => {
     filterState.seasonOrder = '';
     seasonFilterInput.value = '';
-    applySeasonFilter();
+    applyFilters();
     renderCompletionTable();
     setupEventListeners();
   });
@@ -378,7 +452,7 @@ async function handleExcelUpload(e) {
     // 데이터 새로고침
     orders = await getOrdersWithProcesses();
     allOrders = [...orders];
-    applySeasonFilter();
+    applyFilters();
     renderCompletionTable();
     setupEventListeners();
     
