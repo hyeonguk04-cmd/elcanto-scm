@@ -21,7 +21,7 @@ export async function renderProcessCompletion(container) {
       <div class="space-y-3">
         <!-- 헤더 -->
         <div class="bg-white rounded-xl shadow-lg p-4">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between">
             <div class="flex items-center" style="gap: 0 !important;">
               <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">생산공정 완료일 등록</h2>
               <i id="process-completion-info-icon" 
