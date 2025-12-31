@@ -525,7 +525,7 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
 }
 
 // 스타일 이미지 업로드 (엑셀에서 추출된 이미지) - 압축 적용
-export async function uploadStyleImage(style, imageFile) {
+export async function uploadStyleImage(style, imageFile, color = '') {
   try {
     const startTime = Date.now();
     const originalSize = imageFile.size;
@@ -537,9 +537,12 @@ export async function uploadStyleImage(style, imageFile) {
     
     console.log(`  🗜️ 압축: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (${compressionRatio}% 감소)`);
     
-    // 파일명 단순화
-    const fileName = `${style}.jpg`;
+    // 파일명 고유하게 생성 (스타일 + 색상 또는 타임스탬프)
+    const uniqueId = color ? color.toString().trim() : Date.now().toString();
+    const fileName = `${style}_${uniqueId}.jpg`;
     const storageRef = window.storage.ref(`style-images/${fileName}`);
+    
+    console.log(`  📝 파일명: ${fileName}`);
     
     // 메타데이터 설정
     const metadata = {

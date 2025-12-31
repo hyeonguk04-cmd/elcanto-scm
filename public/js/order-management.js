@@ -1633,10 +1633,10 @@ async function handleImageUpload() {
       throw new Error('발주 건을 찾을 수 없습니다.');
     }
     
-    console.log(`📤 이미지 업로드 시작: ${order.style}`);
+    console.log(`📤 이미지 업로드 시작: ${order.style}${order.color ? `_${order.color}` : ''}`);
     
-    // 이미지 업로드
-    const imageUrl = await uploadStyleImage(order.style, file);
+    // 이미지 업로드 (색상 정보 포함)
+    const imageUrl = await uploadStyleImage(order.style, file, order.color);
     console.log(`✅ 이미지 업로드 완료: ${imageUrl}`);
     
     // 발주 데이터 업데이트
@@ -1738,11 +1738,12 @@ async function handleExcelUpload(e) {
           }
           
           const trimmedStyle = style.trim();
+          const color = row['색상'] || ''; // 색상 정보 추가
           
           try {
-            console.log(`  📤 [데이터 ${dataIndex + 1}] ${trimmedStyle} 업로드 시작... (${image.name})`);
-            const imageUrl = await uploadStyleImage(trimmedStyle, image.file);
-            console.log(`  ✅ [데이터 ${dataIndex + 1}] ${trimmedStyle} 완료`);
+            console.log(`  📤 [데이터 ${dataIndex + 1}] ${trimmedStyle}${color ? `_${color}` : ''} 업로드 시작... (${image.name})`);
+            const imageUrl = await uploadStyleImage(trimmedStyle, image.file, color); // 색상 정보 전달
+            console.log(`  ✅ [데이터 ${dataIndex + 1}] ${trimmedStyle}${color ? `_${color}` : ''} 완료`);
             return { dataIndex: dataIndex, url: imageUrl, success: true };
           } catch (error) {
             console.error(`  ❌ [데이터 ${dataIndex + 1}] ${trimmedStyle} 실패:`, error.message);
