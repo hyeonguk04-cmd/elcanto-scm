@@ -418,18 +418,99 @@ export async function uploadEvidence(orderId, processId, file) {
   }
 }
 
-// 스타일 이미지 업로드 (엑셀에서 추출된 이미지)
+// 이미지 리사이징 및 압축
+async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      
+      img.onload = () => {
+        // 캔버스 생성
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // 비율 유지하면서 리사이징
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 이미지 그리기
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Blob으로 변환 (JPEG, 압축률 적용)
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(new File([blob], file.name, { 
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              }));
+            } else {
+              reject(new Error('이미지 압축 실패'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      img.src = e.target.result;
+    };
+    
+    reader.onerror = () => reject(new Error('파일 읽기 실패'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// 스타일 이미지 업로드 (엑셀에서 추출된 이미지) - 압축 적용
 export async function uploadStyleImage(style, imageFile) {
   try {
-    const timestamp = Date.now();
-    const fileName = `${style}_${timestamp}_${imageFile.name}`;
+    const startTime = Date.now();
+    const originalSize = imageFile.size;
+    
+    // 이미지 압축 (800x800 최대 크기, 80% 품질)
+    const compressedFile = await compressImage(imageFile, 800, 800, 0.8);
+    const compressedSize = compressedFile.size;
+    const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+    
+    console.log(`  🗜️ 압축: ${(originalSize / 1024).toFixed(1)}KB → ${(compressedSize / 1024).toFixed(1)}KB (${compressionRatio}% 감소)`);
+    
+    // 파일명 단순화
+    const fileName = `${style}.jpg`;
     const storageRef = window.storage.ref(`style-images/${fileName}`);
     
+    // 메타데이터 설정
+    const metadata = {
+      contentType: 'image/jpeg',
+      cacheControl: 'public,max-age=31536000', // 1년 캐시
+      customMetadata: {
+        originalSize: originalSize.toString(),
+        compressedSize: compressedSize.toString()
+      }
+    };
+    
     // 파일 업로드
-    const uploadTask = await storageRef.put(imageFile);
+    const uploadTask = await storageRef.put(compressedFile, metadata);
     const downloadURL = await uploadTask.ref.getDownloadURL();
     
-    console.log(`✅ 스타일 이미지 업로드 성공: ${style} -> ${downloadURL}`);
+    const uploadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`  ✅ 업로드 완료: ${uploadTime}초 소요`);
     
     return downloadURL;
   } catch (error) {
