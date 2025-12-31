@@ -135,7 +135,7 @@ export async function renderManufacturerManagement(container) {
                   <option value="">선택하세요</option>
                   <option value="베트남">베트남</option>
                   <option value="중국">중국</option>
-                  <option value="인도네시아">인도네시아</option>
+                  <option value="인도">인도</option>
                   <option value="한국">한국</option>
                   <option value="기타">기타</option>
                 </select>
