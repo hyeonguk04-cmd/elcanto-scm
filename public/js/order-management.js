@@ -182,7 +182,16 @@ function getSortIcon(column) {
 
 function sortOrders() {
   if (!sortState.column || !sortState.direction) {
-    return; // 정렬 안함
+    // 정렬 없음: uploadOrder가 있으면 그 순서대로, 없으면 그대로 유지
+    orders.sort((a, b) => {
+      if (a.uploadOrder !== undefined && b.uploadOrder !== undefined) {
+        return a.uploadOrder - b.uploadOrder;
+      }
+      if (a.uploadOrder !== undefined) return -1;
+      if (b.uploadOrder !== undefined) return 1;
+      return 0; // 기존 순서 유지
+    });
+    return;
   }
   
   orders.sort((a, b) => {
@@ -1792,6 +1801,7 @@ async function handleExcelUpload(e) {
             route: route,
             schedule: schedule,
             notes: '',
+            uploadOrder: globalIndex,  // 업로드 순서 저장 (정렬용)
             createdAt: new Date().toISOString()
           };
           

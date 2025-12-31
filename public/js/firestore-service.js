@@ -172,14 +172,27 @@ export async function updateSupplier(supplierId, supplierData) {
 
 export async function getAllOrders() {
   try {
-    const snapshot = await window.db.collection('orders')
-      .orderBy('orderDate', 'desc')
-      .get();
+    const snapshot = await window.db.collection('orders').get();
     
-    return snapshot.docs.map(doc => ({
+    const orders = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    
+    // 클라이언트 사이드에서 정렬 (uploadOrder가 있으면 우선, 없으면 orderDate 기준)
+    orders.sort((a, b) => {
+      // uploadOrder가 둘 다 있으면 uploadOrder 기준으로 오름차순 정렬
+      if (a.uploadOrder !== undefined && b.uploadOrder !== undefined) {
+        return a.uploadOrder - b.uploadOrder;
+      }
+      // uploadOrder가 하나만 있으면 그것을 우선
+      if (a.uploadOrder !== undefined) return -1;
+      if (b.uploadOrder !== undefined) return 1;
+      // 둘 다 없으면 orderDate 기준 내림차순 (최신순)
+      return (b.orderDate || '').localeCompare(a.orderDate || '');
+    });
+    
+    return orders;
   } catch (error) {
     console.error('Error getting orders:', error);
     throw error;
