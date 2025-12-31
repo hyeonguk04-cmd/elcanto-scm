@@ -177,7 +177,7 @@ function renderCompletionTable() {
       <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
         <tr>
           <th rowspan="2" class="px-2 py-2 border">번호</th>
-          <th colspan="6" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+          <th colspan="7" class="px-2 py-2 border bg-blue-100">발주 정보</th>
           <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 공정 완료일</th>
           <th colspan="2" class="px-2 py-2 border bg-yellow-100">운송 공정 완료일</th>
           <th rowspan="2" class="px-2 py-2 border bg-purple-100">등록자</th>
@@ -189,6 +189,7 @@ function renderCompletionTable() {
           <th class="px-2 py-2 border">색상</th>
           <th class="px-2 py-2 border">국가</th>
           <th class="px-2 py-2 border">생산업체</th>
+          <th class="px-2 py-2 border">발주일</th>
           ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
           <th class="px-2 py-2 border">선적</th>
           <th class="px-2 py-2 border">입항</th>
@@ -197,7 +198,7 @@ function renderCompletionTable() {
       <tbody id="completion-tbody">
         ${orders.length === 0 ? `
           <tr>
-            <td colspan="${9 + headers.production.length}" class="text-center py-8 text-gray-500">
+            <td colspan="${10 + headers.production.length}" class="text-center py-8 text-gray-500">
               <i class="fas fa-inbox text-4xl mb-2"></i>
               <p>등록된 발주 정보가 없습니다.</p>
             </td>
@@ -217,6 +218,7 @@ function renderCompletionTable() {
               <td class="px-2 py-2 border text-center">${order.color || ''}</td>
               <td class="px-2 py-2 border">${order.country || ''}</td>
               <td class="px-2 py-2 border">${order.supplier || ''}</td>
+              <td class="px-2 py-2 border text-center">${order.orderDate || ''}</td>
               ${headers.production.map(header => {
                 const process = productionProcesses.find(p => p.processKey === header.key);
                 const completedDate = process?.completedDate || '';
@@ -348,6 +350,7 @@ function downloadTemplate() {
       '색상': order.color || '',
       '국가': order.country || '',
       '생산업체': order.supplier || '',
+      '발주일': order.orderDate || '',
     };
     
     // 생산 공정 완료일
