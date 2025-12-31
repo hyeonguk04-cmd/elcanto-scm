@@ -4,6 +4,7 @@ import { UIUtils } from './utils.js';
 import { renderSidebar } from './ui-components.js';
 import { renderDashboard } from './dashboard.js';
 import { renderOrderManagement } from './order-management.js';
+import { renderProcessCompletion } from './process-completion.js';
 import { renderAnalytics } from './analytics.js';
 import { renderSupplierView } from './supplier-view.js';
 import { renderManufacturerManagement } from './manufacturer-management.js';
@@ -250,6 +251,9 @@ function navigateTo(view) {
         break;
       case 'order-management':
         renderOrderManagement(mainContent);
+        break;
+      case 'process-completion':
+        renderProcessCompletion(mainContent);
         break;
       case 'analytics':
         renderAnalytics(mainContent);

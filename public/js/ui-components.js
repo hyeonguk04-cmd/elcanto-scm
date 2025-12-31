@@ -14,6 +14,7 @@ export function renderSidebar(role) {
     menuItems = [
       { id: 'dashboard', emoji: '📊', textKey: 'dashboard' },
       { id: 'order-management', emoji: '📋', textKey: 'orderManagement' },
+      { id: 'process-completion', emoji: '✅', textKey: 'processCompletion' },
       { id: 'analytics', emoji: '📈', textKey: 'analytics' },
       { id: 'weekly-report', emoji: '📅', textKey: 'weeklyReport' },
       { id: 'manufacturer-management', emoji: '🏭', textKey: 'manufacturerManagement' },
