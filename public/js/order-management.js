@@ -1669,94 +1669,159 @@ async function handleExcelUpload(e) {
       throw new Error('엑셀 파일이 비어있습니다.');
     }
     
-    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성
+    // 이미지가 있으면 먼저 업로드하고 URL 맵 생성 (병렬 처리로 속도 개선!)
     const imageUrlMap = {};
     if (images && images.length > 0) {
       console.log(`🖼️ 이미지 업로드 시작... (총 ${images.length}개)`);
       console.log(`📊 데이터 행 수: ${data.length}`);
+      console.log(`⚡ 병렬 처리 모드: 10개씩 동시 업로드`);
       
-      for (let i = 0; i < images.length; i++) {
-        const image = images[i];
-        console.log(`\n📤 이미지 ${i + 1}/${images.length} 업로드 중...`);
-        console.log(`  - 파일명: ${image.name}`);
-        console.log(`  - 크기: ${image.file.size} bytes`);
-        console.log(`  - 타입: ${image.file.type}`);
-        
-        try {
-          // 이미지를 업로드하고 URL 받기
-          // 이미지는 순서대로 매핑 (image1 -> row 1, image2 -> row 2, ...)
-          const style = data[i]?.['스타일'] || `style_${i + 1}`;
-          console.log(`  - 연결 스타일: ${style} (행 ${i + 1})`);
-          
-          const imageUrl = await uploadStyleImage(style, image.file);
-          imageUrlMap[i] = imageUrl;
-          console.log(`  ✅ 업로드 완료: ${imageUrl}`);
-        } catch (error) {
-          console.error(`  ❌ 이미지 ${i + 1} 업로드 실패:`, error);
-        }
+      // 배치 크기 설정 (동시에 처리할 이미지 수)
+      const BATCH_SIZE = 10;
+      const batches = [];
+      
+      // 이미지를 배치로 나누기
+      for (let i = 0; i < images.length; i += BATCH_SIZE) {
+        batches.push(images.slice(i, i + BATCH_SIZE));
       }
       
-      console.log(`\n✅ 이미지 업로드 완료. 매핑된 이미지 수: ${Object.keys(imageUrlMap).length}`);
+      console.log(`📦 총 ${batches.length}개 배치로 나누어 처리 (배치당 최대 ${BATCH_SIZE}개)`);
+      
+      // 각 배치를 병렬로 처리
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        const startIndex = batchIndex * BATCH_SIZE;
+        
+        console.log(`\n📦 배치 ${batchIndex + 1}/${batches.length} 처리 중... (${batch.length}개 이미지)`);
+        
+        // 배치 내의 모든 이미지를 동시에 업로드
+        const uploadPromises = batch.map(async (image, localIndex) => {
+          const globalIndex = startIndex + localIndex;
+          const style = data[globalIndex]?.['스타일'] || `style_${globalIndex + 1}`;
+          
+          try {
+            console.log(`  📤 [${globalIndex + 1}/${images.length}] ${style} 업로드 시작...`);
+            const imageUrl = await uploadStyleImage(style, image.file);
+            console.log(`  ✅ [${globalIndex + 1}/${images.length}] ${style} 완료`);
+            return { index: globalIndex, url: imageUrl, success: true };
+          } catch (error) {
+            console.error(`  ❌ [${globalIndex + 1}/${images.length}] ${style} 실패:`, error.message);
+            return { index: globalIndex, error: error.message, success: false };
+          }
+        });
+        
+        // 배치의 모든 업로드가 완료될 때까지 대기
+        const results = await Promise.all(uploadPromises);
+        
+        // 결과를 imageUrlMap에 저장
+        results.forEach(result => {
+          if (result.success) {
+            imageUrlMap[result.index] = result.url;
+          }
+        });
+        
+        const successCount = results.filter(r => r.success).length;
+        console.log(`  ✅ 배치 ${batchIndex + 1} 완료: ${successCount}/${batch.length}개 성공`);
+      }
+      
+      console.log(`\n🎉 전체 이미지 업로드 완료! 매핑된 이미지: ${Object.keys(imageUrlMap).length}/${images.length}개`);
     } else {
       console.log('ℹ️ 업로드할 이미지가 없습니다.');
     }
+    
+    // 주문 데이터 저장 (병렬 배치 처리로 속도 개선!)
+    console.log(`\n💾 주문 데이터 저장 시작... (총 ${data.length}건)`);
+    console.log(`⚡ 병렬 처리 모드: 20개씩 동시 저장`);
     
     let successCount = 0;
     let errorCount = 0;
     const errors = [];
     
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      console.log(`🔍 처리 중 행 ${i + 2}:`, row);
-      
-      try {
-        if (!row['발주일'] || !row['입고요구일']) {
-          throw new Error('발주일과 입고요구일은 필수입니다.');
-        }
-        
-        const route = row['선적경로'] || null;
-        const schedule = calculateProcessSchedule(
-          DateUtils.excelDateToString(row['발주일']),
-          null,
-          route
-        );
-        
-        // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
-        let styleImageUrl = row['스타일이미지'] || '';
-        if (!styleImageUrl && imageUrlMap[i]) {
-          styleImageUrl = imageUrlMap[i];
-          console.log(`  🔗 행 ${i + 2}에 추출된 이미지 연결: ${styleImageUrl}`);
-        } else if (styleImageUrl) {
-          console.log(`  🔗 행 ${i + 2}에 URL 이미지 사용: ${styleImageUrl}`);
-        } else {
-          console.log(`  ⚠️ 행 ${i + 2}에 이미지 없음`);
-        }
-        
-        const orderData = {
-          channel: row['채널'] || '',
-          seasonOrder: row['연도시즌+차수'] || '',
-          style: row['스타일'] || '',
-          styleImage: styleImageUrl,
-          color: row['색상'] || '',
-          qty: row['수량'] || 0,
-          country: row['국가'] || '',
-          supplier: row['생산업체'] || '',
-          orderDate: DateUtils.excelDateToString(row['발주일']),
-          requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
-          route: route,
-          schedule: schedule,
-          notes: '',
-          createdAt: new Date().toISOString()
-        };
-        
-        await addOrder(orderData);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        errors.push(`행 ${i + 2}: ${error.message}`);
-        console.error(`Row ${i + 2} error:`, error);
-      }
+    // 배치 크기 설정 (동시에 처리할 주문 수)
+    const ORDER_BATCH_SIZE = 20;
+    const orderBatches = [];
+    
+    // 주문을 배치로 나누기
+    for (let i = 0; i < data.length; i += ORDER_BATCH_SIZE) {
+      orderBatches.push(data.slice(i, i + ORDER_BATCH_SIZE));
     }
+    
+    console.log(`📦 총 ${orderBatches.length}개 배치로 나누어 처리 (배치당 최대 ${ORDER_BATCH_SIZE}건)`);
+    
+    // 각 배치를 병렬로 처리
+    for (let batchIndex = 0; batchIndex < orderBatches.length; batchIndex++) {
+      const batch = orderBatches[batchIndex];
+      const startIndex = batchIndex * ORDER_BATCH_SIZE;
+      
+      console.log(`\n📦 배치 ${batchIndex + 1}/${orderBatches.length} 처리 중... (${batch.length}건)`);
+      
+      // 배치 내의 모든 주문을 동시에 저장
+      const savePromises = batch.map(async (row, localIndex) => {
+        const globalIndex = startIndex + localIndex;
+        const rowNumber = globalIndex + 2;
+        
+        try {
+          if (!row['발주일'] || !row['입고요구일']) {
+            throw new Error('발주일과 입고요구일은 필수입니다.');
+          }
+          
+          const route = row['선적경로'] || null;
+          const schedule = calculateProcessSchedule(
+            DateUtils.excelDateToString(row['발주일']),
+            null,
+            route
+          );
+          
+          // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
+          let styleImageUrl = row['스타일이미지'] || '';
+          if (!styleImageUrl && imageUrlMap[globalIndex]) {
+            styleImageUrl = imageUrlMap[globalIndex];
+          }
+          
+          const orderData = {
+            channel: row['채널'] || '',
+            seasonOrder: row['연도시즌+차수'] || '',
+            style: row['스타일'] || '',
+            styleImage: styleImageUrl,
+            color: row['색상'] || '',
+            qty: row['수량'] || 0,
+            country: row['국가'] || '',
+            supplier: row['생산업체'] || '',
+            orderDate: DateUtils.excelDateToString(row['발주일']),
+            requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
+            route: route,
+            schedule: schedule,
+            notes: '',
+            createdAt: new Date().toISOString()
+          };
+          
+          await addOrder(orderData);
+          console.log(`  ✅ [${rowNumber}행] ${orderData.style} 저장 완료`);
+          return { rowNumber, success: true };
+        } catch (error) {
+          console.error(`  ❌ [${rowNumber}행] 저장 실패:`, error.message);
+          return { rowNumber, error: error.message, success: false };
+        }
+      });
+      
+      // 배치의 모든 저장이 완료될 때까지 대기
+      const results = await Promise.all(savePromises);
+      
+      // 결과 집계
+      results.forEach(result => {
+        if (result.success) {
+          successCount++;
+        } else {
+          errorCount++;
+          errors.push(`행 ${result.rowNumber}: ${result.error}`);
+        }
+      });
+      
+      const batchSuccessCount = results.filter(r => r.success).length;
+      console.log(`  ✅ 배치 ${batchIndex + 1} 완료: ${batchSuccessCount}/${batch.length}건 성공`);
+    }
+    
+    console.log(`\n🎉 전체 주문 저장 완료! 성공: ${successCount}건, 실패: ${errorCount}건`);
     
     if (errorCount === 0) {
       UIUtils.showAlert(`${successCount}건의 발주가 성공적으로 등록되었습니다!${images.length > 0 ? ` (이미지 ${images.length}개 업로드)` : ''}`, 'success');
