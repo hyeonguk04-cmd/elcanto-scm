@@ -311,9 +311,13 @@ export async function updateOrder(orderId, orderData) {
 
 export async function deleteOrder(orderId) {
   try {
+    // 1. 발주 정보 가져오기 (스타일 이미지 URL 확인용)
+    const orderDoc = await window.db.collection('orders').doc(orderId).get();
+    const orderData = orderDoc.data();
+    
     const batch = window.db.batch();
     
-    // 관련 프로세스 삭제
+    // 2. 관련 프로세스 삭제
     const processesSnapshot = await window.db.collection('processes')
       .where('orderId', '==', orderId)
       .get();
@@ -322,19 +326,56 @@ export async function deleteOrder(orderId) {
       batch.delete(doc.ref);
     });
     
-    // 관련 증빙자료 삭제
+    // 3. 관련 증빙자료 삭제 (Firestore + Storage)
     const evidencesSnapshot = await window.db.collection('evidences')
       .where('orderId', '==', orderId)
       .get();
     
+    // Storage에서 증빙 파일 삭제
+    const evidenceDeletionPromises = [];
     evidencesSnapshot.docs.forEach(doc => {
+      const evidenceData = doc.data();
       batch.delete(doc.ref);
+      
+      // Storage 파일 삭제 (evidenceUrl에서 경로 추출)
+      if (evidenceData.fileUrl) {
+        try {
+          const fileRef = window.storage.refFromURL(evidenceData.fileUrl);
+          evidenceDeletionPromises.push(
+            fileRef.delete().catch(err => {
+              console.warn(`증빙 파일 삭제 실패: ${evidenceData.fileUrl}`, err);
+            })
+          );
+        } catch (err) {
+          console.warn(`증빙 파일 참조 생성 실패: ${evidenceData.fileUrl}`, err);
+        }
+      }
     });
     
-    // 발주 삭제
+    // 4. 스타일 이미지 삭제 (Storage)
+    if (orderData?.styleImage) {
+      try {
+        const imageRef = window.storage.refFromURL(orderData.styleImage);
+        evidenceDeletionPromises.push(
+          imageRef.delete().catch(err => {
+            console.warn(`스타일 이미지 삭제 실패: ${orderData.styleImage}`, err);
+          })
+        );
+      } catch (err) {
+        console.warn(`스타일 이미지 참조 생성 실패: ${orderData.styleImage}`, err);
+      }
+    }
+    
+    // 5. 발주 삭제 (Firestore)
     batch.delete(window.db.collection('orders').doc(orderId));
     
-    await batch.commit();
+    // 6. Firestore 배치 커밋 및 Storage 파일 삭제
+    await Promise.all([
+      batch.commit(),
+      ...evidenceDeletionPromises
+    ]);
+    
+    console.log(`✅ 발주 ${orderId} 완전 삭제 완료 (Firestore + Storage)`);
   } catch (error) {
     console.error('Error deleting order:', error);
     throw error;
