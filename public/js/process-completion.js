@@ -22,16 +22,21 @@ export async function renderProcessCompletion(container) {
         <!-- 헤더 -->
         <div class="bg-white rounded-xl shadow-lg p-4">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-              생산공정 완료일 등록
-              <i class="fas fa-info-circle text-yellow-500 hover:text-yellow-600 cursor-pointer text-lg ml-2" 
-                 id="process-completion-info-icon"
+            <div class="flex items-center" style="gap: 0 !important;">
+              <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">생산공정 완료일 등록</h2>
+              <i id="process-completion-info-icon" 
+                 class="fas fa-lightbulb cursor-pointer" 
+                 style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
+                 tabindex="0"
+                 role="button"
+                 aria-label="안내사항 보기"
+                 onmouseover="this.style.color='#d97706'"
+                 onmouseout="this.style.color='#f59e0b'"
                  title="안내사항"></i>
-            </h2>
-          </div>
-          
-          <!-- 버튼 그룹 -->
-          <div class="flex flex-wrap gap-2 justify-end items-center">
+            </div>
+            
+            <!-- 버튼 그룹 -->
+            <div class="flex flex-wrap gap-2 items-center">
             <!-- 생산업체 검색 -->
             <div class="relative">
               <input type="text" 
