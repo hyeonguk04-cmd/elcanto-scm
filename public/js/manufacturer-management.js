@@ -231,7 +231,7 @@ export async function renderManufacturerManagement(container) {
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">선적항-도착항</label>
-                <input type="text" id="shippingRoute" placeholder="예: 웨이하이-인천" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
+                <input type="text" id="shippingRoute" placeholder="예: 닝보-인천" class="w-full px-2 py-1 text-sm border border-gray-300 rounded-md">
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">입항</label>
