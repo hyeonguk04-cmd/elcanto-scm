@@ -219,17 +219,6 @@ export async function getOrdersBySupplier(supplierName) {
 export async function addOrder(orderData) {
   try {
     const user = getCurrentUser();
-    const batch = window.db.batch();
-    
-    // 발주 추가
-    const orderRef = window.db.collection('orders').doc();
-    batch.set(orderRef, {
-      ...orderData,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: user.uid,
-      status: 'pending'
-    });
     
     // 공정 자동 생성
     const supplier = await getSupplierByName(orderData.supplier);
@@ -239,57 +228,48 @@ export async function addOrder(orderData) {
       orderData.route
     );
     
-    // 생산 공정 추가
-    schedule.production.forEach((process, index) => {
-      const processRef = window.db.collection('processes').doc();
-      batch.set(processRef, {
-        orderId: orderRef.id,
-        processName: process.name,
-        processNameEn: process.name_en,
-        processKey: process.processKey,
-        category: 'production',
-        order: index,
+    // 프로세스를 내장 구조로 변환
+    const processes = {
+      production: schedule.production.map((process, index) => ({
+        key: process.processKey,
+        name: process.name,
+        name_en: process.name_en || process.name,
         targetDate: process.targetDate,
+        completedDate: null,
         actualDate: null,
         delayDays: null,
         delayReason: null,
         evidenceUrl: null,
         evidenceId: null,
         leadTime: process.leadTime,
-        updatedBy: user.uid,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    });
-    
-    // 운송 공정 추가
-    schedule.shipping.forEach((process, index) => {
-      const processRef = window.db.collection('processes').doc();
-      const processData = {
-        orderId: orderRef.id,
-        processName: process.name,
-        processNameEn: process.name_en,
-        processKey: process.processKey,
-        category: 'shipping',
-        order: index,
+        order: index
+      })),
+      shipping: schedule.shipping.map((process, index) => ({
+        name: process.name,
+        name_en: process.name_en,
+        key: process.processKey,
         targetDate: process.targetDate,
+        completedDate: null,
         actualDate: null,
         delayDays: null,
         delayReason: null,
         evidenceUrl: null,
         evidenceId: null,
         leadTime: process.leadTime,
-        updatedBy: user.uid,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      
-      if (process.route) {
-        processData.route = process.route;
-      }
-      
-      batch.set(processRef, processData);
+        route: process.route,
+        order: index
+      }))
+    };
+    
+    // 발주 데이터에 processes 추가
+    const orderRef = await window.db.collection('orders').add({
+      ...orderData,
+      processes,
+      createdBy: user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    await batch.commit();
     return orderRef.id;
   } catch (error) {
     console.error('Error adding order:', error);
@@ -402,7 +382,53 @@ export async function getProcessesByOrder(orderId) {
   }
 }
 
-export async function updateProcess(processId, processData) {
+// 프로세스 업데이트 (내장 구조)
+export async function updateProcess(orderId, category, processIndex, processData) {
+  try {
+    const user = getCurrentUser();
+    
+    // 발주 문서 가져오기
+    const orderRef = window.db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('Order not found');
+    }
+    
+    const order = orderDoc.data();
+    const processes = order.processes || { production: [], shipping: [] };
+    
+    // 해당 프로세스 업데이트
+    if (category === 'production' && processes.production[processIndex]) {
+      processes.production[processIndex] = {
+        ...processes.production[processIndex],
+        ...processData,
+        updatedAt: firebase.firestore.Timestamp.now(),
+        updatedBy: user.uid
+      };
+    } else if (category === 'shipping' && processes.shipping[processIndex]) {
+      processes.shipping[processIndex] = {
+        ...processes.shipping[processIndex],
+        ...processData,
+        updatedAt: firebase.firestore.Timestamp.now(),
+        updatedBy: user.uid
+      };
+    }
+    
+    // 발주 문서 업데이트
+    await orderRef.update({
+      processes,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+  } catch (error) {
+    console.error('Error updating process:', error);
+    throw error;
+  }
+}
+
+// 호환성을 위한 레거시 함수 (기존 코드 지원)
+export async function updateProcessLegacy(processId, processData) {
   try {
     const user = getCurrentUser();
     await window.db.collection('processes').doc(processId).update({
@@ -411,18 +437,18 @@ export async function updateProcess(processId, processData) {
       updatedBy: user.uid
     });
   } catch (error) {
-    console.error('Error updating process:', error);
+    console.error('Error updating process (legacy):', error);
     throw error;
   }
 }
 
 // ============ Evidences ============
 
-export async function uploadEvidence(orderId, processId, file) {
+export async function uploadEvidence(orderId, category, processIndex, file) {
   try {
     const user = getCurrentUser();
     const timestamp = Date.now();
-    const fileName = `${orderId}_${processId}_${timestamp}_${file.name}`;
+    const fileName = `${orderId}_${category}_${processIndex}_${timestamp}_${file.name}`;
     const storageRef = window.storage.ref(`evidences/${orderId}/${fileName}`);
     
     // 파일 업로드
@@ -432,7 +458,8 @@ export async function uploadEvidence(orderId, processId, file) {
     // 메타데이터 저장
     const evidenceData = {
       orderId,
-      processId,
+      category,
+      processIndex,
       fileName: file.name,
       fileUrl: downloadURL,
       fileSize: file.size,
@@ -443,8 +470,8 @@ export async function uploadEvidence(orderId, processId, file) {
     
     const docRef = await window.db.collection('evidences').add(evidenceData);
     
-    // 프로세스 업데이트
-    await updateProcess(processId, {
+    // 프로세스 업데이트 (새 구조)
+    await updateProcess(orderId, category, processIndex, {
       evidenceUrl: downloadURL,
       evidenceId: docRef.id
     });
@@ -594,25 +621,35 @@ export async function getEvidencesByOrder(orderId) {
 
 export async function getOrdersWithProcesses() {
   try {
-    const orders = await getAllOrders();
+    console.log('📊 발주 데이터 로드 시작...');
+    const startTime = Date.now();
     
-    const ordersWithProcesses = await Promise.all(
-      orders.map(async (order) => {
-        const processes = await getProcessesByOrder(order.id);
-        
-        const schedule = {
-          production: processes.filter(p => p.category === 'production'),
-          shipping: processes.filter(p => p.category === 'shipping')
-        };
-        
-        return {
-          ...order,
-          schedule
-        };
-      })
-    );
+    const snapshot = await window.db.collection('orders').get();
     
-    return ordersWithProcesses;
+    const orders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // processes는 이미 내장되어 있음 (새 구조)
+        schedule: data.processes || { production: [], shipping: [] }
+      };
+    });
+    
+    // 정렬
+    orders.sort((a, b) => {
+      if (a.uploadOrder !== undefined && b.uploadOrder !== undefined) {
+        return a.uploadOrder - b.uploadOrder;
+      }
+      if (a.uploadOrder !== undefined) return -1;
+      if (b.uploadOrder !== undefined) return 1;
+      return (b.orderDate || '').localeCompare(a.orderDate || '');
+    });
+    
+    const loadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ ${orders.length}건 로드 완료 (${loadTime}초)`);
+    
+    return orders;
   } catch (error) {
     console.error('Error getting orders with processes:', error);
     throw error;
