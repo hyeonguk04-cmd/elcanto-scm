@@ -372,7 +372,7 @@ function renderOrderCard(order, index) {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                ${productionProcesses.map(process => renderProcessRow(order, process, 'production')).join('')}
+                ${productionProcesses.map((process, index) => renderProcessRow(order, process, 'production', index)).join('')}
               </tbody>
             </table>
           </div>
@@ -394,7 +394,7 @@ function renderOrderCard(order, index) {
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
-                ${shippingProcesses.map(process => renderProcessRow(order, process, 'shipping')).join('')}
+                ${shippingProcesses.map((process, index) => renderProcessRow(order, process, 'shipping', index)).join('')}
               </tbody>
             </table>
           </div>
@@ -404,7 +404,7 @@ function renderOrderCard(order, index) {
   `;
 }
 
-function renderProcessRow(order, process, category) {
+function renderProcessRow(order, process, category, processIndex) {
   const hasActualDate = !!process.actualDate;
   const hasPhoto = !!(process.photo || process.evidenceUrl);
   const currentLang = getCurrentLanguage();
@@ -454,7 +454,7 @@ function renderProcessRow(order, process, category) {
         <input type="date" 
                class="actual-date-input w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                data-order-id="${order.id}"
-               data-process-id="${process.id}"
+               data-process-index="${processIndex}"
                data-category="${category}"
                value="${process.actualDate || ''}">
       </td>
@@ -474,7 +474,8 @@ function renderProcessRow(order, process, category) {
           <div class="flex items-center justify-center space-x-1">
             <button class="text-gray-400 hover:text-blue-600 upload-photo-btn"
                     data-order-id="${order.id}"
-                    data-process-id="${process.id}"
+                    data-process-index="${processIndex}"
+                    data-category="${category}"
                     data-process-name="${processName}"
                     ${!hasActualDate ? `disabled title="${t('uploadFirst')}"` : ''}>
               <i class="fas fa-camera text-lg"></i>
@@ -487,7 +488,8 @@ function renderProcessRow(order, process, category) {
         <input type="text"
                class="delay-reason-input w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                data-order-id="${order.id}"
-               data-process-id="${process.id}"
+               data-process-index="${processIndex}"
+               data-category="${category}"
                value="${process.delayReason || ''}"
                placeholder="${t('reason')}">
       </td>
@@ -586,7 +588,8 @@ function setupEventListeners() {
 
 async function handleActualDateChange(e) {
   const orderId = e.target.dataset.orderId;
-  const processId = e.target.dataset.processId;
+  const processIndex = parseInt(e.target.dataset.processIndex);
+  const category = e.target.dataset.category;
   const newDate = e.target.value;
   
   if (!newDate) return;
@@ -594,7 +597,7 @@ async function handleActualDateChange(e) {
   try {
     UIUtils.showLoading();
     
-    await updateProcess(processId, {
+    await updateProcess(orderId, category, processIndex, {
       actualDate: newDate
     });
     
@@ -613,11 +616,13 @@ async function handleActualDateChange(e) {
 }
 
 async function handleDelayReasonChange(e) {
-  const processId = e.target.dataset.processId;
+  const orderId = e.target.dataset.orderId;
+  const processIndex = parseInt(e.target.dataset.processIndex);
+  const category = e.target.dataset.category;
   const reason = e.target.value.trim();
   
   try {
-    await updateProcess(processId, {
+    await updateProcess(orderId, category, processIndex, {
       delayReason: reason
     });
   } catch (error) {
@@ -625,13 +630,15 @@ async function handleDelayReasonChange(e) {
   }
 }
 
-let currentUploadProcessId = null;
+let currentUploadProcessIndex = null;
 let currentUploadOrderId = null;
+let currentUploadCategory = null;
 
 function handlePhotoUploadClick(e) {
   const btn = e.currentTarget;
   currentUploadOrderId = btn.dataset.orderId;
-  currentUploadProcessId = btn.dataset.processId;
+  currentUploadProcessIndex = parseInt(btn.dataset.processIndex);
+  currentUploadCategory = btn.dataset.category;
   const processName = btn.dataset.processName;
   
   document.getElementById('modal-process-name').textContent = processName;
@@ -647,12 +654,12 @@ async function handlePhotoUpload() {
   const photoInput = document.getElementById('supplier-photo-input');
   const file = photoInput.files[0];
   
-  if (!file || !currentUploadProcessId || !currentUploadOrderId) return;
+  if (!file || currentUploadProcessIndex === null || !currentUploadOrderId || !currentUploadCategory) return;
   
   try {
     UIUtils.showLoading();
     
-    await uploadEvidence(currentUploadOrderId, currentUploadProcessId, file);
+    await uploadEvidence(currentUploadOrderId, currentUploadCategory, currentUploadProcessIndex, file);
     
     // 모달 닫기
     document.getElementById('supplier-photo-modal').classList.add('hidden');

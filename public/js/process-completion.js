@@ -411,32 +411,33 @@ async function handleExcelUpload(e) {
           throw new Error(`발주를 찾을 수 없습니다: ${row['스타일']}_${row['색상']}`);
         }
         
-        // 생산 공정 완료일 업데이트
+        // 생산 공정 완료일 업데이트 (새 내장 구조)
         const productionProcesses = order.schedule?.production || [];
-        for (const process of productionProcesses) {
+        for (let i = 0; i < productionProcesses.length; i++) {
+          const process = productionProcesses[i];
           const completedDateKey = `${process.name}_완료일`;
           const completedDate = row[completedDateKey];
           
           if (completedDate) {
-            await updateProcess(process.id, {
+            await updateProcess(order.id, 'production', i, {
               completedDate: DateUtils.excelDateToString(completedDate)
             });
           }
         }
         
-        // 운송 공정 완료일 업데이트
+        // 운송 공정 완료일 업데이트 (새 내장 구조)
         const shippingProcesses = order.schedule?.shipping || [];
-        const shippingProcess = shippingProcesses.find(p => p.processKey === 'shipping');
-        const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
+        const shippingIndex = shippingProcesses.findIndex(p => p.key === 'shipping' || p.processKey === 'shipping');
+        const arrivalIndex = shippingProcesses.findIndex(p => p.key === 'arrival' || p.processKey === 'arrival');
         
-        if (shippingProcess && row['선적_완료일']) {
-          await updateProcess(shippingProcess.id, {
+        if (shippingIndex >= 0 && row['선적_완료일']) {
+          await updateProcess(order.id, 'shipping', shippingIndex, {
             completedDate: DateUtils.excelDateToString(row['선적_완료일'])
           });
         }
         
-        if (arrivalProcess && row['입항_완료일']) {
-          await updateProcess(arrivalProcess.id, {
+        if (arrivalIndex >= 0 && row['입항_완료일']) {
+          await updateProcess(order.id, 'shipping', arrivalIndex, {
             completedDate: DateUtils.excelDateToString(row['입항_완료일'])
           });
         }
