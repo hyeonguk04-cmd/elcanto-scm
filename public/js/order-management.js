@@ -1933,7 +1933,7 @@ async function handleExcelUpload(e) {
             color: row['색상'] || '',
             qty: row['수량'] || 0,
             country: row['국가'] || '',
-            supplier: supplierName,
+            supplier: row['생산업체'] || '',
             orderDate: DateUtils.excelDateToString(row['발주일']),
             requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
             route: route,
