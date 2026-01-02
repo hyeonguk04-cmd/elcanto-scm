@@ -220,14 +220,28 @@ export async function addOrder(orderData) {
   try {
     const user = getCurrentUser();
     
+    console.log('🏭 addOrder 시작:', {
+      supplier: orderData.supplier,
+      orderDate: orderData.orderDate,
+      route: orderData.route
+    });
+    
     // 생산업체 정보 조회 후 리드타임을 적용하여 일정 재계산
     const supplier = await getSupplierByName(orderData.supplier);
+    console.log('📦 생산업체 조회 결과:', {
+      name: supplier?.name,
+      leadTimes: supplier?.leadTimes,
+      shippingRoute: supplier?.shippingRoute
+    });
+    
     const schedule = calculateProcessSchedule(
       orderData.orderDate,
       supplier?.leadTimes,
       orderData.route,
       supplier
     );
+    
+    console.log('📊 계산된 schedule:', schedule);
     
     // 프로세스를 내장 구조로 변환
     const processes = {
