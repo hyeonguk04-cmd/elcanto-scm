@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>전체 생산업체 리드타임 확인</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #2563eb; margin-bottom: 30px; }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #374151;
+      position: sticky;
+      top: 0;
+    }
+    .supplier-name {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    .mismatch {
+      background: #fee2e2;
+      color: #991b1b;
+      font-weight: 600;
+    }
+    .match {
+      color: #059669;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    .summary {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .summary h3 {
+      margin-top: 0;
+      color: #92400e;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 전체 생산업체 리드타임 확인</h1>
+    
+    <button id="checkBtn" onclick="checkAllSuppliers()">📊 전체 생산업체 확인</button>
+    
+    <div id="summary" class="summary" style="display: none;">
+      <h3>📊 요약</h3>
+      <div id="summaryContent"></div>
+    </div>
+    
+    <div id="loading" class="loading" style="display: none;">
+      <i>⏳ 데이터 로딩 중...</i>
+    </div>
+    
+    <div class="table-wrapper">
+      <table id="resultTable" style="display: none;">
+        <thead>
+          <tr>
+            <th>생산업체</th>
+            <th>Username</th>
+            <th>자재<br>(material)</th>
+            <th>한도CFM<br>(hando_cfm)</th>
+            <th>제갑&조립<br>(cutting_upper)</th>
+            <th>공장출고<br>(factory_shipment)</th>
+            <th>선적<br>(shipping)</th>
+            <th>입항<br>(arrival)</th>
+            <th>선적항-도착항<br>(shippingRoute)</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyAT95g8yR6RBuGcf30tXv9NwH0kkEBwn6k",
+      authDomain: "elcanto-scm.firebaseapp.com",
+      projectId: "elcanto-scm",
+      storageBucket: "elcanto-scm.firebasestorage.app",
+      messagingSenderId: "1015941864588",
+      appId: "1:1015941864588:web:2e1d3f83a30be6ec81e07f"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    window.db = firebase.firestore();
+
+    window.checkAllSuppliers = async function() {
+      const btn = document.getElementById('checkBtn');
+      const loading = document.getElementById('loading');
+      const table = document.getElementById('resultTable');
+      const tbody = document.getElementById('resultBody');
+      const summary = document.getElementById('summary');
+      const summaryContent = document.getElementById('summaryContent');
+      
+      btn.disabled = true;
+      loading.style.display = 'block';
+      table.style.display = 'none';
+      summary.style.display = 'none';
+      tbody.innerHTML = '';
+      
+      try {
+        console.log('🔍 전체 생산업체 조회 시작...');
+        
+        const snapshot = await window.db.collection('suppliers').get();
+        
+        if (snapshot.empty) {
+          alert('생산업체 데이터가 없습니다!');
+          return;
+        }
+        
+        console.log(`📦 총 ${snapshot.size}개 생산업체 발견`);
+        
+        const suppliers = [];
+        snapshot.forEach(doc => {
+          suppliers.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        
+        // 이름순 정렬
+        suppliers.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        
+        let totalSuppliers = suppliers.length;
+        let suppliersWithMismatch = 0;
+        
+        suppliers.forEach(supplier => {
+          const row = document.createElement('tr');
+          
+          const leadTimes = supplier.leadTimes || {};
+          const hasMismatch = false; // UI 값을 모르므로 일단 표시만
+          
+          if (hasMismatch) suppliersWithMismatch++;
+          
+          row.innerHTML = `
+            <td class="supplier-name">${supplier.name || '(이름없음)'}</td>
+            <td>${supplier.id}</td>
+            <td>${leadTimes.material || '-'}</td>
+            <td>${leadTimes.hando_cfm || '-'}</td>
+            <td>${leadTimes.cutting_upper || '-'}</td>
+            <td>${leadTimes.factory_shipment || '-'}</td>
+            <td>${leadTimes.shipping || '-'}</td>
+            <td>${leadTimes.arrival || '-'}</td>
+            <td>${supplier.shippingRoute || '-'}</td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+        
+        // 요약 정보
+        summaryContent.innerHTML = `
+          <strong>총 생산업체:</strong> ${totalSuppliers}개<br>
+          <strong>⚠️ 주의:</strong> UI에 표시된 리드타임과 Firebase 데이터를 비교해주세요!<br>
+          <br>
+          <strong>확인 방법:</strong><br>
+          1. 생산업체 관리 페이지에서 각 업체의 "수정" 버튼 클릭<br>
+          2. 표시된 리드타임과 아래 표의 값 비교<br>
+          3. 불일치하는 업체는 UI에서 직접 수정하거나 Firebase Console에서 수정
+        `;
+        
+        summary.style.display = 'block';
+        table.style.display = 'table';
+        loading.style.display = 'none';
+        btn.textContent = '✅ 확인 완료 (다시 확인)';
+        btn.disabled = false;
+        
+        console.log('✅ 전체 생산업체 조회 완료!');
+        console.log('데이터:', suppliers);
+        
+      } catch (error) {
+        console.error('❌ 조회 실패:', error);
+        alert('조회 실패: ' + error.message);
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    };
+  </script>
+</body>
+</html>
