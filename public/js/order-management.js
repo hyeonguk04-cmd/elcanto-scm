@@ -1909,29 +1909,14 @@ async function handleExcelUpload(e) {
             throw new Error('발주일과 입고요구일은 필수입니다.');
           }
           
-          const supplierName = row['생산업체'] || '';
           const route = row['선적경로'] || null;
           
-          // 생산업체 정보 가져오기 (리드타임 적용을 위해)
-          let supplier = null;
-          let supplierLeadTimes = null;
-          if (supplierName) {
-            try {
-              supplier = await getSupplierByName(supplierName);
-              if (supplier && supplier.leadTimes) {
-                supplierLeadTimes = supplier.leadTimes;
-              }
-            } catch (error) {
-              console.warn(`  ⚠️ [${rowNumber}행] 생산업체 정보 로드 실패, 기본 리드타임 사용:`, supplierName);
-            }
-          }
-          
-          // 생산업체 리드타임을 적용한 일정 계산
+          // schedule은 addOrder 내부에서 생산업체 정보를 조회하여 계산됨
+          // 여기서는 기본 구조만 전달 (addOrder가 supplier 기반으로 재계산)
           const schedule = calculateProcessSchedule(
             DateUtils.excelDateToString(row['발주일']),
-            supplierLeadTimes,
-            route,
-            supplier
+            null,  // addOrder에서 supplier 정보 조회 후 재계산
+            route
           );
           
           // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용

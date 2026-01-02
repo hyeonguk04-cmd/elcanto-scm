@@ -220,18 +220,14 @@ export async function addOrder(orderData) {
   try {
     const user = getCurrentUser();
     
-    // schedule 사용 (이미 생산업체 리드타임이 적용되어 전달됨)
-    let schedule = orderData.schedule;
-    if (!schedule) {
-      // schedule이 없는 경우에만 자동 생성 (일반적으로는 이미 전달됨)
-      const supplier = await getSupplierByName(orderData.supplier);
-      schedule = calculateProcessSchedule(
-        orderData.orderDate,
-        supplier?.leadTimes,
-        orderData.route,
-        supplier
-      );
-    }
+    // 생산업체 정보 조회 후 리드타임을 적용하여 일정 재계산
+    const supplier = await getSupplierByName(orderData.supplier);
+    const schedule = calculateProcessSchedule(
+      orderData.orderDate,
+      supplier?.leadTimes,
+      orderData.route,
+      supplier
+    );
     
     // 프로세스를 내장 구조로 변환
     const processes = {
