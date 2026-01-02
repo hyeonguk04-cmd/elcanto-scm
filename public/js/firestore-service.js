@@ -220,52 +220,59 @@ export async function addOrder(orderData) {
   try {
     const user = getCurrentUser();
     
-    // 공정 자동 생성
-    const supplier = await getSupplierByName(orderData.supplier);
-    const schedule = calculateProcessSchedule(
-      orderData.orderDate,
-      supplier?.leadTimes,
-      orderData.route
-    );
+    // schedule이 이미 있으면 사용, 없으면 자동 생성
+    let schedule = orderData.schedule;
+    if (!schedule) {
+      const supplier = await getSupplierByName(orderData.supplier);
+      schedule = calculateProcessSchedule(
+        orderData.orderDate,
+        supplier?.leadTimes,
+        orderData.route
+      );
+    }
     
     // 프로세스를 내장 구조로 변환
     const processes = {
-      production: schedule.production.map((process, index) => ({
-        key: process.processKey,
+      production: (schedule.production || []).map((process, index) => ({
+        key: process.processKey || process.key,
         name: process.name,
         name_en: process.name_en || process.name,
         targetDate: process.targetDate,
-        completedDate: null,
-        actualDate: null,
-        delayDays: null,
-        delayReason: null,
-        evidenceUrl: null,
-        evidenceId: null,
+        completedDate: process.completedDate || null,
+        actualDate: process.actualDate || null,
+        delayDays: process.delayDays || null,
+        delayReason: process.delayReason || null,
+        evidenceUrl: process.evidenceUrl || null,
+        evidenceId: process.evidenceId || null,
         leadTime: process.leadTime,
         order: index
       })),
-      shipping: schedule.shipping.map((process, index) => ({
+      shipping: (schedule.shipping || []).map((process, index) => ({
         name: process.name,
-        name_en: process.name_en,
-        key: process.processKey,
+        name_en: process.name_en || process.name,
+        key: process.processKey || process.key,
         targetDate: process.targetDate,
-        completedDate: null,
-        actualDate: null,
-        delayDays: null,
-        delayReason: null,
-        evidenceUrl: null,
-        evidenceId: null,
+        completedDate: process.completedDate || null,
+        actualDate: process.actualDate || null,
+        delayDays: process.delayDays || null,
+        delayReason: process.delayReason || null,
+        evidenceUrl: process.evidenceUrl || null,
+        evidenceId: process.evidenceId || null,
         leadTime: process.leadTime,
-        route: process.route,
+        route: process.route || null,
         order: index
       }))
     };
     
+    // orderData에서 schedule 제거 (processes로 대체)
+    const { schedule: _, ...orderDataWithoutSchedule } = orderData;
+    
     // 발주 데이터에 processes 추가
     const orderRef = await window.db.collection('orders').add({
-      ...orderData,
+      ...orderDataWithoutSchedule,
       processes,
-      createdBy: user.uid,
+      schedule: processes,  // 호환성을 위해 schedule도 유지
+      createdBy: user?.uid || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
