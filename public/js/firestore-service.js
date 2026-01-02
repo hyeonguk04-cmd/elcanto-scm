@@ -496,6 +496,11 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
         
         // 이미지 그리기
         const ctx = canvas.getContext('2d');
+        
+        // 투명 배경을 흰색으로 채우기 (JPEG는 투명도 미지원)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        
         ctx.drawImage(img, 0, 0, width, height);
         
         // Blob으로 변환 (JPEG, 압축률 적용)
