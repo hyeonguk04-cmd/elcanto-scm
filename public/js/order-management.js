@@ -1660,6 +1660,15 @@ function handleImageFileSelected(file) {
 }
 
 function openImageUploadModal(orderId) {
+  // orderId 유효성 검사
+  if (!orderId || orderId.trim() === '' || orderId === 'undefined' || orderId === 'null') {
+    console.error('❌ 유효하지 않은 orderId로 모달 열기 시도:', orderId);
+    UIUtils.showAlert('유효하지 않은 발주 정보입니다.', 'error');
+    return;
+  }
+  
+  console.log('📋 이미지 업로드 모달 열기 - orderId:', orderId);
+  
   currentUploadOrderId = orderId;
   currentImageFile = null;
   
@@ -1698,7 +1707,18 @@ function closeImageUploadModal() {
 }
 
 async function handleImageUpload() {
-  if (!currentUploadOrderId) return;
+  if (!currentUploadOrderId) {
+    console.error('❌ currentUploadOrderId가 없습니다.');
+    UIUtils.showAlert('발주 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  
+  // orderId 유효성 검사
+  if (!currentUploadOrderId.trim() || currentUploadOrderId === 'undefined' || currentUploadOrderId === 'null') {
+    console.error('❌ 유효하지 않은 orderId:', currentUploadOrderId);
+    UIUtils.showAlert('유효하지 않은 발주 정보입니다.', 'error');
+    return;
+  }
   
   // 붙여넣기나 파일 선택으로 저장된 파일 사용
   const file = currentImageFile;
@@ -1711,10 +1731,21 @@ async function handleImageUpload() {
   try {
     UIUtils.showLoading();
     
+    console.log(`📋 현재 orderId: ${currentUploadOrderId}`);
+    console.log(`📋 전체 발주 수: ${orders.length}`);
+    
     // 해당 발주 건 찾기
     const order = orders.find(o => o.id === currentUploadOrderId);
     if (!order) {
+      console.error('❌ 발주를 찾을 수 없습니다. orderId:', currentUploadOrderId);
+      console.error('📋 사용 가능한 order IDs:', orders.map(o => o.id).join(', '));
       throw new Error('발주 건을 찾을 수 없습니다.');
+    }
+    
+    // 스타일명 검증
+    if (!order.style || order.style.trim() === '') {
+      console.error('❌ 스타일명이 비어있습니다:', order);
+      throw new Error('스타일명이 비어있습니다.');
     }
     
     console.log(`📤 이미지 업로드 시작: ${order.style}${order.color ? `_${order.color}` : ''}`);
