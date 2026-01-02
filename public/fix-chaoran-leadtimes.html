@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>챠오란 리드타임 수정</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #374151;
+    }
+    .old-value {
+      color: #dc2626;
+      text-decoration: line-through;
+    }
+    .new-value {
+      color: #059669;
+      font-weight: 600;
+    }
+    .same-value {
+      color: #6b7280;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .result.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+      display: block;
+    }
+    .result.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+      display: block;
+    }
+    .warning {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #92400e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 챠오란 생산업체 리드타임 수정</h1>
+    <p class="subtitle">UI 표시 값과 Firebase 데이터를 일치시킵니다.</p>
+
+    <div class="warning">
+      <strong>⚠️ 주의사항:</strong>
+      <ul style="margin: 10px 0 0 20px;">
+        <li>이 작업은 Firebase의 <code>/suppliers/chaoran</code> 문서를 직접 수정합니다.</li>
+        <li>로그인한 상태에서 실행해야 합니다.</li>
+        <li>수정 전 F12 → Console에서 결과를 확인할 수 있습니다.</li>
+      </ul>
+    </div>
+
+    <h3>📊 변경 예정 내역</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>공정</th>
+          <th>현재 Firebase</th>
+          <th>변경 후 (UI 기준)</th>
+          <th>변경 여부</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>자재 (material)</td>
+          <td class="old-value">26일</td>
+          <td class="new-value">21일</td>
+          <td>✅ 변경</td>
+        </tr>
+        <tr>
+          <td>한도CFM (hando_cfm)</td>
+          <td class="same-value">15일</td>
+          <td class="same-value">15일</td>
+          <td>⏸️ 유지</td>
+        </tr>
+        <tr>
+          <td>제갑&조립 (cutting_upper)</td>
+          <td class="old-value">33일</td>
+          <td class="new-value">17일</td>
+          <td>✅ 변경</td>
+        </tr>
+        <tr>
+          <td>공장출고 (factory_shipment)</td>
+          <td class="old-value">5일</td>
+          <td class="new-value">4일</td>
+          <td>✅ 변경</td>
+        </tr>
+        <tr>
+          <td>선적 (shipping)</td>
+          <td class="old-value">4일</td>
+          <td class="new-value">3일</td>
+          <td>✅ 변경</td>
+        </tr>
+        <tr>
+          <td>입항 (arrival)</td>
+          <td class="old-value">35일</td>
+          <td class="new-value">8일</td>
+          <td>✅ 변경</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button id="updateBtn" onclick="updateLeadTimes()">🚀 리드타임 업데이트 실행</button>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script type="module">
+    // Firebase 설정 (기존 config 사용)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAT95g8yR6RBuGcf30tXv9NwH0kkEBwn6k",
+      authDomain: "elcanto-scm.firebaseapp.com",
+      projectId: "elcanto-scm",
+      storageBucket: "elcanto-scm.firebasestorage.app",
+      messagingSenderId: "1015941864588",
+      appId: "1:1015941864588:web:2e1d3f83a30be6ec81e07f"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    window.db = firebase.firestore();
+
+    window.updateLeadTimes = async function() {
+      const btn = document.getElementById('updateBtn');
+      const result = document.getElementById('result');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ 업데이트 중...';
+      result.style.display = 'none';
+      
+      try {
+        console.log('🔧 챠오란 생산업체 리드타임 수정 시작...');
+        
+        const chaoranRef = window.db.collection('suppliers').doc('chaoran');
+        const doc = await chaoranRef.get();
+        
+        if (!doc.exists) {
+          throw new Error('chaoran 문서를 찾을 수 없습니다!');
+        }
+        
+        console.log('📦 현재 leadTimes:', doc.data().leadTimes);
+        
+        // UI 표시값과 일치시킴
+        const updatedLeadTimes = {
+          material: 21,           // 자재 (기존: 26)
+          hando_cfm: 15,          // 한도CFM (기존: 15, 유지)
+          cutting_upper: 17,      // 제갑&조립 (기존: 33)
+          factory_shipment: 4,    // 공장출고 (기존: 5)
+          shipping: 3,            // 선적 (기존: 4)
+          arrival: 8              // 입항 (기존: 35)
+        };
+        
+        await chaoranRef.update({
+          leadTimes: updatedLeadTimes
+        });
+        
+        console.log('✅ leadTimes 업데이트 완료!');
+        console.log('📊 새로운 leadTimes:', updatedLeadTimes);
+        
+        // 검증
+        const updatedDoc = await chaoranRef.get();
+        console.log('🔍 검증 결과:', updatedDoc.data().leadTimes);
+        
+        result.className = 'result success';
+        result.innerHTML = `
+          <strong>✅ 업데이트 완료!</strong><br><br>
+          챠오란 생산업체의 리드타임이 성공적으로 업데이트되었습니다.<br>
+          <br>
+          <strong>업데이트된 리드타임:</strong>
+          <ul style="margin: 10px 0 0 20px;">
+            <li>자재: 21일</li>
+            <li>한도CFM: 15일</li>
+            <li>제갑&조립: 17일</li>
+            <li>공장출고: 4일</li>
+            <li>선적: 3일</li>
+            <li>입항: 8일</li>
+          </ul>
+          <br>
+          <strong>다음 단계:</strong><br>
+          1. 기존 데이터 삭제 (delete-all-data.html)<br>
+          2. 10건 Excel 재업로드<br>
+          3. 목표일 확인
+        `;
+        
+        btn.textContent = '✅ 업데이트 완료!';
+        
+      } catch (error) {
+        console.error('❌ 업데이트 실패:', error);
+        result.className = 'result error';
+        result.innerHTML = `
+          <strong>❌ 업데이트 실패</strong><br><br>
+          ${error.message}
+        `;
+        btn.disabled = false;
+        btn.textContent = '🔄 다시 시도';
+      }
+    };
+  </script>
+</body>
+</html>
