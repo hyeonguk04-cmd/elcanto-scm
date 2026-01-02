@@ -714,7 +714,7 @@ function renderProcessCell(order, process, processConfig, category) {
   }
   
   const clickHandler = isClickable 
-    ? `onclick="showProcessDetail('${order.id}', '${process.id}', '${processConfig.key}', '${category}')"` 
+    ? `onclick="showProcessDetail('${order.id}', '${processConfig.key}', '${category}')"` 
     : '';
   
   return `
@@ -725,12 +725,12 @@ function renderProcessCell(order, process, processConfig, category) {
 }
 
 // 공정 상세 정보 표시
-window.showProcessDetail = async function(orderId, processId, processKey, category) {
+window.showProcessDetail = async function(orderId, processKey, category) {
   const order = allOrders.find(o => o.id === orderId);
   if (!order) return;
   
   const processes = category === 'production' ? order.schedule.production : order.schedule.shipping;
-  const process = processes.find(p => p.id === processId);
+  const process = processes.find(p => (p.key || p.processKey) === processKey);
   if (!process) return;
   
   // 공정 정보 가져오기

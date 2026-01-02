@@ -1079,48 +1079,45 @@ async function handleRouteChangeInline(routeSelect) {
     const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 발주 업데이트
+    // 기존 processes 보존하면서 새 일정 적용 (내장 구조)
+    const updatedProcesses = {
+      production: newSchedule.production.map((newProc, index) => {
+        const existing = order.schedule?.production?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      }),
+      shipping: newSchedule.shipping.map((newProc, index) => {
+        const existing = order.schedule?.shipping?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      })
+    };
+    
+    // 발주 업데이트 (processes 포함)
     await updateOrder(orderId, {
       route: newRoute,
-      schedule: newSchedule
+      schedule: updatedProcesses,
+      processes: updatedProcesses  // 새 구조에서는 processes 필드 사용
     });
-    console.log('✅ orders 컬렉션 업데이트 완료');
-    
-    // 🔥 핵심 수정: processes 컬렉션의 개별 문서들도 업데이트
-    console.log('🔄 processes 컬렉션 업데이트 시작...');
-    const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
-    
-    // 생산 공정 업데이트 (날짜는 변경 없지만 일관성 유지)
-    for (const newProcess of newSchedule.production) {
-      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-      if (existingProcess && existingProcess.id) {
-        await updateProcess(existingProcess.id, {
-          targetDate: newProcess.targetDate,
-          leadTime: newProcess.leadTime
-        });
-        console.log(`✅ 생산공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
-      }
-    }
-    
-    // 운송 공정 업데이트 (특히 입항 리드타임이 경로에 따라 변경됨)
-    for (const newProcess of newSchedule.shipping) {
-      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-      if (existingProcess && existingProcess.id) {
-        const updateData = {
-          targetDate: newProcess.targetDate,
-          leadTime: newProcess.leadTime
-        };
-        
-        // 입항 프로세스의 경우 route도 업데이트
-        if (newProcess.processKey === 'arrival' && newProcess.route) {
-          updateData.route = newProcess.route;
-        }
-        
-        await updateProcess(existingProcess.id, updateData);
-        console.log(`✅ 운송공정 업데이트: ${newProcess.name} → ${newProcess.targetDate} (리드타임: ${newProcess.leadTime}일)`);
-      }
-    }
-    console.log('✅ processes 컬렉션 업데이트 완료');
+    console.log('✅ 발주 및 공정 업데이트 완료 (내장 구조)');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
@@ -1175,41 +1172,45 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     const newSchedule = calculateProcessSchedule(newOrderDate, supplierLeadTimes, order.route, supplier);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
-    // 발주 업데이트
+    // 기존 processes 보존하면서 새 일정 적용 (내장 구조)
+    const updatedProcesses = {
+      production: newSchedule.production.map((newProc, index) => {
+        const existing = order.schedule?.production?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      }),
+      shipping: newSchedule.shipping.map((newProc, index) => {
+        const existing = order.schedule?.shipping?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      })
+    };
+    
+    // 발주 업데이트 (processes 포함)
     await updateOrder(orderId, {
       orderDate: newOrderDate,
-      schedule: newSchedule
+      schedule: updatedProcesses,
+      processes: updatedProcesses  // 새 구조에서는 processes 필드 사용
     });
-    console.log('✅ orders 컬렉션 업데이트 완료');
-    
-    // 🔥 핵심 수정: processes 컬렉션의 개별 문서들도 업데이트
-    console.log('🔄 processes 컬렉션 업데이트 시작...');
-    const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
-    
-    // 생산 공정 업데이트
-    for (const newProcess of newSchedule.production) {
-      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-      if (existingProcess && existingProcess.id) {
-        await updateProcess(existingProcess.id, {
-          targetDate: newProcess.targetDate,
-          leadTime: newProcess.leadTime
-        });
-        console.log(`✅ 생산공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
-      }
-    }
-    
-    // 운송 공정 업데이트
-    for (const newProcess of newSchedule.shipping) {
-      const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-      if (existingProcess && existingProcess.id) {
-        await updateProcess(existingProcess.id, {
-          targetDate: newProcess.targetDate,
-          leadTime: newProcess.leadTime
-        });
-        console.log(`✅ 운송공정 업데이트: ${newProcess.name} → ${newProcess.targetDate}`);
-      }
-    }
-    console.log('✅ processes 컬렉션 업데이트 완료');
+    console.log('✅ 발주 및 공정 업데이트 완료 (내장 구조)');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
@@ -1457,7 +1458,8 @@ async function saveAllChanges() {
           notes: row.querySelector('[data-field="notes"]')?.value || order.notes || '',
           orderDate: order.orderDate || '',
           requiredDelivery: order.requiredDelivery || '',
-          schedule: updatedSchedule
+          schedule: updatedSchedule,
+          processes: updatedSchedule  // 새 구조에서는 processes 필드 사용
         };
         
         // 새로운 행인 경우 (ID가 new_로 시작)
@@ -1467,31 +1469,9 @@ async function saveAllChanges() {
           // 기존 데이터와 비교하여 변경된 경우에만 업데이트
           const originalData = originalOrders[order.id];
           if (originalData !== JSON.stringify(updatedData)) {
+            // 새 구조에서는 processes가 내장되어 있으므로 updateOrder만 호출
             await updateOrder(order.id, updatedData);
-            
-            // 🔥 핵심: processes 컬렉션도 업데이트
-            console.log('🔄 processes 컬렉션 업데이트 시작...', order.id);
-            
-            // 생산 공정 업데이트
-            for (const process of updatedSchedule.production) {
-              if (process.id) {
-                await updateProcess(process.id, {
-                  targetDate: process.targetDate
-                });
-                console.log(`✅ 생산공정 저장: ${process.name} → ${process.targetDate}`);
-              }
-            }
-            
-            // 운송 공정 업데이트
-            for (const process of updatedSchedule.shipping) {
-              if (process.id) {
-                await updateProcess(process.id, {
-                  targetDate: process.targetDate
-                });
-                console.log(`✅ 운송공정 저장: ${process.name} → ${process.targetDate}`);
-              }
-            }
-            console.log('✅ processes 컬렉션 업데이트 완료');
+            console.log(`✅ 발주 및 공정 저장 완료 (내장 구조): ${order.id}`);
           }
         }
         
