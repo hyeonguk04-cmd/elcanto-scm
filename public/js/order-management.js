@@ -1909,11 +1909,29 @@ async function handleExcelUpload(e) {
             throw new Error('발주일과 입고요구일은 필수입니다.');
           }
           
+          const supplierName = row['생산업체'] || '';
           const route = row['선적경로'] || null;
+          
+          // 생산업체 정보 가져오기 (리드타임 적용을 위해)
+          let supplier = null;
+          let supplierLeadTimes = null;
+          if (supplierName) {
+            try {
+              supplier = await getSupplierByName(supplierName);
+              if (supplier && supplier.leadTimes) {
+                supplierLeadTimes = supplier.leadTimes;
+              }
+            } catch (error) {
+              console.warn(`  ⚠️ [${rowNumber}행] 생산업체 정보 로드 실패, 기본 리드타임 사용:`, supplierName);
+            }
+          }
+          
+          // 생산업체 리드타임을 적용한 일정 계산
           const schedule = calculateProcessSchedule(
             DateUtils.excelDateToString(row['발주일']),
-            null,
-            route
+            supplierLeadTimes,
+            route,
+            supplier
           );
           
           // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
@@ -1930,7 +1948,7 @@ async function handleExcelUpload(e) {
             color: row['색상'] || '',
             qty: row['수량'] || 0,
             country: row['국가'] || '',
-            supplier: row['생산업체'] || '',
+            supplier: supplierName,
             orderDate: DateUtils.excelDateToString(row['발주일']),
             requiredDelivery: DateUtils.excelDateToString(row['입고요구일']),
             route: route,
