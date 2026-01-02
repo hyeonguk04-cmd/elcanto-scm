@@ -6,8 +6,7 @@ import {
   addSupplierWithUsername,
   updateSupplier,
   getOrdersWithProcesses,
-  updateOrder,
-  updateProcess
+  updateOrder
 } from './firestore-service.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
@@ -849,35 +848,43 @@ async function updateOrderSchedulesForSupplier(supplierName, leadTimes, shipping
           shippingRoute || order.route
         );
         
-        // orders 컬렉션 업데이트
+        // 기존 processes 보존하면서 새 일정 적용 (내장 구조)
+        const updatedProcesses = {
+          production: newSchedule.production.map((newProc, index) => {
+            const existing = order.schedule?.production?.[index] || {};
+            return {
+              ...newProc,
+              // 기존 실적 데이터 보존
+              completedDate: existing.completedDate || null,
+              actualDate: existing.actualDate || null,
+              delayDays: existing.delayDays || null,
+              delayReason: existing.delayReason || null,
+              evidenceUrl: existing.evidenceUrl || null,
+              evidenceId: existing.evidenceId || null,
+              order: index
+            };
+          }),
+          shipping: newSchedule.shipping.map((newProc, index) => {
+            const existing = order.schedule?.shipping?.[index] || {};
+            return {
+              ...newProc,
+              // 기존 실적 데이터 보존
+              completedDate: existing.completedDate || null,
+              actualDate: existing.actualDate || null,
+              delayDays: existing.delayDays || null,
+              delayReason: existing.delayReason || null,
+              evidenceUrl: existing.evidenceUrl || null,
+              evidenceId: existing.evidenceId || null,
+              order: index
+            };
+          })
+        };
+        
+        // orders 컬렉션 업데이트 (processes 포함)
         await updateOrder(order.id, {
-          schedule: newSchedule
+          schedule: updatedProcesses,
+          processes: updatedProcesses  // 새 구조에서는 processes 필드 사용
         });
-        
-        // processes 컬렉션도 업데이트
-        const existingProcesses = order.schedule.production.concat(order.schedule.shipping);
-        
-        // 생산 공정 업데이트
-        for (const newProcess of newSchedule.production) {
-          const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-          if (existingProcess && existingProcess.id) {
-            await updateProcess(existingProcess.id, {
-              targetDate: newProcess.targetDate,
-              leadTime: newProcess.leadTime
-            });
-          }
-        }
-        
-        // 운송 공정 업데이트
-        for (const newProcess of newSchedule.shipping) {
-          const existingProcess = existingProcesses.find(p => p.processKey === newProcess.processKey);
-          if (existingProcess && existingProcess.id) {
-            await updateProcess(existingProcess.id, {
-              targetDate: newProcess.targetDate,
-              leadTime: newProcess.leadTime
-            });
-          }
-        }
         
         console.log(`✅ ${order.style} 일정 업데이트 완료`);
       } catch (error) {
