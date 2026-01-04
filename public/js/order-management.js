@@ -1075,14 +1075,18 @@ async function handleRouteChangeInline(routeSelect) {
     
     console.log('📦 기존 발주:', order);
     
-    // 새로운 일정 재계산 (선적경로에 따라 입항 리드타임 변경)
-    const newSchedule = calculateProcessSchedule(order.orderDate, null, newRoute);
+    // 생산업체 정보 조회하여 리드타임 적용
+    const supplier = await getSupplierByName(order.supplier);
+    console.log('🏭 생산업체 정보:', supplier);
+    
+    // 새로운 일정 재계산 (선적경로 및 생산업체 리드타임 반영)
+    const newSchedule = calculateProcessSchedule(order.orderDate, supplier?.leadTimes, newRoute, supplier);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 기존 processes 보존하면서 새 일정 적용 (내장 구조)
     const updatedProcesses = {
       production: newSchedule.production.map((newProc, index) => {
-        const existing = order.schedule?.production?.[index] || {};
+        const existing = order.processes?.production?.[index] || {};
         return {
           ...newProc,
           // 기존 실적 데이터 보존
@@ -1096,7 +1100,7 @@ async function handleRouteChangeInline(routeSelect) {
         };
       }),
       shipping: newSchedule.shipping.map((newProc, index) => {
-        const existing = order.schedule?.shipping?.[index] || {};
+        const existing = order.processes?.shipping?.[index] || {};
         return {
           ...newProc,
           // 기존 실적 데이터 보존
@@ -1175,7 +1179,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     // 기존 processes 보존하면서 새 일정 적용 (내장 구조)
     const updatedProcesses = {
       production: newSchedule.production.map((newProc, index) => {
-        const existing = order.schedule?.production?.[index] || {};
+        const existing = order.processes?.production?.[index] || {};
         return {
           ...newProc,
           // 기존 실적 데이터 보존
@@ -1189,7 +1193,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
         };
       }),
       shipping: newSchedule.shipping.map((newProc, index) => {
-        const existing = order.schedule?.shipping?.[index] || {};
+        const existing = order.processes?.shipping?.[index] || {};
         return {
           ...newProc,
           // 기존 실적 데이터 보존
