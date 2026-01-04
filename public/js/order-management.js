@@ -493,8 +493,14 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 운송 목표일정: 선적 (날짜 편집 가능) -->
       ${(() => {
-        const shippingProcess = order.processes.shipping.find(p => p.key === 'shipping');
+        console.log('🚢 운송 공정 렌더링:', {
+          hasShipping: !!order.processes?.shipping,
+          shippingArray: order.processes?.shipping,
+          shippingLength: order.processes?.shipping?.length
+        });
+        const shippingProcess = order.processes?.shipping?.find(p => p.key === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
+        console.log('📦 선적 프로세스:', { shippingProcess, shippingDate });
         return `<td class="px-2 py-2 border">
           <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  placeholder="YYYY-MM-DD" 
@@ -517,8 +523,9 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 운송 목표일정: 입항 (날짜 편집 가능) -->
       ${(() => {
-        const arrivalProcess = order.processes.shipping.find(p => p.key === 'arrival');
+        const arrivalProcess = order.processes?.shipping?.find(p => p.key === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
+        console.log('📦 입항 프로세스:', { arrivalProcess, arrivalDate });
         return `<td class="px-2 py-2 border">
           <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
                  placeholder="YYYY-MM-DD" 
