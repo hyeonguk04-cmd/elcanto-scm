@@ -617,13 +617,9 @@ function setupEventListeners() {
     else if (field.classList.contains('supplier-select')) {
       field.addEventListener('change', async (e) => {
         const orderId = e.target.dataset.orderId;
-        const order = orders.find(o => o.id === orderId);
-        if (order && order.orderDate) {
-          console.log('🏭 생산업체 변경됨:', e.target.value);
-          await handleOrderDateChange(orderId, order.orderDate);
-        } else {
-          markAsChanged(orderId);
-        }
+        const newSupplier = e.target.value;
+        console.log('🏭 생산업체 변경 시작:', { orderId, newSupplier });
+        await handleSupplierChange(orderId, newSupplier);
       });
     }
     // Route 변경 시 일정 재계산
@@ -1136,6 +1132,114 @@ async function handleRouteChangeInline(routeSelect) {
   } catch (error) {
     console.error('❌ Route change error:', error);
     UIUtils.showAlert('선적경로 변경 실패: ' + error.message, 'error');
+  }
+}
+
+async function handleSupplierChange(orderId, newSupplier) {
+  console.log('🏭 생산업체 변경 시작:', { orderId, newSupplier });
+  
+  try {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+      console.error('❌ 발주을 찾을 수 없음:', orderId);
+      return;
+    }
+    
+    console.log('📦 기존 발주:', order);
+    console.log('🚢 경로:', order.route);
+    console.log('📅 발주일:', order.orderDate);
+    
+    if (!order.orderDate) {
+      // 발주일이 없으면 생산업체만 업데이트
+      await updateOrder(orderId, {
+        supplier: newSupplier
+      });
+      console.log('✅ 생산업체만 업데이트 완료 (발주일 없음)');
+      
+      // 테이블 새로고침
+      orders = await getOrdersWithProcesses();
+      allOrders = [...orders];
+      applySeasonFilter();
+      renderOrdersTable();
+      setupEventListeners();
+      
+      UIUtils.showAlert('생산업체가 변경되었습니다.', 'success');
+      return;
+    }
+    
+    // 새 생산업체 정보 가져오기 (리드타임 포함)
+    let supplierLeadTimes = null;
+    let supplier = null;
+    try {
+      supplier = await getSupplierByName(newSupplier);
+      if (supplier && supplier.leadTimes) {
+        supplierLeadTimes = supplier.leadTimes;
+        console.log('✅ 새 생산업체 리드타임 로드:', supplierLeadTimes);
+        console.log('✅ 새 생산업체 선적항:', supplier.shippingRoute);
+      } else {
+        console.warn('⚠️ 생산업체 리드타임 없음, 기본값 사용');
+      }
+    } catch (error) {
+      console.warn('⚠️ 생산업체 정보 가져오기 실패, 기본 리드타임 사용:', error);
+    }
+    
+    // 생산업체 변경 시 전체 공정 일정 재계산 (새 생산업체 리드타임 반영)
+    const newSchedule = calculateProcessSchedule(order.orderDate, supplierLeadTimes, order.route, supplier);
+    console.log('📊 새로 계산된 일정:', newSchedule);
+    
+    // 기존 processes 보존하면서 새 일정 적용
+    const updatedProcesses = {
+      production: newSchedule.production.map((newProc, index) => {
+        const existing = order.processes?.production?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      }),
+      shipping: newSchedule.shipping.map((newProc, index) => {
+        const existing = order.processes?.shipping?.[index] || {};
+        return {
+          ...newProc,
+          // 기존 실적 데이터 보존
+          completedDate: existing.completedDate || null,
+          actualDate: existing.actualDate || null,
+          delayDays: existing.delayDays || null,
+          delayReason: existing.delayReason || null,
+          evidenceUrl: existing.evidenceUrl || null,
+          evidenceId: existing.evidenceId || null,
+          order: index
+        };
+      })
+    };
+    
+    // 발주 업데이트 (생산업체 + processes 포함)
+    await updateOrder(orderId, {
+      supplier: newSupplier,
+      processes: updatedProcesses
+    });
+    console.log('✅ 생산업체 및 공정 업데이트 완료');
+    
+    // 테이블 새로고침
+    orders = await getOrdersWithProcesses();
+    allOrders = [...orders];
+    console.log('🔄 발주 목록 새로고침 완료');
+    
+    applySeasonFilter();
+    renderOrdersTable();
+    setupEventListeners();
+    console.log('🎨 테이블 렌더링 완료');
+    
+    UIUtils.showAlert('생산업체가 변경되고 전체 일정이 재계산되었습니다.', 'success');
+  } catch (error) {
+    console.error('❌ Supplier change error:', error);
+    UIUtils.showAlert('생산업체 변경 실패: ' + error.message, 'error');
   }
 }
 
