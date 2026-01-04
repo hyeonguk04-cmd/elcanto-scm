@@ -380,6 +380,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border">
         <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 70px;" 
                 data-order-id="${order.id}" data-field="channel">
+          <option value="">선택하세요</option>
           ${MASTER_DATA.channels.map(ch => 
             `<option value="${ch}" ${order.channel === ch ? 'selected' : ''}>${ch}</option>`
           ).join('')}
@@ -442,6 +443,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border">
         <select class="editable-field country-select w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 70px;" 
                 data-order-id="${order.id}" data-field="country">
+          <option value="">선택하세요</option>
           ${Object.keys(SUPPLIERS_BY_COUNTRY).map(country => 
             `<option value="${country}" ${order.country === country ? 'selected' : ''}>${country}</option>`
           ).join('')}
@@ -452,6 +454,7 @@ function renderOrderRow(order, rowNum, headers) {
       <td class="px-2 py-2 border">
         <select class="editable-field supplier-select w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 70px;" 
                 data-order-id="${order.id}" data-field="supplier" data-country="${order.country}">
+          <option value="">선택하세요</option>
           ${(dynamicSuppliersByCountry[order.country] || []).map(sup => 
             `<option value="${sup}" ${order.supplier === sup ? 'selected' : ''}>${sup}</option>`
           ).join('')}
@@ -1167,6 +1170,28 @@ async function handleSupplierChange(orderId, newSupplier) {
     console.log('🚢 경로:', order.route);
     console.log('📅 발주일:', order.orderDate);
     
+    // 임시 행 (아직 저장 안됨) 처리
+    if (orderId.startsWith('new_')) {
+      console.log('🆕 임시 행: 로컬에서만 생산업체 업데이트');
+      order.supplier = newSupplier;
+      
+      // 생산업체 정보 가져오기
+      try {
+        const supplier = await getSupplierByName(newSupplier);
+        if (supplier?.shippingRoute) {
+          order.route = supplier.shippingRoute;
+          console.log('✅ 선적항-도착항 업데이트:', supplier.shippingRoute);
+        }
+      } catch (error) {
+        console.warn('⚠️ 생산업체 정보 가져오기 실패:', error);
+      }
+      
+      // UI 재렌더링 없이 변경사항 표시
+      markAsChanged(orderId);
+      UIUtils.showAlert('생산업체가 변경되었습니다. 저장 버튼을 눌러주세요.', 'success');
+      return;
+    }
+    
     if (!order.orderDate) {
       // 발주일이 없으면 생산업체만 업데이트
       await updateOrder(orderId, {
@@ -1485,29 +1510,25 @@ function addNewRow() {
   const tempId = 'new_' + Date.now();
   console.log('🆔 새 행 ID:', tempId);
   
-  // 빈 발주 객체 생성
+  // 빈 발주 객체 생성 (디폴트 값 없이 사용자 직접 입력)
   const newOrder = {
     id: tempId,
-    channel: MASTER_DATA.channels[0],
+    channel: '',           // 빈 값
     seasonOrder: '',
     style: '',
     styleImage: '',
     color: '',
     qty: 0,
-    country: Object.keys(SUPPLIERS_BY_COUNTRY)[0],
-    supplier: SUPPLIERS_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
-    orderDate: DateUtils.formatDate(new Date()),
-    requiredDelivery: DateUtils.formatDate(new Date()),
-    route: ROUTES_BY_COUNTRY[Object.keys(SUPPLIERS_BY_COUNTRY)[0]][0],
+    country: '',           // 빈 값
+    supplier: '',          // 빈 값
+    orderDate: '',         // 빈 값
+    requiredDelivery: '',  // 빈 값
+    route: null,           // 생산업체 선택 시 자동 반영
     processes: { production: [], shipping: [] },
     notes: ''
   };
   
   console.log('📝 새 발주 객체:', newOrder);
-  
-  // 기본 일정 계산
-  newOrder.processes = calculateProcessSchedule(newOrder.orderDate, null, newOrder.route);
-  console.log('📅 계산된 일정:', newOrder.processes);
   
   // 테이블에 새 행 추가
   const newRowHtml = renderOrderRow(newOrder, newRowNum, headers);
