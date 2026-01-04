@@ -474,7 +474,7 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 생산 공정 목표일 (날짜 편집 가능) -->
       ${headers.production.map(h => {
-        const process = order.processes.production.find(p => p.key === h.key);
+        const process = order.processes.production.find(p => p.key === h.key || p.processKey === h.key);
         const processDate = process?.targetDate || '';
         console.log(`📅 생산공정 렌더링 - ${h.key}:`, {
           processFound: !!process,
@@ -501,7 +501,7 @@ function renderOrderRow(order, rowNum, headers) {
         if (order.processes?.shipping) {
           console.log('🚢 운송 공정 상세:', JSON.stringify(order.processes.shipping, null, 2));
         }
-        const shippingProcess = order.processes?.shipping?.find(p => p.key === 'shipping');
+        const shippingProcess = order.processes?.shipping?.find(p => p.key === 'shipping' || p.processKey === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
         console.log('📦 선적 프로세스:', { 
           found: !!shippingProcess,
@@ -530,7 +530,7 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 운송 목표일정: 입항 (날짜 편집 가능) -->
       ${(() => {
-        const arrivalProcess = order.processes?.shipping?.find(p => p.key === 'arrival');
+        const arrivalProcess = order.processes?.shipping?.find(p => p.key === 'arrival' || p.processKey === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
         console.log('📦 입항 프로세스:', { 
           found: !!arrivalProcess,
@@ -1691,7 +1691,7 @@ function downloadCurrentDataAsExcel() {
       
       // 생산 공정 데이터 추가
       headers.production.forEach(h => {
-        const process = order.processes.production.find(p => p.key === h.key);
+        const process = order.processes.production.find(p => p.key === h.key || p.processKey === h.key);
         row[h.name] = process?.targetDate || '';
       });
       

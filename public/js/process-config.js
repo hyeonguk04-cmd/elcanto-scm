@@ -119,6 +119,7 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     
     currentDate = addDays(currentDate, leadTime);
     schedule.production.push({
+      key: process.key,
       processKey: process.key,
       name: process.name,
       name_en: process.name_en,
@@ -145,6 +146,7 @@ function calculateProcessSchedule(orderDate, supplierLeadTimes = null, route = n
     currentDate = addDays(currentDate, leadTime);
     
     const processData = {
+      key: process.key,
       processKey: process.key,
       name: process.name,
       name_en: process.name_en,
