@@ -1118,8 +1118,7 @@ async function handleRouteChangeInline(routeSelect) {
     // 발주 업데이트 (processes 포함)
     await updateOrder(orderId, {
       route: newRoute,
-      schedule: updatedProcesses,
-      processes: updatedProcesses  // 새 구조에서는 processes 필드 사용
+      processes: updatedProcesses
     });
     console.log('✅ 발주 및 공정 업데이트 완료 (내장 구조)');
     
@@ -1211,8 +1210,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     // 발주 업데이트 (processes 포함)
     await updateOrder(orderId, {
       orderDate: newOrderDate,
-      schedule: updatedProcesses,
-      processes: updatedProcesses  // 새 구조에서는 processes 필드 사용
+      processes: updatedProcesses
     });
     console.log('✅ 발주 및 공정 업데이트 완료 (내장 구조)');
     
