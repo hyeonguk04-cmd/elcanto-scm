@@ -649,9 +649,8 @@ export async function getOrdersWithProcesses() {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
+        ...data
         // processes는 이미 내장되어 있음 (새 구조)
-        schedule: data.processes || { production: [], shipping: [] }
       };
     });
     
