@@ -1193,6 +1193,13 @@ async function handleSupplierChange(orderId, newSupplier) {
       }
       
       // 발주일이 있으면 공정 일정 계산
+      console.log('🔍 공정 일정 계산 조건 체크:', {
+        hasOrderDate: !!order.orderDate,
+        orderDate: order.orderDate,
+        hasSupplier: !!supplier,
+        supplier: supplier
+      });
+      
       if (order.orderDate && supplier) {
         console.log('📅 발주일 있음, 공정 일정 계산 시작');
         const newSchedule = calculateProcessSchedule(
@@ -1344,10 +1351,18 @@ async function handleOrderDateChange(orderId, newOrderDate) {
       order.orderDate = newOrderDate;
       
       // 생산업체가 있으면 공정 일정 계산
+      console.log('🔍 공정 일정 계산 조건 체크:', {
+        hasSupplier: !!order.supplier,
+        supplier: order.supplier,
+        route: order.route
+      });
+      
       if (order.supplier) {
         console.log('🏭 생산업체 있음, 공정 일정 계산 시작');
         try {
           const supplier = await getSupplierByName(order.supplier);
+          console.log('✅ 생산업체 정보 조회 결과:', supplier);
+          
           if (supplier) {
             const newSchedule = calculateProcessSchedule(
               newOrderDate, 
