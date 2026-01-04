@@ -1167,15 +1167,23 @@ async function handleSupplierChange(orderId, newSupplier) {
       return;
     }
     
-    // 새 생산업체 정보 가져오기 (리드타임 포함)
+    // 새 생산업체 정보 가져오기 (리드타임 + 선적항 포함)
     let supplierLeadTimes = null;
     let supplier = null;
+    let newRoute = order.route; // 기본값: 기존 route 유지
+    
     try {
       supplier = await getSupplierByName(newSupplier);
       if (supplier && supplier.leadTimes) {
         supplierLeadTimes = supplier.leadTimes;
         console.log('✅ 새 생산업체 리드타임 로드:', supplierLeadTimes);
         console.log('✅ 새 생산업체 선적항:', supplier.shippingRoute);
+        
+        // 새 생산업체의 선적항-도착항 반영
+        if (supplier.shippingRoute) {
+          newRoute = supplier.shippingRoute;
+          console.log('✅ 선적항-도착항 업데이트:', order.route, '→', newRoute);
+        }
       } else {
         console.warn('⚠️ 생산업체 리드타임 없음, 기본값 사용');
       }
@@ -1183,8 +1191,8 @@ async function handleSupplierChange(orderId, newSupplier) {
       console.warn('⚠️ 생산업체 정보 가져오기 실패, 기본 리드타임 사용:', error);
     }
     
-    // 생산업체 변경 시 전체 공정 일정 재계산 (새 생산업체 리드타임 반영)
-    const newSchedule = calculateProcessSchedule(order.orderDate, supplierLeadTimes, order.route, supplier);
+    // 생산업체 변경 시 전체 공정 일정 재계산 (새 생산업체 리드타임 + 선적항 반영)
+    const newSchedule = calculateProcessSchedule(order.orderDate, supplierLeadTimes, newRoute, supplier);
     console.log('📊 새로 계산된 일정:', newSchedule);
     
     // 기존 processes 보존하면서 새 일정 적용
@@ -1219,12 +1227,13 @@ async function handleSupplierChange(orderId, newSupplier) {
       })
     };
     
-    // 발주 업데이트 (생산업체 + processes 포함)
+    // 발주 업데이트 (생산업체 + 선적항 + processes 포함)
     await updateOrder(orderId, {
       supplier: newSupplier,
+      route: newRoute,
       processes: updatedProcesses
     });
-    console.log('✅ 생산업체 및 공정 업데이트 완료');
+    console.log('✅ 생산업체, 선적항-도착항 및 공정 업데이트 완료');
     
     // 테이블 새로고침
     orders = await getOrdersWithProcesses();
@@ -1236,7 +1245,7 @@ async function handleSupplierChange(orderId, newSupplier) {
     setupEventListeners();
     console.log('🎨 테이블 렌더링 완료');
     
-    UIUtils.showAlert('생산업체가 변경되고 전체 일정이 재계산되었습니다.', 'success');
+    UIUtils.showAlert('생산업체, 선적항-도착항이 변경되고 전체 일정이 재계산되었습니다.', 'success');
   } catch (error) {
     console.error('❌ Supplier change error:', error);
     UIUtils.showAlert('생산업체 변경 실패: ' + error.message, 'error');
