@@ -1060,9 +1060,8 @@ function handleCountryChange(countrySelect) {
   const supplierSelect = row.querySelector('.supplier-select');
   if (supplierSelect) {
     const suppliers = dynamicSuppliersByCountry[newCountry] || [];
-    supplierSelect.innerHTML = suppliers.map(sup => 
-      `<option value="${sup}">${sup}</option>`
-    ).join('');
+    supplierSelect.innerHTML = '<option value="">선택하세요</option>' + 
+      suppliers.map(sup => `<option value="${sup}">${sup}</option>`).join('');
     supplierSelect.dataset.country = newCountry;
   }
   
@@ -1070,9 +1069,8 @@ function handleCountryChange(countrySelect) {
   const routeSelect = row.querySelector('.route-select');
   if (routeSelect) {
     const routes = ROUTES_BY_COUNTRY[newCountry] || [];
-    routeSelect.innerHTML = routes.map(route => 
-      `<option value="${route}">${route}</option>`
-    ).join('');
+    routeSelect.innerHTML = '<option value="">선택하세요</option>' + 
+      routes.map(route => `<option value="${route}">${route}</option>`).join('');
     routeSelect.dataset.country = newCountry;
   }
 }
@@ -1181,6 +1179,13 @@ async function handleSupplierChange(orderId, newSupplier) {
         if (supplier?.shippingRoute) {
           order.route = supplier.shippingRoute;
           console.log('✅ 선적항-도착항 업데이트:', supplier.shippingRoute);
+          
+          // UI의 route 드롭다운도 업데이트
+          const routeSelect = document.querySelector(`select.route-select[data-order-id="${orderId}"]`);
+          if (routeSelect) {
+            routeSelect.value = supplier.shippingRoute;
+            console.log('✅ UI 선적항-도착항 드롭다운 업데이트:', supplier.shippingRoute);
+          }
         }
       } catch (error) {
         console.warn('⚠️ 생산업체 정보 가져오기 실패:', error);
@@ -1308,6 +1313,15 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     console.log('📦 기존 발주:', order);
     console.log('🚢 경로:', order.route);
     console.log('🏭 생산업체:', order.supplier);
+    
+    // 임시 행 (아직 저장 안됨) 처리
+    if (orderId.startsWith('new_')) {
+      console.log('🆕 임시 행: 로컬에서만 발주일 업데이트');
+      order.orderDate = newOrderDate;
+      markAsChanged(orderId);
+      UIUtils.showAlert('발주일이 변경되었습니다. 저장 버튼을 눌러주세요.', 'success');
+      return;
+    }
     
     // 생산업체 정보 가져오기 (리드타임 포함)
     let supplierLeadTimes = null;
