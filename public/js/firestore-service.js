@@ -234,10 +234,18 @@ export async function addOrder(orderData) {
       shippingRoute: supplier?.shippingRoute
     });
     
+    // route가 없으면 생산업체의 shippingRoute 사용
+    const finalRoute = orderData.route || supplier?.shippingRoute || null;
+    console.log('🚢 최종 route:', { 
+      orderDataRoute: orderData.route, 
+      supplierRoute: supplier?.shippingRoute,
+      finalRoute: finalRoute 
+    });
+    
     const schedule = calculateProcessSchedule(
       orderData.orderDate,
       supplier?.leadTimes,
-      orderData.route,
+      finalRoute,
       supplier
     );
     
@@ -282,6 +290,7 @@ export async function addOrder(orderData) {
     // 발주 데이터에 processes 추가
     const orderRef = await window.db.collection('orders').add({
       ...orderDataWithoutSchedule,
+      route: finalRoute,  // 최종 route 저장
       processes,
       schedule: processes,  // 호환성을 위해 schedule도 유지
       createdBy: user?.uid || null,
