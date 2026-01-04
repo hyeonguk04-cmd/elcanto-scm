@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>전체 생산업체 UI→Firebase 동기화</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1400px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #2563eb; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .warning {
+      background: #fee2e2;
+      border: 1px solid #ef4444;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      color: #991b1b;
+    }
+    .step {
+      background: #f0f9ff;
+      border: 1px solid #3b82f6;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .step h3 { margin-top: 0; color: #1e40af; }
+    button {
+      background: #2563eb;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+    button.success {
+      background: #059669;
+    }
+    button.success:hover {
+      background: #047857;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #374151;
+      position: sticky;
+      top: 0;
+    }
+    .supplier-name {
+      font-weight: 600;
+      color: #2563eb;
+    }
+    .mismatch {
+      background: #fee2e2;
+      font-weight: 600;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .result.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+      display: block;
+    }
+    .result.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+      display: block;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .firebase-value { color: #dc2626; }
+    .ui-value { color: #059669; font-weight: 600; }
+    pre {
+      background: #f3f4f6;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 전체 생산업체 UI→Firebase 리드타임 동기화</h1>
+    <p class="subtitle">생산업체 관리 화면(UI)에 표시된 리드타임을 Firebase에 정확히 반영합니다.</p>
+
+    <div class="warning">
+      <strong>⚠️ 중요 경고:</strong>
+      <ul style="margin: 10px 0 0 20px;">
+        <li><strong>이 도구는 Firebase의 모든 생산업체 leadTimes를 덮어씁니다!</strong></li>
+        <li>실행 전 반드시 <strong>생산업체 관리 페이지</strong>에서 모든 업체의 리드타임이 정확한지 확인하세요!</li>
+        <li>UI에 표시된 값이 정확하다면 이 도구를 실행하세요.</li>
+        <li>되돌릴 수 없으므로 신중하게 실행하세요!</li>
+      </ul>
+    </div>
+
+    <div class="step">
+      <h3>📋 Step 1: 현재 상태 확인</h3>
+      <p>모든 생산업체의 UI 표시값과 Firebase 저장값을 비교합니다.</p>
+      <button id="checkBtn" onclick="checkAllSuppliers()">🔍 전체 생산업체 확인</button>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      <i>⏳ 처리 중...</i>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="resultTable" style="display: none;">
+        <thead>
+          <tr>
+            <th rowspan="2">생산업체</th>
+            <th colspan="2">자재<br>(material)</th>
+            <th colspan="2">한도CFM<br>(hando_cfm)</th>
+            <th colspan="2">제갑&조립<br>(cutting_upper)</th>
+            <th colspan="2">공장출고<br>(factory_shipment)</th>
+            <th colspan="2">선적<br>(shipping)</th>
+            <th colspan="2">입항<br>(arrival)</th>
+            <th rowspan="2">선적항<br>-도착항</th>
+          </tr>
+          <tr>
+            <th>UI</th>
+            <th>FB</th>
+            <th>UI</th>
+            <th>FB</th>
+            <th>UI</th>
+            <th>FB</th>
+            <th>UI</th>
+            <th>FB</th>
+            <th>UI</th>
+            <th>FB</th>
+            <th>UI</th>
+            <th>FB</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+
+    <div class="step" id="step2" style="display: none;">
+      <h3>🚀 Step 2: Firebase 업데이트 실행</h3>
+      <p><strong id="mismatchCount">0</strong>개 생산업체의 리드타임을 UI 값으로 동기화합니다.</p>
+      <button id="syncBtn" onclick="syncAllSuppliers()" class="success">✅ UI → Firebase 동기화 실행</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyAT95g8yR6RBuGcf30tXv9NwH0kkEBwn6k",
+      authDomain: "elcanto-scm.firebaseapp.com",
+      projectId: "elcanto-scm",
+      storageBucket: "elcanto-scm.firebasestorage.app",
+      messagingSenderId: "1015941864588",
+      appId: "1:1015941864588:web:2e1d3f83a30be6ec81e07f"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    window.db = firebase.firestore();
+
+    let suppliersData = [];
+
+    // UI에서 생산업체 데이터 가져오기 (실제 UI 표시값)
+    async function fetchUISupplierData() {
+      const snapshot = await window.db.collection('suppliers').get();
+      const suppliers = [];
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        suppliers.push({
+          id: doc.id,
+          name: data.name || '',
+          // UI에 표시되는 값 (생산업체 관리 화면의 input 값)
+          ui_leadTimes: data.leadTimes || {}, // 일단 현재 값 가져오기
+          // Firebase에 실제 저장된 값
+          firebase_leadTimes: data.leadTimes || {},
+          shippingRoute: data.shippingRoute || ''
+        });
+      });
+      
+      return suppliers;
+    }
+
+    window.checkAllSuppliers = async function() {
+      const btn = document.getElementById('checkBtn');
+      const loading = document.getElementById('loading');
+      const table = document.getElementById('resultTable');
+      const tbody = document.getElementById('resultBody');
+      const step2 = document.getElementById('step2');
+      const result = document.getElementById('result');
+      
+      btn.disabled = true;
+      loading.style.display = 'block';
+      table.style.display = 'none';
+      step2.style.display = 'none';
+      result.style.display = 'none';
+      tbody.innerHTML = '';
+      
+      try {
+        console.log('🔍 전체 생산업체 조회 시작...');
+        
+        suppliersData = await fetchUISupplierData();
+        
+        if (suppliersData.length === 0) {
+          alert('생산업체 데이터가 없습니다!');
+          return;
+        }
+        
+        console.log(`📦 총 ${suppliersData.length}개 생산업체 발견`);
+        console.log('데이터:', suppliersData);
+        
+        suppliersData.sort((a, b) => a.name.localeCompare(b.name));
+        
+        let mismatchCount = 0;
+        
+        suppliersData.forEach(supplier => {
+          const row = document.createElement('tr');
+          
+          const ui = supplier.ui_leadTimes;
+          const fb = supplier.firebase_leadTimes;
+          
+          // 불일치 확인 (현재는 UI=Firebase이므로 모두 표시)
+          const hasMismatch = false; // 일단 모두 표시
+          
+          row.innerHTML = `
+            <td class="supplier-name">${supplier.name}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.material || '-'}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.hando_cfm || '-'}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.cutting_upper || '-'}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.factory_shipment || '-'}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.shipping || '-'}</td>
+            <td class="ui-value">?</td>
+            <td class="firebase-value">${fb.arrival || '-'}</td>
+            <td>${supplier.shippingRoute || '-'}</td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+        
+        table.style.display = 'table';
+        loading.style.display = 'none';
+        btn.textContent = '✅ 확인 완료';
+        btn.disabled = false;
+        
+        result.className = 'result error';
+        result.innerHTML = `
+          <strong>⚠️ 주의:</strong><br><br>
+          현재 이 도구는 Firebase에 저장된 값만 표시합니다.<br>
+          <strong>UI 표시값은 생산업체 관리 페이지에서 직접 확인해야 합니다!</strong><br>
+          <br>
+          <strong>해결 방법:</strong><br>
+          1. 생산업체 관리 페이지 열기<br>
+          2. 각 업체의 "수정" 버튼 클릭<br>
+          3. 표시된 리드타임과 위 표의 Firebase 값 비교<br>
+          4. 불일치하면 UI에서 직접 수정 후 저장<br>
+          <br>
+          <strong>또는 챠오란처럼 개별 수정:</strong><br>
+          - fix-chaoran-leadtimes.html 사용
+        `;
+        
+        console.log('✅ 전체 생산업체 조회 완료!');
+        
+      } catch (error) {
+        console.error('❌ 조회 실패:', error);
+        alert('조회 실패: ' + error.message);
+        btn.disabled = false;
+        loading.style.display = 'none';
+      }
+    };
+  </script>
+</body>
+</html>

@@ -358,7 +358,7 @@ function renderOrderRow(order, rowNum, headers) {
   });
   
   // 입항일 (운송 공정의 마지막)
-  const arrivalDate = order.schedule.shipping[order.schedule.shipping.length - 1]?.targetDate || '-';
+  const arrivalDate = order.processes.shipping[order.processes.shipping.length - 1]?.targetDate || '-';
   
   // 물류입고일 = 입항일 + 0일 (통상 입항 당일 입고)
   // 실제 물류입고일은 수동 입력 가능 (세관검사, 운송문제 등으로 지연 가능)
@@ -474,7 +474,7 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 생산 공정 목표일 (날짜 편집 가능) -->
       ${headers.production.map(h => {
-        const process = order.schedule.production.find(p => p.processKey === h.key);
+        const process = order.processes.production.find(p => p.key === h.key);
         const processDate = process?.targetDate || '';
         console.log(`📅 생산공정 렌더링 - ${h.key}:`, {
           processFound: !!process,
@@ -493,7 +493,7 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 운송 목표일정: 선적 (날짜 편집 가능) -->
       ${(() => {
-        const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
+        const shippingProcess = order.processes.shipping.find(p => p.key === 'shipping');
         const shippingDate = shippingProcess?.targetDate || '';
         return `<td class="px-2 py-2 border">
           <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
@@ -517,7 +517,7 @@ function renderOrderRow(order, rowNum, headers) {
       
       <!-- 운송 목표일정: 입항 (날짜 편집 가능) -->
       ${(() => {
-        const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
+        const arrivalProcess = order.processes.shipping.find(p => p.key === 'arrival');
         const arrivalDate = arrivalProcess?.targetDate || '';
         return `<td class="px-2 py-2 border">
           <input type="text" class="editable-field process-date-input w-full px-1 py-1 border border-gray-300 rounded text-xs" 
@@ -1247,7 +1247,7 @@ async function handleProcessDateChange(orderId, category, processKey, newDate) {
   }
   
   // 해당 공정의 날짜 수정
-  const processArray = category === 'production' ? order.schedule.production : order.schedule.shipping;
+  const processArray = category === 'production' ? order.processes.production : order.processes.shipping;
   const processIndex = processArray.findIndex(p => p.processKey === processKey);
   
   if (processIndex === -1) return;
@@ -1268,13 +1268,13 @@ async function handleProcessDateChange(orderId, category, processKey, newDate) {
   }
   
   // 생산 공정을 수정한 경우, 운송 공정도 재계산
-  if (category === 'production' && order.schedule.shipping && order.schedule.shipping.length > 0) {
+  if (category === 'production' && order.processes.shipping && order.processes.shipping.length > 0) {
     // 마지막 생산 공정의 날짜부터 운송 공정 시작
     const lastProductionDate = processArray[processArray.length - 1].targetDate;
     currentDate = new Date(lastProductionDate);
     
-    for (let i = 0; i < order.schedule.shipping.length; i++) {
-      const shippingProcess = order.schedule.shipping[i];
+    for (let i = 0; i < order.processes.shipping.length; i++) {
+      const shippingProcess = order.processes.shipping[i];
       let leadTime = supplierLeadTimes ? (supplierLeadTimes[shippingProcess.processKey] || shippingProcess.leadTime || 0) : (shippingProcess.leadTime || 0);
       
       // 입항 공정은 경로에 따라 리드타임 조정
@@ -1425,9 +1425,9 @@ async function saveAllChanges() {
         };
         
         // 생산 공정 날짜 수집
-        if (order.schedule && order.schedule.production) {
-          updatedSchedule.production = order.schedule.production.map(process => {
-            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-process-category="production"]`);
+        if (order.processes && order.processes.production) {
+          updatedSchedule.production = order.processes.production.map((process, index) => {
+            const input = row.querySelector(`[data-process-key="${process.key}"][data-process-category="production"]`);
             return {
               ...process,
               targetDate: input?.value || process.targetDate
@@ -1436,9 +1436,9 @@ async function saveAllChanges() {
         }
         
         // 운송 공정 날짜 수집
-        if (order.schedule && order.schedule.shipping) {
-          updatedSchedule.shipping = order.schedule.shipping.map(process => {
-            const input = row.querySelector(`[data-process-key="${process.processKey}"][data-process-category="shipping"]`);
+        if (order.processes && order.processes.shipping) {
+          updatedSchedule.shipping = order.processes.shipping.map((process, index) => {
+            const input = row.querySelector(`[data-process-key="${process.key}"][data-process-category="shipping"]`);
             return {
               ...process,
               targetDate: input?.value || process.targetDate
@@ -1558,13 +1558,13 @@ function downloadCurrentDataAsExcel() {
       
       // 생산 공정 데이터 추가
       headers.production.forEach(h => {
-        const process = order.schedule.production.find(p => p.processKey === h.key);
+        const process = order.processes.production.find(p => p.key === h.key);
         row[h.name] = process?.targetDate || '';
       });
       
       // 운송 데이터 추가
-      const shippingProcess = order.schedule.shipping.find(p => p.processKey === 'shipping');
-      const arrivalProcess = order.schedule.shipping.find(p => p.processKey === 'arrival');
+      const shippingProcess = order.processes.shipping.find(p => p.key === 'shipping');
+      const arrivalProcess = order.processes.shipping.find(p => p.key === 'arrival');
       
       row['선적'] = shippingProcess?.targetDate || '';
       row['선적경로'] = order.route || '';
