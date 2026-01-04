@@ -1642,14 +1642,15 @@ async function saveAllChanges() {
 }
 
 function downloadTemplate() {
-  // 기본 필수 컬럼만 포함 (공정 날짜는 자동 계산되므로 제외)
+  // 기본 필수 컬럼만 포함 (공정 날짜와 선적경로는 자동 계산되므로 제외)
+  // 선적경로는 생산업체 정보에서 자동으로 가져옴 (사용자 입력 불필요)
   const basicColumns = [
     '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
-    '국가', '생산업체', '발주일', '입고요구일', '선적경로'
+    '국가', '생산업체', '발주일', '입고요구일'
   ];
   
   ExcelUtils.downloadTemplate(basicColumns, 'elcanto_order_template.xlsx');
-  UIUtils.showAlert('템플릿 다운로드 완료! 필수 항목만 입력하면 공정 날짜가 자동 계산됩니다.', 'success');
+  UIUtils.showAlert('템플릿 다운로드 완료! 생산업체 선택 시 선적경로가 자동 반영됩니다.', 'success');
 }
 
 function downloadCurrentDataAsExcel() {
@@ -1700,7 +1701,7 @@ function downloadCurrentDataAsExcel() {
       const arrivalProcess = order.processes.shipping.find(p => p.key === 'arrival');
       
       row['선적'] = shippingProcess?.targetDate || '';
-      row['선적경로'] = order.route || '';
+      row['선적경로'] = order.route || '';  // 정보 표시용 (업로드 시 무시됨, 생산업체 정보에서 자동 반영)
       row['입항'] = arrivalProcess?.targetDate || '';
       
       // 물류입고일 계산
@@ -2042,14 +2043,17 @@ async function handleExcelUpload(e) {
             throw new Error('발주일과 입고요구일은 필수입니다.');
           }
           
-          const route = row['선적경로'] || null;
+          // 선적경로는 생산업체 정보에서 자동으로 가져옴 (Excel 입력 무시)
+          // 이유: 사용자 오타 방지 및 데이터 일관성 유지
+          // addOrder 함수에서 supplier.shippingRoute를 자동으로 사용함
+          const route = null;  // 항상 null로 설정하여 생산업체 shippingRoute 사용
           
           // schedule은 addOrder 내부에서 생산업체 정보를 조회하여 계산됨
           // 여기서는 기본 구조만 전달 (addOrder가 supplier 기반으로 재계산)
           const schedule = calculateProcessSchedule(
             DateUtils.excelDateToString(row['발주일']),
             null,  // addOrder에서 supplier 정보 조회 후 재계산
-            route
+            route   // null → addOrder에서 supplier.shippingRoute 사용
           );
           
           // 스타일이미지: URL이 제공되면 사용, 없으면 업로드된 이미지 URL 사용
