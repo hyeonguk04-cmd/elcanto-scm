@@ -1174,8 +1174,9 @@ async function handleSupplierChange(orderId, newSupplier) {
       order.supplier = newSupplier;
       
       // 생산업체 정보 가져오기
+      let supplier = null;
       try {
-        const supplier = await getSupplierByName(newSupplier);
+        supplier = await getSupplierByName(newSupplier);
         if (supplier?.shippingRoute) {
           order.route = supplier.shippingRoute;
           console.log('✅ 선적항-도착항 업데이트:', supplier.shippingRoute);
@@ -1191,9 +1192,32 @@ async function handleSupplierChange(orderId, newSupplier) {
         console.warn('⚠️ 생산업체 정보 가져오기 실패:', error);
       }
       
+      // 발주일이 있으면 공정 일정 계산
+      if (order.orderDate && supplier) {
+        console.log('📅 발주일 있음, 공정 일정 계산 시작');
+        const newSchedule = calculateProcessSchedule(
+          order.orderDate, 
+          supplier.leadTimes, 
+          order.route, 
+          supplier
+        );
+        order.processes = newSchedule;
+        console.log('✅ 공정 일정 계산 완료:', newSchedule);
+        
+        // UI 재렌더링하여 공정 일정 표시
+        const headers = createProcessTableHeaders();
+        const rowNum = orders.findIndex(o => o.id === orderId) + 1;
+        const newRowHtml = renderOrderRow(order, rowNum, headers);
+        const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
+        if (oldRow) {
+          oldRow.outerHTML = newRowHtml;
+          setupEventListeners();
+        }
+      }
+      
       // UI 재렌더링 없이 변경사항 표시
       markAsChanged(orderId);
-      UIUtils.showAlert('생산업체가 변경되었습니다. 저장 버튼을 눌러주세요.', 'success');
+      UIUtils.showAlert('생산업체가 변경되었습니다. 발주일을 입력하면 공정 일정이 계산됩니다.', 'success');
       return;
     }
     
@@ -1318,6 +1342,37 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     if (orderId.startsWith('new_')) {
       console.log('🆕 임시 행: 로컬에서만 발주일 업데이트');
       order.orderDate = newOrderDate;
+      
+      // 생산업체가 있으면 공정 일정 계산
+      if (order.supplier) {
+        console.log('🏭 생산업체 있음, 공정 일정 계산 시작');
+        try {
+          const supplier = await getSupplierByName(order.supplier);
+          if (supplier) {
+            const newSchedule = calculateProcessSchedule(
+              newOrderDate, 
+              supplier.leadTimes, 
+              order.route, 
+              supplier
+            );
+            order.processes = newSchedule;
+            console.log('✅ 공정 일정 계산 완료:', newSchedule);
+            
+            // UI 재렌더링하여 공정 일정 표시
+            const headers = createProcessTableHeaders();
+            const rowNum = orders.findIndex(o => o.id === orderId) + 1;
+            const newRowHtml = renderOrderRow(order, rowNum, headers);
+            const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
+            if (oldRow) {
+              oldRow.outerHTML = newRowHtml;
+              setupEventListeners();
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ 공정 일정 계산 실패:', error);
+        }
+      }
+      
       markAsChanged(orderId);
       UIUtils.showAlert('발주일이 변경되었습니다. 저장 버튼을 눌러주세요.', 'success');
       return;
