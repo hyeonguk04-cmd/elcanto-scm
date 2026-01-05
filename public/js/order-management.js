@@ -1056,6 +1056,15 @@ function handleCountryChange(countrySelect) {
   const newCountry = countrySelect.value;
   const row = countrySelect.closest('tr');
   
+  console.log('🌏 국가 변경 시작:', { orderId, newCountry });
+  
+  // order 객체에 새 국가 저장
+  const order = orders.find(o => o.id === orderId);
+  if (order) {
+    order.country = newCountry;
+    console.log('💾 order 객체에 국가 저장:', newCountry);
+  }
+  
   // 해당 행의 supplier select 업데이트
   const supplierSelect = row.querySelector('.supplier-select');
   if (supplierSelect) {
@@ -1063,6 +1072,13 @@ function handleCountryChange(countrySelect) {
     supplierSelect.innerHTML = '<option value="">선택하세요</option>' + 
       suppliers.map(sup => `<option value="${sup}">${sup}</option>`).join('');
     supplierSelect.dataset.country = newCountry;
+    
+    // 생산업체 초기화
+    if (order) {
+      order.supplier = '';
+      order.route = '';
+      console.log('🔄 생산업체 및 선적항 초기화');
+    }
   }
   
   // 해당 행의 route select 업데이트
@@ -1073,6 +1089,13 @@ function handleCountryChange(countrySelect) {
       routes.map(route => `<option value="${route}">${route}</option>`).join('');
     routeSelect.dataset.country = newCountry;
   }
+  
+  // 임시 행이면 변경 표시
+  if (orderId.startsWith('new_')) {
+    markAsChanged(orderId);
+  }
+  
+  console.log('✅ 국가 변경 완료:', { orderId, newCountry });
 }
 
 async function handleRouteChangeInline(routeSelect) {
