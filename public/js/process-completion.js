@@ -204,10 +204,11 @@ function renderCompletionTable() {
             </td>
           </tr>
         ` : orders.map((order, index) => {
-          const productionProcesses = order.schedule?.production || [];
-          const shippingProcesses = order.schedule?.shipping || [];
-          const shippingProcess = shippingProcesses.find(p => p.processKey === 'shipping');
-          const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
+          // processes 구조 우선, schedule 호환성 유지
+          const productionProcesses = order.processes?.production || order.schedule?.production || [];
+          const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
+          const shippingProcess = shippingProcesses.find(p => p.key === 'shipping' || p.processKey === 'shipping');
+          const arrivalProcess = shippingProcesses.find(p => p.key === 'arrival' || p.processKey === 'arrival');
           
           return `
             <tr data-order-id="${order.id}" class="hover:bg-blue-50">
@@ -220,7 +221,7 @@ function renderCompletionTable() {
               <td class="px-2 py-2 border">${order.supplier || ''}</td>
               <td class="px-2 py-2 border text-center">${order.orderDate || ''}</td>
               ${headers.production.map(header => {
-                const process = productionProcesses.find(p => p.processKey === header.key);
+                const process = productionProcesses.find(p => p.key === header.key || p.processKey === header.key);
                 const completedDate = process?.completedDate || '';
                 const targetDate = process?.targetDate || '';
                 const isCompleted = !!completedDate;
