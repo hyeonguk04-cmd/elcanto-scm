@@ -320,16 +320,17 @@ function filterOrders() {
 }
 
 function checkIfDelayed(order) {
-  const allProcesses = [...(order.schedule?.production || []), ...(order.schedule?.shipping || [])];
+  const allProcesses = [...(order.processes?.production || order.schedule?.production || []), ...(order.processes?.shipping || order.schedule?.shipping || [])];
   return allProcesses.some(p => {
-    if (!p.actualDate || !p.targetDate) return false;
-    return new Date(p.actualDate) > new Date(p.targetDate);
+    const completedDate = p.completedDate || p.actualDate;
+    if (!completedDate || !p.targetDate) return false;
+    return new Date(completedDate) > new Date(p.targetDate);
   });
 }
 
 function checkIfAllCompleted(order) {
-  const allProcesses = [...(order.schedule?.production || []), ...(order.schedule?.shipping || [])];
-  return allProcesses.length > 0 && allProcesses.every(p => p.actualDate);
+  const allProcesses = [...(order.processes?.production || order.schedule?.production || []), ...(order.processes?.shipping || order.schedule?.shipping || [])];
+  return allProcesses.length > 0 && allProcesses.every(p => p.completedDate || p.actualDate);
 }
 
 function renderAnalyticsTable(orders) {
@@ -503,16 +504,17 @@ function renderAnalyticsTable(orders) {
 function determineProcessStatus(order, productionProcesses, shippingProcesses) {
   // 입항 완료 여부 확인
   const arrivalProcess = shippingProcesses.find(p => p.key === 'arrival' || p.processKey === 'arrival');
-  const isArrivalCompleted = arrivalProcess?.actualDate;
+  const isArrivalCompleted = arrivalProcess?.completedDate || arrivalProcess?.actualDate;
   
   // 모든 공정의 지연일수 합산
   let totalDelayDays = 0;
   let hasDelay = false;
   
   [...productionProcesses, ...shippingProcesses].forEach(process => {
-    if (process.targetDate && process.actualDate) {
+    const completedDate = process.completedDate || process.actualDate;
+    if (process.targetDate && completedDate) {
       const targetDate = new Date(process.targetDate);
-      const actualDate = new Date(process.actualDate);
+      const actualDate = new Date(completedDate);
       const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
       
       if (diff > 0) {
@@ -642,8 +644,9 @@ function calculateExpectedArrival(order, productionProcesses, shippingProcesses)
   
   // 완료된 마지막 공정 찾기
   for (let i = allProcesses.length - 1; i >= 0; i--) {
-    if (allProcesses[i].process?.actualDate) {
-      currentDate = new Date(allProcesses[i].process.actualDate);
+    const completedDate = allProcesses[i].process?.completedDate || allProcesses[i].process?.actualDate;
+    if (completedDate) {
+      currentDate = new Date(completedDate);
       lastCompletedIndex = i;
       break;
     }
@@ -694,9 +697,12 @@ function renderProcessCell(order, process, processConfig, category) {
   let cellContent = '-';
   let isClickable = false;
   
-  if (process.targetDate && process.actualDate) {
+  // completedDate 또는 actualDate 사용 (호환성)
+  const completedDate = process.completedDate || process.actualDate;
+  
+  if (process.targetDate && completedDate) {
     const targetDate = new Date(process.targetDate);
-    const actualDate = new Date(process.actualDate);
+    const actualDate = new Date(completedDate);
     const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
     
     delayDays = diff;
@@ -712,7 +718,7 @@ function renderProcessCell(order, process, processConfig, category) {
       cellContent = '0';
       cellClass = 'text-green-700 font-bold cursor-pointer hover:bg-gray-100';
     }
-  } else if (process.actualDate) {
+  } else if (completedDate) {
     // 목표일은 없지만 완료일은 있는 경우
     cellContent = '✓';
     cellClass = 'text-green-700 cursor-pointer hover:bg-gray-100';
@@ -750,9 +756,10 @@ window.showProcessDetail = async function(orderId, processKey, category) {
   // 차이일수 계산
   let diffDays = '-';
   let diffClass = '';
-  if (process.targetDate && process.actualDate) {
+  const completedDate = process.completedDate || process.actualDate;
+  if (process.targetDate && completedDate) {
     const targetDate = new Date(process.targetDate);
-    const actualDate = new Date(process.actualDate);
+    const actualDate = new Date(completedDate);
     const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
     
     if (diff > 0) {
@@ -816,7 +823,7 @@ window.showProcessDetail = async function(orderId, processKey, category) {
           </div>
           <div class="flex justify-between items-center py-2 border-b">
             <span class="text-gray-600 font-medium">실제 완료일:</span>
-            <span class="font-bold text-gray-800">${process.actualDate || '-'}</span>
+            <span class="font-bold text-gray-800">${process.completedDate || process.actualDate || '-'}</span>
           </div>
           <div class="flex justify-between items-center py-2 border-b">
             <span class="text-gray-600 font-medium">차이일수:</span>
@@ -932,12 +939,13 @@ function downloadExcel() {
     
     // 생산 공정 추가
     PROCESS_CONFIG.production.forEach(p => {
-      const process = (order.schedule?.production || []).find(pr => pr.processKey === p.key);
+      const process = (order.processes?.production || order.schedule?.production || []).find(pr => pr.key === p.key || pr.processKey === p.key);
       let delayValue = '';
-      if (process && process.actualDate && process.targetDate) {
-        const delayDays = Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
+      const completedDate = process?.completedDate || process?.actualDate;
+      if (process && completedDate && process.targetDate) {
+        const delayDays = Math.floor((new Date(completedDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
         delayValue = delayDays > 0 ? `+${delayDays}` : delayDays < 0 ? `${delayDays}` : '0';
-      } else if (process && process.actualDate) {
+      } else if (process && completedDate) {
         delayValue = '완료';
       } else if (process && process.targetDate) {
         delayValue = '대기중';
@@ -947,12 +955,13 @@ function downloadExcel() {
     
     // 운송 공정 추가
     PROCESS_CONFIG.shipping.forEach(p => {
-      const process = (order.schedule?.shipping || []).find(pr => pr.processKey === p.key);
+      const process = (order.processes?.shipping || order.schedule?.shipping || []).find(pr => pr.key === p.key || pr.processKey === p.key);
       let delayValue = '';
-      if (process && process.actualDate && process.targetDate) {
-        const delayDays = Math.floor((new Date(process.actualDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
+      const completedDate = process?.completedDate || process?.actualDate;
+      if (process && completedDate && process.targetDate) {
+        const delayDays = Math.floor((new Date(completedDate) - new Date(process.targetDate)) / (1000 * 60 * 60 * 24));
         delayValue = delayDays > 0 ? `+${delayDays}` : delayDays < 0 ? `${delayDays}` : '0';
-      } else if (process && process.actualDate) {
+      } else if (process && completedDate) {
         delayValue = '완료';
       } else if (process && process.targetDate) {
         delayValue = '대기중';
@@ -1197,11 +1206,12 @@ async function renderProcessDetailPanel(orderId, panelElement) {
             <tr>
               <td class="px-3 py-2 border font-semibold text-center">차이일수</td>
               ${productionData.map(({ process }) => {
-                if (!process?.targetDate || !process?.actualDate) {
+                const completedDate = process?.completedDate || process?.actualDate;
+                if (!process?.targetDate || !completedDate) {
                   return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
                 }
                 const target = new Date(process.targetDate);
-                const actual = new Date(process.actualDate);
+                const actual = new Date(completedDate);
                 const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
                 
                 let className = 'px-3 py-2 border text-center font-bold';
@@ -1221,11 +1231,12 @@ async function renderProcessDetailPanel(orderId, panelElement) {
                 return `<td class="${className}">${content}</td>`;
               }).join('')}
               ${shippingData.map(({ process }) => {
-                if (!process?.targetDate || !process?.actualDate) {
+                const completedDate = process?.completedDate || process?.actualDate;
+                if (!process?.targetDate || !completedDate) {
                   return `<td class="px-3 py-2 border text-center text-gray-400">-</td>`;
                 }
                 const target = new Date(process.targetDate);
-                const actual = new Date(process.actualDate);
+                const actual = new Date(completedDate);
                 const diff = Math.floor((actual - target) / (1000 * 60 * 60 * 24));
                 
                 let className = 'px-3 py-2 border text-center font-bold';
