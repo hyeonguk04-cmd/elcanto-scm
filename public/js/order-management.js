@@ -1211,11 +1211,41 @@ async function handleSupplierChange(orderId, newSupplier) {
         order.processes = newSchedule;
         console.log('✅ 공정 일정 계산 완료:', newSchedule);
         
+        // 재렌더링 전 현재 입력값들 저장
+        const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
+        if (oldRow) {
+          // 채널, 국가, 생산업체 등 입력값 수집
+          const channelSelect = oldRow.querySelector('select[data-field="channel"]');
+          const countrySelect = oldRow.querySelector('select.country-select');
+          const supplierSelect = oldRow.querySelector('select.supplier-select');
+          const seasonInput = oldRow.querySelector('input[data-field="seasonOrder"]');
+          const styleInput = oldRow.querySelector('input[data-field="style"]');
+          const colorInput = oldRow.querySelector('input[data-field="color"]');
+          const qtyInput = oldRow.querySelector('input[data-field="qty"]');
+          const requiredDeliveryInput = oldRow.querySelector('input[data-field="requiredDelivery"]');
+          
+          // order 객체에 저장
+          if (channelSelect) order.channel = channelSelect.value;
+          if (countrySelect) order.country = countrySelect.value;
+          if (supplierSelect) order.supplier = supplierSelect.value;
+          if (seasonInput) order.seasonOrder = seasonInput.value;
+          if (styleInput) order.style = styleInput.value;
+          if (colorInput) order.color = colorInput.value;
+          if (qtyInput) order.qty = parseInt(qtyInput.value) || 0;
+          if (requiredDeliveryInput) order.requiredDelivery = requiredDeliveryInput.value;
+          
+          console.log('💾 재렌더링 전 입력값 저장:', {
+            channel: order.channel,
+            country: order.country,
+            supplier: order.supplier,
+            seasonOrder: order.seasonOrder
+          });
+        }
+        
         // UI 재렌더링하여 공정 일정 표시
         const headers = createProcessTableHeaders();
         const rowNum = orders.findIndex(o => o.id === orderId) + 1;
         const newRowHtml = renderOrderRow(order, rowNum, headers);
-        const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
         if (oldRow) {
           oldRow.outerHTML = newRowHtml;
           setupEventListeners();
@@ -1373,11 +1403,41 @@ async function handleOrderDateChange(orderId, newOrderDate) {
             order.processes = newSchedule;
             console.log('✅ 공정 일정 계산 완료:', newSchedule);
             
+            // 재렌더링 전 현재 입력값들 저장
+            const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
+            if (oldRow) {
+              // 채널, 국가, 생산업체 등 입력값 수집
+              const channelSelect = oldRow.querySelector('select[data-field="channel"]');
+              const countrySelect = oldRow.querySelector('select.country-select');
+              const supplierSelect = oldRow.querySelector('select.supplier-select');
+              const seasonInput = oldRow.querySelector('input[data-field="seasonOrder"]');
+              const styleInput = oldRow.querySelector('input[data-field="style"]');
+              const colorInput = oldRow.querySelector('input[data-field="color"]');
+              const qtyInput = oldRow.querySelector('input[data-field="qty"]');
+              const requiredDeliveryInput = oldRow.querySelector('input[data-field="requiredDelivery"]');
+              
+              // order 객체에 저장
+              if (channelSelect) order.channel = channelSelect.value;
+              if (countrySelect) order.country = countrySelect.value;
+              if (supplierSelect) order.supplier = supplierSelect.value;
+              if (seasonInput) order.seasonOrder = seasonInput.value;
+              if (styleInput) order.style = styleInput.value;
+              if (colorInput) order.color = colorInput.value;
+              if (qtyInput) order.qty = parseInt(qtyInput.value) || 0;
+              if (requiredDeliveryInput) order.requiredDelivery = requiredDeliveryInput.value;
+              
+              console.log('💾 재렌더링 전 입력값 저장:', {
+                channel: order.channel,
+                country: order.country,
+                supplier: order.supplier,
+                seasonOrder: order.seasonOrder
+              });
+            }
+            
             // UI 재렌더링하여 공정 일정 표시
             const headers = createProcessTableHeaders();
             const rowNum = orders.findIndex(o => o.id === orderId) + 1;
             const newRowHtml = renderOrderRow(order, rowNum, headers);
-            const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
             if (oldRow) {
               oldRow.outerHTML = newRowHtml;
               setupEventListeners();
