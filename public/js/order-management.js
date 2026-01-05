@@ -1344,15 +1344,23 @@ async function handleSupplierChange(orderId, newSupplier) {
     });
     console.log('✅ 생산업체, 선적항-도착항 및 공정 업데이트 완료');
     
-    // 테이블 새로고침
-    orders = await getOrdersWithProcesses();
-    allOrders = [...orders];
-    console.log('🔄 발주 목록 새로고침 완료');
+    // 로컬 orders 배열 업데이트 (Firebase 재로드 대신)
+    order.supplier = newSupplier;
+    order.route = newRoute;
+    order.processes = updatedProcesses;
+    order.schedule = updatedProcesses; // 호환성
+    console.log('💾 로컬 orders 배열 업데이트 완료');
     
-    applySeasonFilter();
-    renderOrdersTable();
-    setupEventListeners();
-    console.log('🎨 테이블 렌더링 완료');
+    // 해당 행만 재렌더링
+    const headers = createProcessTableHeaders();
+    const rowNum = orders.findIndex(o => o.id === orderId) + 1;
+    const newRowHtml = renderOrderRow(order, rowNum, headers);
+    const oldRow = document.querySelector(`tr[data-order-id="${orderId}"]`);
+    if (oldRow) {
+      oldRow.outerHTML = newRowHtml;
+      setupEventListeners();
+      console.log('🎨 행 재렌더링 완료');
+    }
     
     UIUtils.showAlert('생산업체, 선적항-도착항이 변경되고 전체 일정이 재계산되었습니다.', 'success');
   } catch (error) {
