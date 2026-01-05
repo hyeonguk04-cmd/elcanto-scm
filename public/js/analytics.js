@@ -502,7 +502,7 @@ function renderAnalyticsTable(orders) {
 // 공정상태 판단 함수
 function determineProcessStatus(order, productionProcesses, shippingProcesses) {
   // 입항 완료 여부 확인
-  const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival');
+  const arrivalProcess = shippingProcesses.find(p => p.key === 'arrival' || p.processKey === 'arrival');
   const isArrivalCompleted = arrivalProcess?.actualDate;
   
   // 모든 공정의 지연일수 합산
@@ -540,8 +540,9 @@ function determineProcessStatus(order, productionProcesses, shippingProcesses) {
 }
 
 function renderOrderRow(order, rowNum) {
-  const productionProcesses = order.schedule?.production || [];
-  const shippingProcesses = order.schedule?.shipping || [];
+  // processes 구조 우선, schedule 호환성 유지
+  const productionProcesses = order.processes?.production || order.schedule?.production || [];
+  const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
   
   // 물류입고 예정일 계산
   const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
@@ -592,13 +593,13 @@ function renderOrderRow(order, rowNum) {
       
       <!-- 생산 공정 지연일수 -->
       ${PROCESS_CONFIG.production.map(processConfig => {
-        const process = productionProcesses.find(p => p.processKey === processConfig.key);
+        const process = productionProcesses.find(p => p.key === processConfig.key || p.processKey === processConfig.key);
         return renderProcessCell(order, process, processConfig, 'production');
       }).join('')}
       
       <!-- 운송 공정 지연일수 -->
       ${PROCESS_CONFIG.shipping.map(processConfig => {
-        const process = shippingProcesses.find(p => p.processKey === processConfig.key);
+        const process = shippingProcesses.find(p => p.key === processConfig.key || p.processKey === processConfig.key);
         return renderProcessCell(order, process, processConfig, 'shipping');
       }).join('')}
       
@@ -619,11 +620,11 @@ function calculateExpectedArrival(order, productionProcesses, shippingProcesses)
   const allProcesses = [
     ...PROCESS_CONFIG.production.map(config => ({
       config,
-      process: productionProcesses.find(p => p.processKey === config.key)
+      process: productionProcesses.find(p => p.key === config.key || p.processKey === config.key)
     })),
     ...PROCESS_CONFIG.shipping.map(config => ({
       config,
-      process: shippingProcesses.find(p => p.processKey === config.key)
+      process: shippingProcesses.find(p => p.key === config.key || p.processKey === config.key)
     }))
   ];
   
@@ -1082,14 +1083,14 @@ async function renderProcessDetailPanel(orderId, panelElement) {
   // 생산 공정 데이터
   const productionData = PROCESS_CONFIG.production.map(config => ({
     ...config,
-    process: productionProcesses.find(p => p.processKey === config.key),
+    process: productionProcesses.find(p => p.key === config.key || p.processKey === config.key),
     standardDate: standardDates.production[config.key]
   }));
   
   // 운송 공정 데이터
   const shippingData = PROCESS_CONFIG.shipping.map(config => ({
     ...config,
-    process: shippingProcesses.find(p => p.processKey === config.key),
+    process: shippingProcesses.find(p => p.key === config.key || p.processKey === config.key),
     standardDate: standardDates.shipping[config.key]
   }));
   

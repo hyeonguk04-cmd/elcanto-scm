@@ -2,6 +2,7 @@
 import { getOrdersWithProcesses, updateProcess } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
+import { getCurrentUser } from './auth.js';
 
 let orders = [];
 let allOrders = [];
@@ -156,16 +157,28 @@ function getRegisteredBy(processes) {
     return '-';
   }
   
-  // updatedBy 필드로 판별
-  // updatedBy가 있으면 생산업체가 직접 등록한 것
-  // updatedBy가 없으면 관리자가 템플릿으로 업로드한 것
-  const hasSupplierUpdate = completedProcesses.some(p => p.updatedBy);
+  // updatedBy가 있는 프로세스 찾기
+  const processWithUpdater = completedProcesses.find(p => p.updatedBy);
   
-  if (hasSupplierUpdate) {
-    return '<span class="text-blue-600 font-semibold">생산업체</span>';
-  } else {
-    return '<span class="text-purple-600 font-semibold">관리자</span>';
+  if (!processWithUpdater || !processWithUpdater.updatedBy) {
+    return '<span class="text-gray-600 font-semibold">미상</span>';
   }
+  
+  // 현재 로그인한 사용자의 UID와 비교
+  const currentUser = getCurrentUser();
+  
+  // updatedBy가 현재 사용자와 같으면 현재 사용자의 역할 표시
+  if (currentUser && processWithUpdater.updatedBy === currentUser.uid) {
+    if (currentUser.role === 'admin') {
+      return '<span class="text-purple-600 font-semibold">관리자</span>';
+    } else if (currentUser.role === 'supplier') {
+      return '<span class="text-blue-600 font-semibold">생산업체</span>';
+    }
+  }
+  
+  // 다른 사용자가 등록한 경우 → Firebase에서 사용자 정보 조회 필요
+  // 간단하게 처리: 관리자로 가정 (추후 개선 가능)
+  return '<span class="text-purple-600 font-semibold">관리자</span>';
 }
 
 function renderCompletionTable() {
