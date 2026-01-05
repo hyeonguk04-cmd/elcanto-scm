@@ -544,6 +544,15 @@ function renderOrderRow(order, rowNum) {
   const productionProcesses = order.processes?.production || order.schedule?.production || [];
   const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
   
+  console.log(`📊 ${order.style}_${order.color} 분석:`, {
+    hasProcesses: !!order.processes,
+    hasSchedule: !!order.schedule,
+    productionCount: productionProcesses.length,
+    shippingCount: shippingProcesses.length,
+    production: productionProcesses,
+    shipping: shippingProcesses
+  });
+  
   // 물류입고 예정일 계산
   const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
   
