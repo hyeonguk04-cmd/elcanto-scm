@@ -411,34 +411,46 @@ async function handleExcelUpload(e) {
           throw new Error(`발주를 찾을 수 없습니다: ${row['스타일']}_${row['색상']}`);
         }
         
-        // 생산 공정 완료일 업데이트 (새 내장 구조)
-        const productionProcesses = order.schedule?.production || [];
+        // 생산 공정 완료일 업데이트 (processes 구조 사용)
+        const productionProcesses = order.processes?.production || order.schedule?.production || [];
+        console.log(`📦 ${order.style}_${order.color} 생산공정:`, productionProcesses);
+        
         for (let i = 0; i < productionProcesses.length; i++) {
           const process = productionProcesses[i];
           const completedDateKey = `${process.name}_완료일`;
           const completedDate = row[completedDateKey];
           
+          console.log(`  🔍 ${process.name}: 완료일 = ${completedDate || '없음'}`);
+          
           if (completedDate) {
+            const formattedDate = DateUtils.excelDateToString(completedDate);
+            console.log(`  ✅ ${process.name} 완료일 업데이트: ${formattedDate}`);
             await updateProcess(order.id, 'production', i, {
-              completedDate: DateUtils.excelDateToString(completedDate)
+              completedDate: formattedDate
             });
           }
         }
         
-        // 운송 공정 완료일 업데이트 (새 내장 구조)
-        const shippingProcesses = order.schedule?.shipping || [];
+        // 운송 공정 완료일 업데이트 (processes 구조 사용)
+        const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
+        console.log(`🚢 ${order.style}_${order.color} 운송공정:`, shippingProcesses);
+        
         const shippingIndex = shippingProcesses.findIndex(p => p.key === 'shipping' || p.processKey === 'shipping');
         const arrivalIndex = shippingProcesses.findIndex(p => p.key === 'arrival' || p.processKey === 'arrival');
         
         if (shippingIndex >= 0 && row['선적_완료일']) {
+          const formattedDate = DateUtils.excelDateToString(row['선적_완료일']);
+          console.log(`  ✅ 선적 완료일 업데이트: ${formattedDate}`);
           await updateProcess(order.id, 'shipping', shippingIndex, {
-            completedDate: DateUtils.excelDateToString(row['선적_완료일'])
+            completedDate: formattedDate
           });
         }
         
         if (arrivalIndex >= 0 && row['입항_완료일']) {
+          const formattedDate = DateUtils.excelDateToString(row['입항_완료일']);
+          console.log(`  ✅ 입항 완료일 업데이트: ${formattedDate}`);
           await updateProcess(order.id, 'shipping', arrivalIndex, {
-            completedDate: DateUtils.excelDateToString(row['입항_완료일'])
+            completedDate: formattedDate
           });
         }
         
