@@ -25,7 +25,30 @@ async function renderSupplierDashboard(container, user) {
     
     // 모든 발주 가져와서 필터링
     const allOrders = await getOrdersWithProcesses();
+    console.log('📊 전체 발주 수:', allOrders.length);
+    console.log('👤 현재 사용자:', { 
+      name: user.name, 
+      supplierName: user.supplierName, 
+      role: user.role,
+      filterKey: user.supplierName || user.name 
+    });
+    
+    // 각 발주의 supplier 필드 확인
+    allOrders.forEach((o, idx) => {
+      console.log(`📦 발주 ${idx + 1}: { id: "${o.id}", supplier: "${o.supplier}", style: "${o.style}", color: "${o.color}" }`);
+    });
+    
     const orders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
+    console.log('🎯 필터링된 발주 수:', orders.length);
+    
+    if (orders.length === 0) {
+      console.warn('⚠️ 필터링 결과가 비어있습니다. 필터 조건을 확인하세요.');
+      console.warn('필터 조건:', {
+        userSupplierName: user.supplierName,
+        userName: user.name,
+        filterValue: user.supplierName || user.name
+      });
+    }
     
     // 통계 계산
     const totalQty = orders.reduce((sum, o) => sum + (o.qty || 0), 0);
