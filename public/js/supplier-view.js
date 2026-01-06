@@ -32,8 +32,8 @@ async function renderSupplierDashboard(container, user) {
     
     // 완료율 계산 (모든 생산공정이 완료된 발주 비율)
     const completedOrders = orders.filter(order => {
-      const productionProcesses = order.schedule?.production || [];
-      return productionProcesses.every(p => p.actualDate);
+      const productionProcesses = order.processes?.production || order.schedule?.production || [];
+      return productionProcesses.every(p => p.completedDate || p.actualDate);
     });
     const completionRate = orders.length > 0 
       ? Math.round((completedOrders.length / orders.length) * 100) 
@@ -105,8 +105,9 @@ async function renderSupplierDashboard(container, user) {
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                   ${orders.slice(0, 10).map(order => {
-                    const completedCount = (order.schedule?.production || []).filter(p => p.actualDate).length;
-                    const totalCount = (order.schedule?.production || []).length;
+                    const productionProcesses = order.processes?.production || order.schedule?.production || [];
+                    const completedCount = productionProcesses.filter(p => p.completedDate || p.actualDate).length;
+                    const totalCount = productionProcesses.length;
                     const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
                     
                     return `
@@ -274,13 +275,13 @@ async function renderSupplierOrders(container, user) {
 }
 
 function renderOrderCard(order, index) {
-  const productionProcesses = order.schedule?.production || [];
-  const shippingProcesses = order.schedule?.shipping || [];
+  const productionProcesses = order.processes?.production || order.schedule?.production || [];
+  const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
   
   // 공정 실적 등록 상태 계산
   const allProcesses = [...productionProcesses, ...shippingProcesses];
   const totalProcesses = allProcesses.length;
-  const completedProcesses = allProcesses.filter(p => p.actualDate).length;
+  const completedProcesses = allProcesses.filter(p => p.completedDate || p.actualDate).length;
   
   let statusText = '';
   let statusColor = '';
@@ -304,7 +305,8 @@ function renderOrderCard(order, index) {
     // 마지막으로 완료된 공정 찾기
     let lastCompletedProcess = null;
     for (let i = allProcesses.length - 1; i >= 0; i--) {
-      if (allProcesses[i].actualDate) {
+      const completedDate = allProcesses[i].completedDate || allProcesses[i].actualDate;
+      if (completedDate) {
         lastCompletedProcess = allProcesses[i];
         break;
       }
@@ -405,7 +407,8 @@ function renderOrderCard(order, index) {
 }
 
 function renderProcessRow(order, process, category, processIndex) {
-  const hasActualDate = !!process.actualDate;
+  const completedDate = process.completedDate || process.actualDate;
+  const hasActualDate = !!completedDate;
   const hasPhoto = !!(process.photo || process.evidenceUrl);
   const currentLang = getCurrentLanguage();
   
@@ -425,9 +428,9 @@ function renderProcessRow(order, process, category, processIndex) {
   // 차이일수 계산 (실제 완료일 - 목표일)
   let diffDays = '-';
   let diffClass = '';
-  if (process.targetDate && process.actualDate) {
+  if (process.targetDate && completedDate) {
     const targetDate = new Date(process.targetDate);
-    const actualDate = new Date(process.actualDate);
+    const actualDate = new Date(completedDate);
     const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
     
     if (diff > 0) {
@@ -456,7 +459,7 @@ function renderProcessRow(order, process, category, processIndex) {
                data-order-id="${order.id}"
                data-process-index="${processIndex}"
                data-category="${category}"
-               value="${process.actualDate || ''}">
+               value="${process.completedDate || process.actualDate || ''}">
       </td>
       <td class="px-3 py-3 text-sm text-center ${diffClass}">
         ${diffDays}
@@ -598,7 +601,7 @@ async function handleActualDateChange(e) {
     UIUtils.showLoading();
     
     await updateProcess(orderId, category, processIndex, {
-      actualDate: newDate
+      completedDate: newDate
     });
     
     // 페이지 새로고침
