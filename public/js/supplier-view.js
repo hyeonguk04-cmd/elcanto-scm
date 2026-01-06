@@ -38,16 +38,54 @@ async function renderSupplierDashboard(container, user) {
       console.log(`📦 발주 ${idx + 1}: { id: "${o.id}", supplier: "${o.supplier}", style: "${o.style}", color: "${o.color}" }`);
     });
     
-    const orders = allOrders.filter(o => o.supplier === (user.supplierName || user.name));
+    // 필터링 상세 로그
+    const filterKey = user.supplierName || user.name;
+    console.log('🔍 필터링 시작:', {
+      filterKey: filterKey,
+      filterKeyType: typeof filterKey,
+      filterKeyLength: filterKey?.length,
+      filterKeyCharCodes: filterKey?.split('').map(c => c.charCodeAt(0))
+    });
+    
+    // 각 발주와 필터 키 비교
+    allOrders.forEach((o, idx) => {
+      const match = o.supplier === filterKey;
+      console.log(`🔎 발주 ${idx + 1} 매칭:`, {
+        orderSupplier: o.supplier,
+        filterKey: filterKey,
+        isMatch: match,
+        strictEqual: o.supplier === filterKey,
+        supplierCharCodes: o.supplier?.split('').map(c => c.charCodeAt(0)),
+        filterCharCodes: filterKey?.split('').map(c => c.charCodeAt(0))
+      });
+    });
+    
+    // 유연한 필터링: 대소문자 무시, trim 적용
+    const orders = allOrders.filter(o => {
+      if (!o.supplier || !filterKey) return false;
+      const orderSupplier = o.supplier.toLowerCase().trim();
+      const filter = filterKey.toLowerCase().trim();
+      return orderSupplier === filter;
+    });
     console.log('🎯 필터링된 발주 수:', orders.length);
     
     if (orders.length === 0) {
-      console.warn('⚠️ 필터링 결과가 비어있습니다. 필터 조건을 확인하세요.');
+      console.warn('⚠️ 필터링 결과가 비어있습니다!');
       console.warn('필터 조건:', {
         userSupplierName: user.supplierName,
         userName: user.name,
-        filterValue: user.supplierName || user.name
+        filterValue: filterKey
       });
+      
+      // 유사한 supplier 찾기 (대소문자 무시, trim)
+      const similarOrders = allOrders.filter(o => 
+        o.supplier?.toLowerCase().trim() === filterKey?.toLowerCase().trim()
+      );
+      if (similarOrders.length > 0) {
+        console.warn('💡 유사한 supplier를 찾았습니다 (대소문자/공백 차이):', 
+          similarOrders.map(o => ({ id: o.id, supplier: o.supplier }))
+        );
+      }
     }
     
     // 통계 계산
