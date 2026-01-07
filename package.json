@@ -10,7 +10,9 @@
     "deploy:hosting": "firebase deploy --only hosting",
     "deploy:firestore": "firebase deploy --only firestore:rules",
     "deploy:storage": "firebase deploy --only storage",
-    "deploy:all": "firebase deploy --only firestore:rules,storage,hosting"
+    "deploy:all": "firebase deploy --only firestore:rules,storage,hosting",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js"
   },
   "keywords": [],
   "author": "",

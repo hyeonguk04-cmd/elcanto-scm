@@ -1,298 +1,242 @@
-# 🔐 Firebase Authentication 마이그레이션 가이드
+# Firebase Firestore 백업/복구 스크립트
 
 ## 📋 개요
 
-이 스크립트들은 Firestore users 컬렉션의 28명 사용자를 Firebase Authentication으로 안전하게 마이그레이션합니다.
-
-**핵심 특징:**
-- ✅ Custom UID 사용 (문서 ID = Auth UID)
-- ✅ 기존 Firestore 데이터 변경 불필요
-- ✅ Dry-run 모드로 안전 검증
-- ✅ 단계별 테스트 가능
+Firebase Firestore 데이터를 JSON 형식으로 백업하고 복구하는 스크립트입니다.
 
 ---
 
-## 🚀 빠른 시작
+## 🚀 사용법
 
-### 1단계: Firebase Admin SDK 서비스 계정 키 다운로드
+### 1️⃣ **사전 준비**
 
-1. **Firebase Console 접속**: https://console.firebase.google.com
-2. **프로젝트 선택**: `elcanto-scm-portal`
-3. **Project Settings** (톱니바퀴 아이콘) 클릭
-4. **Service Accounts** 탭 선택
-5. **"Generate new private key"** 클릭
-6. JSON 파일 다운로드
-7. 파일명을 **`service-account-key.json`**으로 변경
-8. 프로젝트 **루트 디렉토리**에 저장 (`/home/user/webapp/service-account-key.json`)
+#### Firebase Service Account Key 다운로드
 
-**⚠️ 보안 주의:**
-- 이 파일은 절대 Git에 커밋하지 마세요! (이미 .gitignore에 추가됨)
-- 관리자 권한을 가진 민감한 파일입니다
-
----
-
-### 2단계: 데이터 분석 (읽기 전용, 100% 안전)
+1. Firebase Console 접속
+2. 프로젝트 설정 → 서비스 계정
+3. "새 비공개 키 생성" 클릭
+4. 다운로드한 JSON 파일을 `firebase-service-account.json`으로 이름 변경
+5. 프로젝트 루트에 저장
 
 ```bash
-cd Documents/elcanto-scm
-node scripts/analyze-users.js
+webapp/
+├── firebase-service-account.json  ← 여기!
+├── scripts/
+│   ├── backup.js
+│   ├── restore.js
+│   └── README.md
+└── backups/
 ```
 
-**결과 예시:**
-```
-✅ 마이그레이션 가능: 28명
-⚠️ 경고 있음: 0명
-❌ 오류 있음: 0명
-
-다음 명령어:
-  node scripts/migrate-auth.js --dry-run  # 시뮬레이션
-```
-
-**이 단계에서 확인되는 것:**
-- UID로 사용 가능한 문서 ID인지
-- 필수 필드 (email, password) 존재 여부
-- 비밀번호 길이 (최소 6자)
-- 이메일 형식 유효성
+⚠️ **중요: `.gitignore`에 추가하여 Git에 커밋되지 않도록 하세요!**
 
 ---
 
-### 3단계: Dry-run 시뮬레이션 (실제 생성 없음, 안전)
+### 2️⃣ **백업 실행**
 
 ```bash
-node scripts/migrate-auth.js --dry-run
+# 기본 백업
+node scripts/backup.js
 ```
 
-**결과 예시:**
+#### 출력 예시:
 ```
-🧪 DRY-RUN 모드: 실제 생성 없이 시뮬레이션만 수행
+🔐 Firebase Firestore 백업 시작
 
-[1/28] 처리 중: yang_hyeonguk
-   이메일: yang_hyeonguk@elcanto.co.kr
-   ✅ [시뮬레이션] 생성 가능: yang_hyeonguk
+📁 백업 디렉토리: /path/to/backups/2025-01-07_14-30-00
 
-...
+📦 백업 시작: orders
+✅ orders: 2건 백업 완료
+📦 백업 시작: suppliers
+✅ suppliers: 5건 백업 완료
+📦 백업 시작: users
+✅ users: 3건 백업 완료
+📦 백업 시작: processes
+✅ processes: 0건 백업 완료
 
-✅ 성공: 28명
-⚠️ 건너뜀: 0명
-❌ 실패: 0명
+📊 백업 메타데이터:
+   시간: 2025-01-07T14:30:00.000Z
+   총 문서 수: 10건
+
+✨ 백업 완료!
+
+📈 요약:
+   성공: 4개 컬렉션
+   실패: 0개 컬렉션
 ```
 
-**이 단계는:**
-- 실제 Firebase Auth에 아무것도 생성하지 않습니다
-- 어떤 사용자가 생성될지 미리 확인만 합니다
-- 문제가 없는지 검증합니다
+#### 생성된 파일:
+```
+backups/2025-01-07_14-30-00/
+├── orders.json          # 발주 데이터
+├── suppliers.json       # 생산업체 데이터
+├── users.json           # 사용자 데이터
+├── processes.json       # 공정 데이터 (legacy)
+└── metadata.json        # 백업 메타정보
+```
 
 ---
 
-### 4단계: 테스트 실행 (1명만)
+### 3️⃣ **복구 실행**
+
+#### **방법 1: MERGE 모드 (기본, 안전)**
+기존 데이터와 병합. 같은 ID는 백업 데이터로 업데이트.
 
 ```bash
-node scripts/migrate-auth.js --test
+node scripts/restore.js backups/2025-01-07_14-30-00
 ```
 
-**결과 예시:**
-```
-🧪 TEST 모드: 1명만 테스트 생성
-
-[1/28] 처리 중: yang_hyeonguk
-   이메일: yang_hyeonguk@elcanto.co.kr
-   🔄 Firebase Auth 사용자 생성 중...
-   ✅ 생성 완료! UID: yang_hyeonguk
-
-✅ 성공: 1명
-```
-
-**이 단계는:**
-- 첫 번째 사용자(yang_hyeonguk)만 실제로 생성합니다
-- Firebase Console → Authentication에서 확인 가능
-- 이 계정으로 로그인 테스트를 먼저 해보세요
-
-**확인 방법:**
-1. Firebase Console → Authentication → Users
-2. `yang_hyeonguk` UID를 가진 사용자 확인
-3. 이메일: `yang_hyeonguk@elcanto.co.kr`
-
----
-
-### 5단계: 전체 마이그레이션 실행
-
-**⚠️ 주의: 4단계 테스트가 성공한 후에만 실행하세요!**
+#### **방법 2: FORCE 모드 (전체 삭제 후 복구)**
+⚠️ 위험: 기존 데이터를 모두 삭제하고 백업 데이터로 교체
 
 ```bash
-node scripts/migrate-auth.js
+node scripts/restore.js backups/2025-01-07_14-30-00 --force
 ```
 
-**결과 예시:**
-```
-🚀 전체 마이그레이션 실행
+#### **방법 3: DRY RUN (테스트)**
+실제 변경 없이 복구 시뮬레이션
 
-[1/28] 처리 중: yang_hyeonguk
-   ⚠️ 이미 존재하는 사용자 - 건너뜀
-
-[2/28] 처리 중: supplier1
-   ✅ 생성 완료! UID: supplier1
-
-...
-
-✅ 성공: 27명
-⚠️ 건너뜀: 1명 (이미 존재)
-❌ 실패: 0명
-```
-
-**이 단계는:**
-- 모든 28명의 사용자를 Firebase Auth에 생성합니다
-- 이미 존재하는 사용자는 자동으로 건너뜁니다
-- 성공/실패 로그를 상세히 기록합니다
-
----
-
-## 📊 스크립트 상세 설명
-
-### `analyze-users.js` - 데이터 분석
-
-**목적:** 마이그레이션 전 데이터 구조 검증
-
-**안전성:** ✅ 읽기 전용, 데이터 변경 없음
-
-**검증 항목:**
-- UID 유효성 (길이, 허용 문자)
-- 필수 필드 존재 (email, password, username, role)
-- 이메일 형식
-- 비밀번호 길이 (최소 6자)
-
-**사용법:**
 ```bash
-node scripts/analyze-users.js
+node scripts/restore.js backups/2025-01-07_14-30-00 --dry-run
+```
+
+#### 출력 예시:
+```
+🔐 Firebase Firestore 복구 시작
+
+ℹ️  MERGE 모드: 기존 데이터와 병합합니다.
+
+📊 백업 정보:
+   백업 시간: 2025-01-07T14:30:00.000Z
+   총 문서 수: 10건
+   컬렉션: orders, suppliers, users, processes
+
+📦 복구 시작: orders
+✅ orders: 2건 복구 완료
+📦 복구 시작: suppliers
+✅ suppliers: 5건 복구 완료
+📦 복구 시작: users
+✅ users: 3건 복구 완료
+📦 복구 시작: processes
+✅ processes: 0건 복구 완료
+
+✨ 복구 완료!
+
+📈 요약:
+   성공: 4개 컬렉션
+   실패: 0개 컬렉션
+   건너뜀: 0개 컬렉션
 ```
 
 ---
 
-### `migrate-auth.js` - 마이그레이션 실행
+## 📅 **백업 전략 권장사항**
 
-**목적:** Firebase Authentication 사용자 생성
-
-**모드:**
-1. **Dry-run** (`--dry-run`): 시뮬레이션만
-2. **Test** (`--test`): 1명만 실제 생성
-3. **Full** (인자 없음): 전체 실행
-
-**안전 기능:**
-- 중복 사용자 자동 건너뛰기
-- 필드 누락 자동 건너뛰기
-- 상세 로그 기록
-- 성공/실패 통계
-
-**사용법:**
+### **개발 작업 전 (필수)**
 ```bash
-# 시뮬레이션
-node scripts/migrate-auth.js --dry-run
+# 1. 백업 실행
+node scripts/backup.js
 
-# 1명 테스트
-node scripts/migrate-auth.js --test
+# 2. 개발 작업 진행
+git checkout -b feature/new-feature
+# ... 코드 수정 ...
 
-# 전체 실행
-node scripts/migrate-auth.js
+# 3. 문제 발생 시 복구
+node scripts/restore.js backups/2025-01-07_14-30-00
+```
+
+### **정기 백업 (권장)**
+매일 또는 매주 백업 실행
+
+```bash
+# package.json에 스크립트 추가
+"scripts": {
+  "backup": "node scripts/backup.js",
+  "restore": "node scripts/restore.js"
+}
+
+# 실행
+npm run backup
 ```
 
 ---
 
-## 🔍 트러블슈팅
+## 🗂️ **백업 파일 관리**
 
-### 1. "service-account-key.json 파일이 없습니다"
+### **백업 보관**
+- 최근 7일: 매일 백업 유지
+- 최근 1개월: 매주 백업 유지
+- 6개월 이상: 월별 백업 유지
 
-**원인:** 서비스 계정 키 파일이 없거나 경로가 잘못됨
+### **오래된 백업 삭제**
+```bash
+# 30일 이상된 백업 삭제 (수동)
+find backups/ -type d -mtime +30 -exec rm -rf {} \;
+```
 
-**해결:**
-- Firebase Console에서 키 다운로드
-- 파일명을 정확히 `service-account-key.json`로 변경
-- 프로젝트 루트에 저장 (`Documents/elcanto-scm/`)
-
----
-
-### 2. "permission-denied" 오류
-
-**원인:** 서비스 계정에 권한이 부족
-
-**해결:**
-- Firebase Console → IAM & Admin
-- 서비스 계정에 "Firebase Admin" 역할 부여
-
----
-
-### 3. "auth/uid-already-exists"
-
-**원인:** 이미 존재하는 UID로 생성 시도
-
-**해결:**
-- 정상적인 동작입니다 (스크립트가 자동으로 건너뜀)
-- Firebase Console에서 기존 사용자 확인
+### **백업 압축**
+```bash
+# 백업 디렉토리 압축
+cd backups
+zip -r backup_2025-01-07.zip 2025-01-07_14-30-00/
+```
 
 ---
 
-### 4. "auth/invalid-uid"
+## ⚠️ **주의사항**
 
-**원인:** UID 형식이 Firebase 규칙에 맞지 않음
+### **보안**
+1. ❌ `firebase-service-account.json`을 Git에 커밋하지 마세요
+2. ❌ 백업 파일에 민감한 정보가 포함될 수 있으므로 안전하게 보관
+3. ✅ `.gitignore`에 다음 추가:
+   ```
+   firebase-service-account.json
+   backups/
+   ```
 
-**해결:**
-- `analyze-users.js`로 문제 있는 UID 확인
-- Firestore 문서 ID를 Firebase 허용 형식으로 수정
-- 허용 문자: `a-zA-Z0-9_-@.` (최대 128자)
+### **성능**
+1. 대량 데이터(1000건 이상) 백업 시 시간이 소요될 수 있습니다
+2. 복구 시 Firestore 쓰기 제한(500개/batch)을 자동 처리합니다
 
----
-
-### 5. "auth/weak-password"
-
-**원인:** 비밀번호가 6자 미만
-
-**해결:**
-- Firestore users 문서의 password 필드 확인
-- 최소 6자 이상으로 수정
-
----
-
-## ✅ 마이그레이션 체크리스트
-
-### 준비 단계
-- [ ] Firebase Admin SDK 설치 완료 (`npm install firebase-admin`)
-- [ ] 서비스 계정 키 다운로드 및 저장
-- [ ] `.gitignore`에 키 파일 추가 확인
-
-### 검증 단계
-- [ ] `analyze-users.js` 실행 - 모든 사용자 검증 완료
-- [ ] 오류 있는 사용자 수정 (있다면)
-- [ ] `migrate-auth.js --dry-run` 실행 - 시뮬레이션 성공
-
-### 실행 단계
-- [ ] `migrate-auth.js --test` 실행 - 1명 테스트 성공
-- [ ] Firebase Console에서 테스트 사용자 확인
-- [ ] 테스트 계정으로 로그인 시도 (auth.js 수정 후)
-- [ ] `migrate-auth.js` 전체 실행 - 28명 생성 완료
-
-### 완료 단계
-- [ ] Firebase Console에서 모든 사용자 확인
-- [ ] auth.js 파일 수정 완료
-- [ ] Firestore security rules 업데이트
-- [ ] 배포 및 테스트
+### **비용**
+1. 백업: Firestore 읽기 비용 발생 (문서 수만큼)
+2. 복구: Firestore 쓰기 비용 발생 (문서 수만큼)
+3. 무료 할당량: 읽기 50K/일, 쓰기 20K/일
 
 ---
 
-## 📞 도움이 필요하신가요?
+## 🆘 **문제 해결**
 
-문제가 발생하면:
-1. 에러 메시지 전체를 복사
-2. 실행한 명령어 확인
-3. Firebase Console에서 현재 상태 확인
-4. 위의 트러블슈팅 섹션 참조
+### **오류: Cannot find module 'firebase-admin'**
+```bash
+npm install firebase-admin
+```
+
+### **오류: firebase-service-account.json not found**
+1. Firebase Console에서 서비스 계정 키 다운로드
+2. 파일명을 `firebase-service-account.json`으로 변경
+3. 프로젝트 루트에 저장
+
+### **오류: Permission denied**
+Service Account에 Firestore 읽기/쓰기 권한 필요
+1. Firebase Console → 프로젝트 설정 → 서비스 계정
+2. 권한 확인: "Cloud Firestore 사용자" 역할 필요
 
 ---
 
-## 🎯 다음 단계
+## 📞 **지원**
 
-마이그레이션 완료 후:
+문제가 있으면 다음을 확인하세요:
+1. Node.js 버전 (v14 이상 권장)
+2. Firebase 프로젝트 설정
+3. 서비스 계정 권한
+4. 네트워크 연결
 
-1. **auth.js 수정** - `signInWithEmailAndPassword()` 사용
-2. **Firestore rules 업데이트** - UID 매칭 단순화
-3. **배포** - `npm run deploy`
-4. **테스트** - 모든 사용자 로그인 확인
+---
 
-자세한 내용은 메인 프로젝트 문서를 참조하세요.
+## 📝 **변경 이력**
+
+- 2025-01-07: 초기 버전 생성
+  - 백업 스크립트 (backup.js)
+  - 복구 스크립트 (restore.js)
+  - 문서화 (README.md)

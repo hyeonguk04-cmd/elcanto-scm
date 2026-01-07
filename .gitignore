@@ -45,3 +45,8 @@ update_processes.py
 # Firebase Admin SDK service account key
 service-account-key.json
 *-firebase-adminsdk-*.json
+firebase-service-account.json
+
+# Backup files
+backups/
+*.zip
