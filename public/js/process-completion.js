@@ -258,27 +258,27 @@ function renderCompletionTable() {
   };
   
   tableContainer.innerHTML = `
-    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+    <table class="text-xs border-collapse" style="width: 100%; table-layout: fixed;">
       <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
         <tr>
-          <th rowspan="2" class="px-2 py-2 border">번호</th>
-          <th colspan="8" class="px-2 py-2 border bg-blue-100">발주 정보</th>
-          <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 공정 완료일</th>
-          <th colspan="2" class="px-2 py-2 border bg-yellow-100">운송 공정 완료일</th>
-          <th rowspan="2" class="px-2 py-2 border bg-purple-100">등록자</th>
+          <th rowspan="2" class="px-3 py-3 border" style="width: 50px;">번호</th>
+          <th colspan="8" class="px-3 py-3 border bg-blue-100">발주 정보</th>
+          <th colspan="${headers.production.length}" class="px-3 py-3 border bg-green-100">생산 공정 완료일</th>
+          <th colspan="2" class="px-3 py-3 border bg-yellow-100">운송 공정 완료일</th>
+          <th rowspan="2" class="px-3 py-3 border bg-purple-100" style="width: 80px;">등록자</th>
         </tr>
         <tr>
-          <th class="px-2 py-2 border ${getHeaderClass('channel')}" data-completion-sort="channel">채널 ${getSortIcon('channel')}</th>
-          <th class="px-2 py-2 border">연도시즌+차수</th>
-          <th class="px-2 py-2 border">스타일</th>
-          <th class="px-2 py-2 border">색상</th>
-          <th class="px-2 py-2 border">국가</th>
-          <th class="px-2 py-2 border ${getHeaderClass('supplier')}" data-completion-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
-          <th class="px-2 py-2 border">발주일</th>
-          <th class="px-2 py-2 border ${getHeaderClass('requiredDelivery')}" data-completion-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
-          ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
-          <th class="px-2 py-2 border">선적</th>
-          <th class="px-2 py-2 border">입항</th>
+          <th class="px-3 py-3 border ${getHeaderClass('channel')}" data-completion-sort="channel" style="width: 70px;">채널 ${getSortIcon('channel')}</th>
+          <th class="px-3 py-3 border" style="width: 120px;">연도시즌+차수</th>
+          <th class="px-3 py-3 border" style="width: 110px;">스타일</th>
+          <th class="px-3 py-3 border" style="width: 60px;">색상</th>
+          <th class="px-3 py-3 border" style="width: 70px;">국가</th>
+          <th class="px-3 py-3 border ${getHeaderClass('supplier')}" data-completion-sort="supplier" style="width: 100px;">생산업체 ${getSortIcon('supplier')}</th>
+          <th class="px-3 py-3 border" style="width: 100px;">발주일</th>
+          <th class="px-3 py-3 border ${getHeaderClass('requiredDelivery')}" data-completion-sort="requiredDelivery" style="width: 110px;">입고요구일 ${getSortIcon('requiredDelivery')}</th>
+          ${headers.production.map(h => `<th class="px-3 py-3 border" style="width: 100px;">${h.name}</th>`).join('')}
+          <th class="px-3 py-3 border" style="width: 100px;">선적</th>
+          <th class="px-3 py-3 border" style="width: 100px;">입항</th>
         </tr>
       </thead>
       <tbody id="completion-tbody">
@@ -298,15 +298,15 @@ function renderCompletionTable() {
           
           return `
             <tr data-order-id="${order.id}" class="hover:bg-blue-50">
-              <td class="px-2 py-2 border text-center">${index + 1}</td>
-              <td class="px-2 py-2 border">${order.channel || ''}</td>
-              <td class="px-2 py-2 border">${order.seasonOrder || ''}</td>
-              <td class="px-2 py-2 border">${order.style || ''}</td>
-              <td class="px-2 py-2 border text-center">${order.color || ''}</td>
-              <td class="px-2 py-2 border">${order.country || ''}</td>
-              <td class="px-2 py-2 border">${order.supplier || ''}</td>
-              <td class="px-2 py-2 border text-center">${order.orderDate || ''}</td>
-              <td class="px-2 py-2 border text-center">${order.requiredDelivery || ''}</td>
+              <td class="px-3 py-3 border text-center">${index + 1}</td>
+              <td class="px-3 py-3 border">${order.channel || ''}</td>
+              <td class="px-3 py-3 border">${order.seasonOrder || ''}</td>
+              <td class="px-3 py-3 border">${order.style || ''}</td>
+              <td class="px-3 py-3 border text-center">${order.color || ''}</td>
+              <td class="px-3 py-3 border">${order.country || ''}</td>
+              <td class="px-3 py-3 border">${order.supplier || ''}</td>
+              <td class="px-3 py-3 border text-center">${order.orderDate || ''}</td>
+              <td class="px-3 py-3 border text-center">${order.requiredDelivery || ''}</td>
               ${headers.production.map(header => {
                 const process = productionProcesses.find(p => p.key === header.key || p.processKey === header.key);
                 const completedDate = process?.completedDate || '';
@@ -315,18 +315,18 @@ function renderCompletionTable() {
                 const isDelayed = completedDate && targetDate && new Date(completedDate) > new Date(targetDate);
                 
                 return `
-                  <td class="px-2 py-2 border text-center ${isCompleted ? (isDelayed ? 'bg-red-50' : 'bg-green-50') : ''}">
+                  <td class="px-3 py-3 border text-center ${isCompleted ? (isDelayed ? 'bg-red-50' : 'bg-green-50') : ''}">
                     ${completedDate || '-'}
                   </td>
                 `;
               }).join('')}
-              <td class="px-2 py-2 border text-center ${shippingProcess?.completedDate ? 'bg-green-50' : ''}">
+              <td class="px-3 py-3 border text-center ${shippingProcess?.completedDate ? 'bg-green-50' : ''}">
                 ${shippingProcess?.completedDate || '-'}
               </td>
-              <td class="px-2 py-2 border text-center ${arrivalProcess?.completedDate ? 'bg-green-50' : ''}">
+              <td class="px-3 py-3 border text-center ${arrivalProcess?.completedDate ? 'bg-green-50' : ''}">
                 ${arrivalProcess?.completedDate || '-'}
               </td>
-              <td class="px-2 py-2 border text-center">
+              <td class="px-3 py-3 border text-center">
                 ${getRegisteredBy(productionProcesses.concat(shippingProcesses))}
               </td>
             </tr>
