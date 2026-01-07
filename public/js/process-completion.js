@@ -8,8 +8,10 @@ let orders = [];
 let allOrders = [];
 let filterState = {
   supplier: '',
-  seasonOrder: ''
+  seasonOrder: '',
+  requiredDelivery: ''
 };
+let sortState = { column: null, direction: null };
 
 export async function renderProcessCompletion(container) {
   try {
@@ -79,6 +81,27 @@ export async function renderProcessCompletion(container) {
               </div>
             </div>
             
+            <!-- 입고요구일 검색 -->
+            <div class="relative">
+              <input type="date" 
+                     id="required-delivery-filter-input-completion" 
+                     placeholder="입고요구일 검색" 
+                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     style="padding-right: 60px;">
+              <div class="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <button id="required-delivery-filter-apply-completion" 
+                        class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                        title="검색">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button id="required-delivery-filter-clear-completion" 
+                        class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
+                        title="초기화">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
             <button id="template-completion-btn" class="bg-gray-500 text-white px-3 py-1.5 rounded-md hover:bg-gray-600 text-sm">
               <i class="fas fa-file-download mr-1"></i>템플릿 다운로드
             </button>
@@ -135,18 +158,20 @@ export async function renderProcessCompletion(container) {
 function applyFilters() {
   const supplierValue = filterState.supplier.trim().toLowerCase();
   const seasonValue = filterState.seasonOrder.trim().toLowerCase();
+  const requiredDeliveryValue = filterState.requiredDelivery.trim();
   
-  if (!supplierValue && !seasonValue) {
+  if (!supplierValue && !seasonValue && !requiredDeliveryValue) {
     orders = [...allOrders];
   } else {
     orders = allOrders.filter(order => {
       const supplierMatch = !supplierValue || (order.supplier || '').toLowerCase().includes(supplierValue);
       const seasonMatch = !seasonValue || (order.seasonOrder || '').toLowerCase().includes(seasonValue);
-      return supplierMatch && seasonMatch;
+      const requiredDeliveryMatch = !requiredDeliveryValue || (order.requiredDelivery || '') === requiredDeliveryValue;
+      return supplierMatch && seasonMatch && requiredDeliveryMatch;
     });
   }
   
-  console.log(`🔍 필터: 생산업체="${supplierValue}", 연도시즌+차수="${seasonValue}" → ${orders.length}/${allOrders.length}건 표시`);
+  console.log(`🔍 필터: 생산업체="${supplierValue}", 연도시즌+차수="${seasonValue}", 입고요구일="${requiredDeliveryValue}" → ${orders.length}/${allOrders.length}건 표시`);
 }
 
 function getRegisteredBy(processes) {
@@ -185,24 +210,72 @@ function renderCompletionTable() {
   const tableContainer = document.getElementById('completion-table');
   const headers = createProcessTableHeaders();
   
+  // 정렬 적용
+  if (sortState.column && sortState.direction) {
+    orders = [...orders].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch(sortState.column) {
+        case 'channel':
+          aVal = a.channel || '';
+          bVal = b.channel || '';
+          break;
+        case 'supplier':
+          aVal = a.supplier || '';
+          bVal = b.supplier || '';
+          break;
+        case 'requiredDelivery':
+          aVal = a.requiredDelivery ? new Date(a.requiredDelivery).getTime() : 0;
+          bVal = b.requiredDelivery ? new Date(b.requiredDelivery).getTime() : 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      // 문자열 비교
+      if (typeof aVal === 'string') {
+        const result = aVal.localeCompare(bVal, 'ko');
+        return sortState.direction === 'asc' ? result : -result;
+      }
+      
+      // 숫자 비교
+      const result = aVal - bVal;
+      return sortState.direction === 'asc' ? result : -result;
+    });
+  }
+  
+  const getSortIcon = (column) => {
+    if (sortState.column !== column) return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
+    return sortState.direction === 'asc' 
+      ? '<i class="fas fa-sort-up text-blue-600 ml-1"></i>'
+      : '<i class="fas fa-sort-down text-blue-600 ml-1"></i>';
+  };
+  
+  const getHeaderClass = (column) => {
+    return sortState.column === column
+      ? 'cursor-pointer hover:bg-gray-200 bg-gray-100'
+      : 'cursor-pointer hover:bg-gray-200';
+  };
+  
   tableContainer.innerHTML = `
     <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
       <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
         <tr>
           <th rowspan="2" class="px-2 py-2 border">번호</th>
-          <th colspan="7" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+          <th colspan="8" class="px-2 py-2 border bg-blue-100">발주 정보</th>
           <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 공정 완료일</th>
           <th colspan="2" class="px-2 py-2 border bg-yellow-100">운송 공정 완료일</th>
           <th rowspan="2" class="px-2 py-2 border bg-purple-100">등록자</th>
         </tr>
         <tr>
-          <th class="px-2 py-2 border">채널</th>
+          <th class="px-2 py-2 border ${getHeaderClass('channel')}" data-completion-sort="channel">채널 ${getSortIcon('channel')}</th>
           <th class="px-2 py-2 border">연도시즌+차수</th>
           <th class="px-2 py-2 border">스타일</th>
           <th class="px-2 py-2 border">색상</th>
           <th class="px-2 py-2 border">국가</th>
-          <th class="px-2 py-2 border">생산업체</th>
+          <th class="px-2 py-2 border ${getHeaderClass('supplier')}" data-completion-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
           <th class="px-2 py-2 border">발주일</th>
+          <th class="px-2 py-2 border ${getHeaderClass('requiredDelivery')}" data-completion-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
           <th class="px-2 py-2 border">선적</th>
           <th class="px-2 py-2 border">입항</th>
@@ -211,7 +284,7 @@ function renderCompletionTable() {
       <tbody id="completion-tbody">
         ${orders.length === 0 ? `
           <tr>
-            <td colspan="${10 + headers.production.length}" class="text-center py-8 text-gray-500">
+            <td colspan="${11 + headers.production.length}" class="text-center py-8 text-gray-500">
               <i class="fas fa-inbox text-4xl mb-2"></i>
               <p>등록된 발주 정보가 없습니다.</p>
             </td>
@@ -233,6 +306,7 @@ function renderCompletionTable() {
               <td class="px-2 py-2 border">${order.country || ''}</td>
               <td class="px-2 py-2 border">${order.supplier || ''}</td>
               <td class="px-2 py-2 border text-center">${order.orderDate || ''}</td>
+              <td class="px-2 py-2 border text-center">${order.requiredDelivery || ''}</td>
               ${headers.production.map(header => {
                 const process = productionProcesses.find(p => p.key === header.key || p.processKey === header.key);
                 const completedDate = process?.completedDate || '';
@@ -320,6 +394,55 @@ function setupEventListeners() {
     applyFilters();
     renderCompletionTable();
     setupEventListeners();
+  });
+  
+  // Required Delivery Filter
+  const requiredDeliveryFilterInput = document.getElementById('required-delivery-filter-input-completion');
+  const requiredDeliveryFilterApply = document.getElementById('required-delivery-filter-apply-completion');
+  const requiredDeliveryFilterClear = document.getElementById('required-delivery-filter-clear-completion');
+  
+  requiredDeliveryFilterInput?.addEventListener('change', () => {
+    filterState.requiredDelivery = requiredDeliveryFilterInput.value;
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+  });
+  
+  requiredDeliveryFilterApply?.addEventListener('click', () => {
+    filterState.requiredDelivery = requiredDeliveryFilterInput.value;
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+  });
+  
+  requiredDeliveryFilterClear?.addEventListener('click', () => {
+    filterState.requiredDelivery = '';
+    requiredDeliveryFilterInput.value = '';
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+  });
+  
+  // Sort event listeners
+  document.querySelectorAll('[data-completion-sort]').forEach(header => {
+    header.addEventListener('click', () => {
+      const column = header.dataset.completionSort;
+      
+      if (sortState.column === column) {
+        if (sortState.direction === 'asc') {
+          sortState.direction = 'desc';
+        } else if (sortState.direction === 'desc') {
+          sortState.column = null;
+          sortState.direction = null;
+        }
+      } else {
+        sortState.column = column;
+        sortState.direction = 'asc';
+      }
+      
+      renderCompletionTable();
+      setupEventListeners();
+    });
   });
   
   // Buttons
