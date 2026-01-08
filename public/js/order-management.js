@@ -1,5 +1,5 @@
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
-import { getOrdersWithProcesses, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry, getSupplierByName } from './firestore-service.js';
+import { getOrdersWithProcesses, getOrdersByRequiredMonth, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
 import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIPPING_LEAD_TIMES } from './process-config.js';
@@ -20,7 +20,15 @@ let sortState = {
   direction: null // null, 'asc', 'desc'
 };
 let filterState = {
-  seasonOrder: '' // 연도시즌+차수 필터
+  seasonOrder: '', // 연도시즌+차수 필터
+  supplier: '', // 생산업체 필터
+  requiredMonth: '' // 입고요구월 필터 (YYYY-MM)
+};
+let paginationState = {
+  currentPage: 1,
+  itemsPerPage: 10,
+  totalItems: 0,
+  totalPages: 0
 };
 
 export async function renderOrderManagement(container) {
@@ -31,8 +39,15 @@ export async function renderOrderManagement(container) {
     dynamicSuppliersByCountry = await getSuppliersByCountry();
     console.log('동적 생산업체 목록 로드:', dynamicSuppliersByCountry);
     
-    orders = await getOrdersWithProcesses();
-    allOrders = [...orders]; // 전체 데이터 복사
+    // 현재 월 계산
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    filterState.requiredMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    
+    // 현재 월 데이터 로드 (서버 필터링)
+    orders = await getOrdersByRequiredMonth(currentYear, currentMonth);
+    allOrders = [...orders]; // 현재 보이는 데이터 복사
     
     // 원본 데이터 저장
     orders.forEach(order => {
@@ -56,8 +71,51 @@ export async function renderOrderManagement(container) {
                onmouseout="this.style.color='#f59e0b'"></i>
           </div>
           
-          <!-- 버튼 그룹 (두 번째 줄, 오른쪽 정렬) -->
+          <!-- 입고요구월 필터 + 페이지네이션 + Excel 다운로드 (두 번째 줄) -->
+          <div class="flex flex-wrap gap-2 items-center justify-between">
+            <!-- 왼쪽: 총 건수 + 입고요구월 + 보기 -->
+            <div class="flex items-center gap-2">
+              <span id="total-count" class="text-sm font-semibold text-gray-700">총 0건</span>
+              <select id="required-month-filter" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">입고요구월 선택</option>
+              </select>
+              <select id="items-per-page" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="10">10개씩 보기</option>
+                <option value="50">50개씩 보기</option>
+                <option value="100">100개씩 보기</option>
+                <option value="500">500개씩 보기</option>
+              </select>
+            </div>
+            
+            <!-- 오른쪽: Excel 다운로드 버튼 -->
+            <button id="download-all-excel-btn" class="bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 text-sm">
+              <i class="fas fa-file-excel mr-1"></i>전체 데이터 Excel 다운로드
+            </button>
+          </div>
+          
+          <!-- 검색 + 버튼 그룹 (세 번째 줄) -->
           <div class="flex flex-wrap gap-2 justify-end items-center">
+            <!-- 생산업체 검색 -->
+            <div class="relative">
+              <input type="text" 
+                     id="supplier-filter-input" 
+                     placeholder="생산업체 검색" 
+                     class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     style="padding-right: 60px;">
+              <div class="absolute right-1 top-1/2 transform -translate-y-1/2 flex gap-1">
+                <button id="supplier-filter-apply" 
+                        class="bg-blue-600 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                        title="검색">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button id="supplier-filter-clear" 
+                        class="bg-gray-400 text-white px-2 py-1 rounded text-xs hover:bg-gray-500"
+                        title="초기화">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+            
             <!-- 연도시즌+차수 검색 -->
             <div class="relative">
               <input type="text" 
@@ -102,7 +160,12 @@ export async function renderOrderManagement(container) {
         </div>
         
         <div class="bg-white rounded-xl shadow-lg p-3">
-          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 190px);"></div>
+          <div id="orders-table" class="overflow-auto" style="max-height: calc(100vh - 240px);"></div>
+          
+          <!-- 페이지네이션 -->
+          <div id="pagination-container" class="flex justify-center items-center gap-2 mt-4">
+            <!-- 페이지네이션 버튼이 여기에 동적으로 생성됩니다 -->
+          </div>
         </div>
         
         <!-- 인포메이션 툴팁 -->
@@ -183,6 +246,7 @@ export async function renderOrderManagement(container) {
       </div>
     `;
     
+    initializeRequiredMonthFilter();
     renderOrdersTable();
     setupEventListeners();
     UIUtils.hideLoading();
@@ -268,22 +332,7 @@ function sortOrders() {
   });
 }
 
-function applySeasonFilter() {
-  const filterValue = filterState.seasonOrder.trim().toLowerCase();
-  
-  if (!filterValue) {
-    // 필터가 비어있으면 전체 데이터 표시
-    orders = [...allOrders];
-  } else {
-    // 필터링 적용
-    orders = allOrders.filter(order => {
-      const seasonOrder = (order.seasonOrder || '').toLowerCase();
-      return seasonOrder.includes(filterValue);
-    });
-  }
-  
-  console.log(`🔍 연도시즌+차수 필터: "${filterValue}" → ${orders.length}/${allOrders.length}건 표시`);
-}
+// applySeasonFilter는 applyFilters로 통합됨 (아래 참조)
 
 function renderOrdersTable() {
   const tableContainer = document.getElementById('orders-table');
@@ -756,7 +805,54 @@ function setupEventListeners() {
     }
   });
   
-  // Season Filter
+  // 입고요구월 필터
+  const requiredMonthFilter = document.getElementById('required-month-filter');
+  requiredMonthFilter?.addEventListener('change', (e) => {
+    handleRequiredMonthChange(e.target.value);
+  });
+  
+  // 페이지당 항목 수 변경
+  const itemsPerPageSelect = document.getElementById('items-per-page');
+  itemsPerPageSelect?.addEventListener('change', (e) => {
+    paginationState.itemsPerPage = parseInt(e.target.value);
+    paginationState.currentPage = 1; // 첫 페이지로 이동
+    renderOrdersTable();
+    setupEventListeners();
+  });
+  
+  // 전체 데이터 Excel 다운로드
+  document.getElementById('download-all-excel-btn')?.addEventListener('click', downloadAllExcel);
+  
+  // 생산업체 필터
+  const supplierFilterInput = document.getElementById('supplier-filter-input');
+  const supplierFilterApply = document.getElementById('supplier-filter-apply');
+  const supplierFilterClear = document.getElementById('supplier-filter-clear');
+  
+  supplierFilterInput?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      filterState.supplier = supplierFilterInput.value;
+      applyFilters();
+      renderOrdersTable();
+      setupEventListeners();
+    }
+  });
+  
+  supplierFilterApply?.addEventListener('click', () => {
+    filterState.supplier = supplierFilterInput.value;
+    applyFilters();
+    renderOrdersTable();
+    setupEventListeners();
+  });
+  
+  supplierFilterClear?.addEventListener('click', () => {
+    filterState.supplier = '';
+    supplierFilterInput.value = '';
+    applyFilters();
+    renderOrdersTable();
+    setupEventListeners();
+  });
+  
+  // 연도시즌+차수 필터
   const seasonFilterInput = document.getElementById('season-filter-input');
   const seasonFilterApply = document.getElementById('season-filter-apply');
   const seasonFilterClear = document.getElementById('season-filter-clear');
@@ -764,7 +860,7 @@ function setupEventListeners() {
   seasonFilterInput?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       filterState.seasonOrder = seasonFilterInput.value;
-      applySeasonFilter();
+      applyFilters();
       renderOrdersTable();
       setupEventListeners();
     }
@@ -772,7 +868,7 @@ function setupEventListeners() {
   
   seasonFilterApply?.addEventListener('click', () => {
     filterState.seasonOrder = seasonFilterInput.value;
-    applySeasonFilter();
+    applyFilters();
     renderOrdersTable();
     setupEventListeners();
   });
@@ -780,7 +876,7 @@ function setupEventListeners() {
   seasonFilterClear?.addEventListener('click', () => {
     filterState.seasonOrder = '';
     seasonFilterInput.value = '';
-    applySeasonFilter();
+    applyFilters();
     renderOrdersTable();
     setupEventListeners();
   });
@@ -1165,7 +1261,7 @@ async function handleRouteChangeInline(routeSelect) {
     allOrders = [...orders]; // 전체 데이터 업데이트
     console.log('🔄 발주 목록 새로고침 완료');
     
-    applySeasonFilter(); // 필터 재적용
+    applyFilters(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     console.log('🎨 테이블 렌더링 완료');
@@ -1291,7 +1387,7 @@ async function handleSupplierChange(orderId, newSupplier) {
       // 테이블 새로고침
       orders = await getOrdersWithProcesses();
       allOrders = [...orders];
-      applySeasonFilter();
+      applyFilters();
       renderOrdersTable();
       setupEventListeners();
       
@@ -1550,7 +1646,7 @@ async function handleOrderDateChange(orderId, newOrderDate) {
     allOrders = [...orders]; // 전체 데이터 업데이트
     console.log('🔄 발주 목록 새로고침 완료');
     
-    applySeasonFilter(); // 필터 재적용
+    applyFilters(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     console.log('🎨 테이블 렌더링 완료');
@@ -1818,7 +1914,7 @@ async function saveAllChanges() {
       originalOrders[order.id] = JSON.stringify(order);
     });
     
-    applySeasonFilter(); // 필터 재적용
+    applyFilters(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
@@ -2316,7 +2412,7 @@ async function handleExcelUpload(e) {
     orders.forEach(order => {
       originalOrders[order.id] = JSON.stringify(order);
     });
-    applySeasonFilter(); // 필터 재적용
+    applyFilters(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
@@ -2354,7 +2450,7 @@ async function deleteSelectedOrders() {
     orders.forEach(order => {
       originalOrders[order.id] = JSON.stringify(order);
     });
-    applySeasonFilter(); // 필터 재적용
+    applyFilters(); // 필터 재적용
     renderOrdersTable();
     setupEventListeners();
     
@@ -2365,6 +2461,299 @@ async function deleteSelectedOrders() {
     console.error('Delete error:', error);
     UIUtils.showAlert('삭제 실패', 'error');
   }
+}
+
+// ============ 페이지네이션 및 입고요구월 필터 ============
+
+// 입고요구월 드롭다운 초기화
+function initializeRequiredMonthFilter() {
+  const select = document.getElementById('required-month-filter');
+  if (!select) return;
+  
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  
+  // 지난 6개월 + 현재월 + 향후 3개월
+  const months = [];
+  for (let i = -6; i <= 3; i++) {
+    const date = new Date(currentYear, currentMonth - 1 + i, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    months.push({ year, month, value: `${year}-${String(month).padStart(2, '0')}` });
+  }
+  
+  select.innerHTML = months.map(m => 
+    `<option value="${m.value}" ${m.value === filterState.requiredMonth ? 'selected' : ''}>
+      ${m.year}년 ${m.month}월
+    </option>`
+  ).join('');
+  
+  updateTotalCount();
+}
+
+// 페이지네이션 적용하여 테이블 렌더링
+function renderOrdersTable() {
+  const tableContainer = document.getElementById('orders-table');
+  const headers = createProcessTableHeaders();
+  
+  // 정렬 적용
+  sortOrders();
+  
+  // 페이지네이션 적용
+  paginationState.totalItems = orders.length;
+  paginationState.totalPages = Math.ceil(orders.length / paginationState.itemsPerPage);
+  
+  // 현재 페이지 데이터 추출
+  const startIndex = (paginationState.currentPage - 1) * paginationState.itemsPerPage;
+  const endIndex = startIndex + paginationState.itemsPerPage;
+  const pageOrders = orders.slice(startIndex, endIndex);
+  
+  tableContainer.innerHTML = `
+    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
+          <tr>
+            <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
+            <th rowspan="2" class="px-2 py-2 border">번호</th>
+            <th colspan="10" class="px-2 py-2 border bg-blue-100">발주 정보</th>
+            <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
+            <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">물류입고<br>예정일</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 70px;">입고기준<br>예상차이</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">비고</th>
+          </tr>
+          <tr>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'channel' ? 'bg-blue-100' : ''}" data-sort="channel">
+              채널 ${getSortIcon('channel')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'seasonOrder' ? 'bg-blue-100' : ''}" data-sort="seasonOrder">
+              연도시즌+차수 ${getSortIcon('seasonOrder')}
+            </th>
+            <th class="px-2 py-2 border">스타일</th>
+            <th class="px-2 py-2 border">이미지</th>
+            <th class="px-2 py-2 border">색상</th>
+            <th class="px-2 py-2 border">수량</th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'country' ? 'bg-blue-100' : ''}" data-sort="country">
+              국가 ${getSortIcon('country')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'supplier' ? 'bg-blue-100' : ''}" data-sort="supplier">
+              생산업체 ${getSortIcon('supplier')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'orderDate' ? 'bg-blue-100' : ''}" data-sort="orderDate">
+              발주일 ${getSortIcon('orderDate')}
+            </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'requiredDelivery' ? 'bg-blue-100' : ''}" data-sort="requiredDelivery">
+              입고요구일 ${getSortIcon('requiredDelivery')}
+            </th>
+            ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
+            <th class="px-2 py-2 border">선적</th>
+            <th class="px-2 py-2 border">선적항-도착항</th>
+            <th class="px-2 py-2 border">입항</th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody">
+          ${pageOrders.length === 0 ? `
+            <tr>
+              <td colspan="100" class="px-4 py-8 text-center text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-2"></i>
+                <p>발주 데이터가 없습니다. 엑셀 파일을 업로드하거나 "행 추가" 버튼을 클릭하세요.</p>
+              </td>
+            </tr>
+          ` : pageOrders.map((order, index) => renderOrderRow(order, startIndex + index + 1, headers)).join('')}
+        </tbody>
+      </table>
+  `;
+  
+  renderPagination();
+  updateTotalCount();
+}
+
+// 페이지네이션 UI 렌더링
+function renderPagination() {
+  const container = document.getElementById('pagination-container');
+  if (!container) return;
+  
+  const { currentPage, totalPages } = paginationState;
+  
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let pages = [];
+  
+  // 항상 첫 페이지 표시
+  pages.push(1);
+  
+  // 현재 페이지 주변 표시
+  const startPage = Math.max(2, currentPage - 2);
+  const endPage = Math.min(totalPages - 1, currentPage + 2);
+  
+  if (startPage > 2) {
+    pages.push('...');
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(i);
+  }
+  
+  if (endPage < totalPages - 1) {
+    pages.push('...');
+  }
+  
+  // 항상 마지막 페이지 표시
+  if (totalPages > 1) {
+    pages.push(totalPages);
+  }
+  
+  container.innerHTML = `
+    <button id="prev-page" 
+            class="px-3 py-1 border rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+            ${currentPage === 1 ? 'disabled' : ''}>
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    ${pages.map(page => {
+      if (page === '...') {
+        return '<span class="px-3 py-1">...</span>';
+      }
+      return `
+        <button class="page-btn px-3 py-1 border rounded ${page === currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-50'}" 
+                data-page="${page}">
+          ${page}
+        </button>
+      `;
+    }).join('')}
+    <button id="next-page" 
+            class="px-3 py-1 border rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+            ${currentPage === totalPages ? 'disabled' : ''}>
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  `;
+  
+  // 페이지네이션 이벤트 리스너
+  document.getElementById('prev-page')?.addEventListener('click', () => {
+    if (paginationState.currentPage > 1) {
+      paginationState.currentPage--;
+      renderOrdersTable();
+      setupEventListeners();
+    }
+  });
+  
+  document.getElementById('next-page')?.addEventListener('click', () => {
+    if (paginationState.currentPage < paginationState.totalPages) {
+      paginationState.currentPage++;
+      renderOrdersTable();
+      setupEventListeners();
+    }
+  });
+  
+  document.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const page = parseInt(e.target.dataset.page);
+      paginationState.currentPage = page;
+      renderOrdersTable();
+      setupEventListeners();
+    });
+  });
+}
+
+// 총 건수 업데이트
+function updateTotalCount() {
+  const countEl = document.getElementById('total-count');
+  if (countEl) {
+    countEl.textContent = `총 ${orders.length}건`;
+  }
+}
+
+// 입고요구월 변경 처리
+async function handleRequiredMonthChange(yearMonth) {
+  try {
+    UIUtils.showLoading();
+    
+    if (!yearMonth) {
+      // 전체 데이터 로드
+      orders = await getOrdersWithProcesses();
+    } else {
+      // 해당 월 데이터만 로드
+      const [year, month] = yearMonth.split('-');
+      orders = await getOrdersByRequiredMonth(parseInt(year), parseInt(month));
+    }
+    
+    allOrders = [...orders];
+    filterState.requiredMonth = yearMonth;
+    
+    // 원본 데이터 저장
+    orders.forEach(order => {
+      originalOrders[order.id] = JSON.stringify(order);
+    });
+    
+    // 생산업체/연도시즌 필터 재적용
+    applyFilters();
+    
+    // 페이지네이션 초기화
+    paginationState.currentPage = 1;
+    
+    renderOrdersTable();
+    setupEventListeners();
+    UIUtils.hideLoading();
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('입고요구월 필터 오류:', error);
+    UIUtils.showAlert('데이터 로드 실패', 'error');
+  }
+}
+
+// 전체 데이터 Excel 다운로드
+async function downloadAllExcel() {
+  try {
+    const confirmed = await UIUtils.confirm(
+      '전체 데이터를 Excel로 다운로드하시겠습니까?\n(현재 필터와 관계없이 모든 데이터가 다운로드됩니다)'
+    );
+    
+    if (!confirmed) return;
+    
+    UIUtils.showLoading();
+    UIUtils.showAlert('전체 데이터를 불러오는 중입니다...', 'info');
+    
+    // 전체 데이터 로드
+    const allData = await getOrdersWithProcesses();
+    
+    UIUtils.showAlert(`${allData.length}건의 데이터를 Excel로 변환 중...`, 'info');
+    
+    // Excel 다운로드
+    downloadExcelTemplate(allData);
+    
+    UIUtils.hideLoading();
+    UIUtils.showAlert(`전체 ${allData.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('전체 Excel 다운로드 오류:', error);
+    UIUtils.showAlert('Excel 다운로드 실패', 'error');
+  }
+}
+
+// 필터 적용 (생산업체 + 연도시즌)
+function applyFilters() {
+  let filtered = [...allOrders];
+  
+  // 생산업체 필터
+  if (filterState.supplier) {
+    const searchTerm = filterState.supplier.toLowerCase().trim();
+    filtered = filtered.filter(order => 
+      (order.supplier || '').toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  // 연도시즌+차수 필터
+  if (filterState.seasonOrder) {
+    const searchTerm = filterState.seasonOrder.toLowerCase().trim();
+    filtered = filtered.filter(order => 
+      (order.seasonOrder || '').toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  orders = filtered;
+  paginationState.currentPage = 1; // 필터 변경 시 첫 페이지로
 }
 
 export default { renderOrderManagement };

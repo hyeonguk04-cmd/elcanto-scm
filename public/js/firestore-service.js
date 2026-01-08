@@ -683,6 +683,53 @@ export async function getOrdersWithProcesses() {
   }
 }
 
+// 입고요구월로 발주 조회 (서버 필터링)
+export async function getOrdersByRequiredMonth(year, month) {
+  try {
+    console.log(`📊 입고요구월 ${year}-${month} 발주 데이터 로드 시작...`);
+    const startTime = Date.now();
+    
+    // 해당 월의 시작일과 종료일 계산
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    
+    console.log(`   조회 범위: ${startDate} ~ ${endDate}`);
+    
+    // Firebase where 쿼리
+    const snapshot = await window.db.collection('orders')
+      .where('requiredDelivery', '>=', startDate)
+      .where('requiredDelivery', '<=', endDate)
+      .get();
+    
+    const orders = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
+    
+    // 정렬
+    orders.sort((a, b) => {
+      if (a.uploadOrder !== undefined && b.uploadOrder !== undefined) {
+        return a.uploadOrder - b.uploadOrder;
+      }
+      if (a.uploadOrder !== undefined) return -1;
+      if (b.uploadOrder !== undefined) return 1;
+      return (b.orderDate || '').localeCompare(a.orderDate || '');
+    });
+    
+    const loadTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ ${orders.length}건 로드 완료 (${loadTime}초)`);
+    
+    return orders;
+  } catch (error) {
+    console.error('Error getting orders by required month:', error);
+    throw error;
+  }
+}
+
 // ============ 실시간 리스너 ============
 
 export function listenToOrders(callback) {
@@ -731,5 +778,6 @@ export default {
   getEvidencesByOrder,
   getOrdersWithProcesses,
   listenToOrders,
-  listenToProcesses
+  listenToProcesses,
+  getOrdersByRequiredMonth
 };
