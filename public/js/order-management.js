@@ -334,68 +334,7 @@ function sortOrders() {
 
 // applySeasonFilter는 applyFilters로 통합됨 (아래 참조)
 
-function renderOrdersTable() {
-  const tableContainer = document.getElementById('orders-table');
-  const headers = createProcessTableHeaders();
-  
-  // 정렬 적용
-  sortOrders();
-  
-  tableContainer.innerHTML = `
-    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
-      <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
-          <tr>
-            <th rowspan="2" class="px-2 py-2 border"><input type="checkbox" id="select-all"></th>
-            <th rowspan="2" class="px-2 py-2 border">번호</th>
-            <th colspan="10" class="px-2 py-2 border bg-blue-100">발주 정보</th>
-            <th colspan="${headers.production.length}" class="px-2 py-2 border bg-green-100">생산 목표일정</th>
-            <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
-            <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">물류입고<br>예정일</th>
-            <th rowspan="2" class="px-2 py-2 border" style="min-width: 70px;">입고기준<br>예상차이</th>
-            <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">비고</th>
-          </tr>
-          <tr>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'channel' ? 'bg-blue-100' : ''}" data-sort="channel">
-              채널 ${getSortIcon('channel')}
-            </th>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'seasonOrder' ? 'bg-blue-100' : ''}" data-sort="seasonOrder">
-              연도시즌+차수 ${getSortIcon('seasonOrder')}
-            </th>
-            <th class="px-2 py-2 border">스타일</th>
-            <th class="px-2 py-2 border">이미지</th>
-            <th class="px-2 py-2 border">색상</th>
-            <th class="px-2 py-2 border">수량</th>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'country' ? 'bg-blue-100' : ''}" data-sort="country">
-              국가 ${getSortIcon('country')}
-            </th>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'supplier' ? 'bg-blue-100' : ''}" data-sort="supplier">
-              생산업체 ${getSortIcon('supplier')}
-            </th>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'orderDate' ? 'bg-blue-100' : ''}" data-sort="orderDate">
-              발주일 ${getSortIcon('orderDate')}
-            </th>
-            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'requiredDelivery' ? 'bg-blue-100' : ''}" data-sort="requiredDelivery">
-              입고요구일 ${getSortIcon('requiredDelivery')}
-            </th>
-            ${headers.production.map(h => `<th class="px-2 py-2 border">${h.name}</th>`).join('')}
-            <th class="px-2 py-2 border">선적</th>
-            <th class="px-2 py-2 border">선적항-도착항</th>
-            <th class="px-2 py-2 border">입항</th>
-          </tr>
-        </thead>
-        <tbody id="orders-tbody">
-          ${orders.length === 0 ? `
-            <tr>
-              <td colspan="100" class="px-4 py-8 text-center text-gray-500">
-                <i class="fas fa-inbox text-4xl mb-2"></i>
-                <p>발주 데이터가 없습니다. 엑셀 파일을 업로드하거나 "행 추가" 버튼을 클릭하세요.</p>
-              </td>
-            </tr>
-          ` : orders.map((order, index) => renderOrderRow(order, index + 1, headers)).join('')}
-        </tbody>
-      </table>
-  `;
-}
+// renderOrdersTable 함수는 페이지네이션 버전으로 아래에 정의됨 (2496줄 참조)
 
 function renderOrderRow(order, rowNum, headers) {
   console.log('🎨 renderOrderRow 호출:', {
