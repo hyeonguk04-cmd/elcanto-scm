@@ -2657,17 +2657,91 @@ async function downloadAllExcel() {
     // 전체 데이터 로드
     const allData = await getOrdersWithProcesses();
     
+    if (allData.length === 0) {
+      UIUtils.hideLoading();
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
     UIUtils.showAlert(`${allData.length}건의 데이터를 Excel로 변환 중...`, 'info');
     
+    // 헤더 생성
+    const headers = createProcessTableHeaders();
+    const excelHeaders = [
+      '채널', '연도시즌+차수', '스타일', '스타일이미지', '색상', '수량',
+      '국가', '생산업체', '발주일', '입고요구일'
+    ];
+    
+    // 생산 공정 헤더 추가
+    headers.production.forEach(h => {
+      excelHeaders.push(h.name);
+    });
+    
+    // 운송 헤더 추가
+    excelHeaders.push('선적', '선적경로', '입항', '물류입고', '입고기준 예상차이', '비고');
+    
+    // 데이터 변환
+    const excelData = allData.map(order => {
+      const row = {
+        '채널': order.channel || '',
+        '연도시즌+차수': order.seasonOrder || '',
+        '스타일': order.style || '',
+        '스타일이미지': order.styleImage || '',
+        '색상': order.color || '',
+        '수량': order.qty || 0,
+        '국가': order.country || '',
+        '생산업체': order.supplier || '',
+        '발주일': order.orderDate || '',
+        '입고요구일': order.requiredDelivery || ''
+      };
+      
+      // 생산 공정 데이터 추가
+      headers.production.forEach(h => {
+        const process = order.processes.production.find(p => p.key === h.key || p.processKey === h.key);
+        row[h.name] = process?.targetDate || '';
+      });
+      
+      // 운송 데이터 추가
+      const shippingProcess = order.processes.shipping.find(p => p.key === 'shipping');
+      const arrivalProcess = order.processes.shipping.find(p => p.key === 'arrival');
+      
+      row['선적'] = shippingProcess?.targetDate || '';
+      row['선적경로'] = order.route || '';
+      row['입항'] = arrivalProcess?.targetDate || '';
+      
+      // 물류입고일 계산
+      const logisticsArrival = arrivalProcess?.targetDate 
+        ? DateUtils.addDays(arrivalProcess.targetDate, 2)
+        : '';
+      row['물류입고'] = logisticsArrival;
+      
+      // 입고기준 예상차이 계산
+      if (order.requiredDelivery && logisticsArrival) {
+        const diff = DateUtils.diffInDays(order.requiredDelivery, logisticsArrival);
+        if (diff !== null) {
+          row['입고기준 예상차이'] = diff > 0 ? `+${diff}일` : `${diff}일`;
+        } else {
+          row['입고기준 예상차이'] = '';
+        }
+      } else {
+        row['입고기준 예상차이'] = '';
+      }
+      
+      row['비고'] = order.notes || '';
+      
+      return row;
+    });
+    
     // Excel 다운로드
-    downloadExcelTemplate(allData);
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산목표일정_전체데이터_${timestamp}.xlsx`);
     
     UIUtils.hideLoading();
     UIUtils.showAlert(`전체 ${allData.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
   } catch (error) {
     UIUtils.hideLoading();
     console.error('전체 Excel 다운로드 오류:', error);
-    UIUtils.showAlert('Excel 다운로드 실패', 'error');
+    UIUtils.showAlert(`Excel 다운로드 실패: ${error.message}`, 'error');
   }
 }
 
