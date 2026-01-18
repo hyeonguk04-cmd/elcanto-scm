@@ -864,6 +864,42 @@ async function getCachedAllData() {
   return cachedAllData;
 }
 
+// Excel 데이터 생성 함수 (공통)
+function generateCompletionExcelData(ordersData) {
+  const headers = createProcessTableHeaders();
+  
+  const excelData = ordersData.map(order => {
+    const row = {
+      '채널': order.channel || '',
+      '연도시즌+차수': order.seasonOrder || '',
+      '스타일': order.style || '',
+      '색상': order.color || '',
+      '국가': order.country || '',
+      '생산업체': order.supplier || '',
+      '발주일': order.orderDate || '',
+    };
+    
+    // 생산 공정 완료일
+    const productionProcesses = order.schedule?.production || order.processes?.production || [];
+    headers.production.forEach(header => {
+      const process = productionProcesses.find(p => p.processKey === header.key || p.key === header.key);
+      row[`${header.name}_완료일`] = process?.completedDate || '';
+    });
+    
+    // 운송 공정 완료일
+    const shippingProcesses = order.schedule?.shipping || order.processes?.shipping || [];
+    const shippingProcess = shippingProcesses.find(p => p.processKey === 'shipping' || p.key === 'shipping');
+    const arrivalProcess = shippingProcesses.find(p => p.processKey === 'arrival' || p.key === 'arrival');
+    
+    row['선적_완료일'] = shippingProcess?.completedDate || '';
+    row['입항_완료일'] = arrivalProcess?.completedDate || '';
+    
+    return row;
+  });
+  
+  return excelData;
+}
+
 // 현재월 Excel 다운로드
 async function downloadMonthExcelCompletion() {
   try {
@@ -882,7 +918,19 @@ async function downloadMonthExcelCompletion() {
     if (!confirmed) return;
     
     UIUtils.showLoading();
-    downloadTemplateCompletion(orders);
+    UIUtils.showAlert(`${orders.length}건의 데이터를 Excel로 변환 중...`, 'info');
+    
+    // Excel 데이터 생성
+    const excelData = generateCompletionExcelData(orders);
+    
+    // Excel 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const fileName = filterState.requiredMonth 
+      ? `생산공정_완료일_${filterState.requiredMonth.replace('-', '')}_${timestamp}.xlsx`
+      : `생산공정_완료일_${timestamp}.xlsx`;
+    
+    ExcelUtils.downloadExcel(excelData, fileName);
+    
     UIUtils.hideLoading();
     UIUtils.showAlert(`${orders.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
   } catch (error) {
@@ -902,6 +950,8 @@ async function downloadAllExcelCompletion() {
     if (!confirmed) return;
     
     UIUtils.showLoading();
+    
+    // 캐시에서 데이터 가져오기
     const allData = await getCachedAllData();
     
     if (allData.length === 0) {
@@ -911,7 +961,13 @@ async function downloadAllExcelCompletion() {
     }
     
     UIUtils.showAlert(`${allData.length}건의 데이터를 Excel로 변환 중...`, 'info');
-    downloadTemplateCompletion(allData);
+    
+    // Excel 데이터 생성
+    const excelData = generateCompletionExcelData(allData);
+    
+    // Excel 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `생산공정_완료일_전체데이터_${timestamp}.xlsx`);
     
     UIUtils.hideLoading();
     UIUtils.showAlert(`전체 ${allData.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
