@@ -1579,6 +1579,56 @@ async function getCachedAllDataAnalytics() {
 }
 
 // Excel 데이터 생성 함수 (공통)
+// 공정 지연일수 계산 함수
+function calculateProcessDelay(process) {
+  if (!process) return null;
+  
+  const completedDate = process.completedDate || process.actualDate;
+  
+  if (process.targetDate && completedDate) {
+    const targetDate = new Date(process.targetDate);
+    const actualDate = new Date(completedDate);
+    const diff = Math.floor((actualDate - targetDate) / (1000 * 60 * 60 * 24));
+    return diff;
+  }
+  
+  return null;
+}
+
+// 최종 현황 계산 함수
+function calculateFinalStatus(order) {
+  const productionProcesses = order.processes?.production || order.schedule?.production || [];
+  const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
+  
+  // 물류입고 예정일 계산
+  const expectedArrivalInfo = calculateExpectedArrival(order, productionProcesses, shippingProcesses);
+  
+  // 최종 지연일수 계산
+  let totalDelay = null;
+  if (expectedArrivalInfo.date && order.requiredDelivery) {
+    const expectedDate = new Date(expectedArrivalInfo.date);
+    const requiredDate = new Date(order.requiredDelivery);
+    const diff = Math.floor((expectedDate - requiredDate) / (1000 * 60 * 60 * 24));
+    
+    if (diff > 0) {
+      totalDelay = `+${diff}`;
+    } else if (diff < 0) {
+      totalDelay = `${diff}`;
+    } else {
+      totalDelay = '0';
+    }
+  }
+  
+  // 공정상태 판단
+  const processStatus = determineProcessStatus(order, productionProcesses, shippingProcesses);
+  
+  return {
+    totalDelay,
+    estimatedArrival: expectedArrivalInfo.date || '',
+    status: processStatus.text || ''
+  };
+}
+
 function generateAnalyticsExcelData(ordersData) {
   const excelData = ordersData.map(order => {
     const row = {
