@@ -1,46 +1,111 @@
 // 공정 입고진척 현황 - 완전 재설계
-import { getOrdersWithProcesses, getSupplierByName } from './firestore-service.js';
+import { getOrdersWithProcesses, getOrdersByRequiredMonth, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
 let allOrders = [];
+let orders = []; // 현재 표시 중인 데이터
 let sortState = { column: null, direction: null };
 let supplierList = [];
 let dateFilter = { start: '', end: '' };
 
+// 캐싱 관련 변수
+let cachedAllData = null; // 전체 데이터 캐시
+let cacheTimestamp = null; // 캐시 생성 시간
+const CACHE_DURATION = 60 * 60 * 1000; // 1시간 (밀리초)
+
+// 페이지네이션 상태
+let paginationState = {
+  currentPage: 1,
+  itemsPerPage: 10,
+  totalItems: 0,
+  totalPages: 0
+};
+
+// 필터 상태
+let filterState = {
+  requiredMonth: '', // 입고요구월 (YYYY-MM)
+  channel: '전체',
+  supplier: '전체'
+};
+
 export async function renderAnalytics(container) {
   try {
     UIUtils.showLoading();
-    allOrders = await getOrdersWithProcesses();
+    
+    // 현재 월 계산
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    filterState.requiredMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    
+    // 현재 월 데이터 로드 (서버 필터링)
+    orders = await getOrdersByRequiredMonth(currentYear, currentMonth);
+    allOrders = [...orders]; // 현재 보이는 데이터 복사
     
     // 생산업체 목록 추출
-    supplierList = ['전체', ...new Set(allOrders.map(o => o.supplier).filter(Boolean).sort())];
+    supplierList = ['전체', ...new Set(orders.map(o => o.supplier).filter(Boolean).sort())];
+    
+    // 입고요구월 드롭다운 옵션 생성 (지난 6개월 ~ 향후 3개월)
+    const monthOptions = [];
+    for (let i = -6; i <= 3; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const value = `${year}-${String(month).padStart(2, '0')}`;
+      const label = `${year}년 ${month}월`;
+      monthOptions.push({ value, label });
+    }
     
     container.innerHTML = `
       <div class="space-y-3">
         <!-- 모바일 최적화 레이아웃 -->
         <div class="flex flex-col gap-3">
           <!-- 제목 (첫 번째 줄) -->
-          <div class="flex items-center" style="display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 0.5rem !important; width: auto !important;">
-            <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">공정 입고진척 현황</h2>
-            <i id="analytics-info-icon" 
-               class="fas fa-lightbulb cursor-pointer" 
-               style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
-               tabindex="0"
-               role="button"
-               aria-label="안내사항 보기"
-               onmouseover="this.style.color='#d97706'"
-               onmouseout="this.style.color='#f59e0b'"></i>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center" style="display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 0.5rem !important; width: auto !important;">
+              <h2 class="text-xl font-bold text-gray-800" style="margin: 0 !important; white-space: nowrap !important;">공정 입고진척 현황</h2>
+              <i id="analytics-info-icon" 
+                 class="fas fa-lightbulb cursor-pointer" 
+                 style="font-size: 19px; color: #f59e0b; margin-left: 8px !important; vertical-align: middle; transition: color 0.2s; flex-shrink: 0 !important; position: static !important;"
+                 tabindex="0"
+                 role="button"
+                 aria-label="안내사항 보기"
+                 onmouseover="this.style.color='#d97706'"
+                 onmouseout="this.style.color='#f59e0b'"></i>
+            </div>
           </div>
           
-          <!-- 필터 및 버튼 영역 (두 번째/세 번째 줄) -->
-          <div class="flex flex-col sm:flex-row gap-2 items-end sm:items-center justify-end">
-            <!-- 버튼 -->
-            <button id="analytics-download-excel-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm w-full sm:w-auto">
-              <i class="fas fa-download mr-1"></i>엑셀 다운로드
-            </button>
+          <!-- 필터 및 버튼 영역 (두 번째 줄) -->
+          <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+            <!-- 왼쪽: 총 건수 + 입고요구월 + 보기 -->
+            <div class="flex gap-2 items-center">
+              <span id="total-count-analytics" class="text-sm font-semibold text-gray-700">총 0건</span>
+              <select id="required-month-filter-analytics" class="px-2 py-1.5 border rounded-lg text-sm">
+                ${monthOptions.map(opt => `<option value="${opt.value}" ${opt.value === filterState.requiredMonth ? 'selected' : ''}>${opt.label}</option>`).join('')}
+              </select>
+              <select id="items-per-page-analytics" class="px-2 py-1.5 border rounded-lg text-sm">
+                <option value="10">10개씩 보기</option>
+                <option value="50">50개씩 보기</option>
+                <option value="100">100개씩 보기</option>
+                <option value="500">500개씩 보기</option>
+              </select>
+            </div>
             
+            <!-- 오른쪽: Excel 다운로드 버튼 -->
+            <div class="flex gap-2">
+              <button id="download-month-excel-btn-analytics" class="bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 text-sm">
+                <i class="fas fa-file-excel mr-1"></i>현재월 Excel 다운로드
+              </button>
+              <button id="download-all-excel-btn-analytics" class="bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 text-sm">
+                <i class="fas fa-file-excel mr-1"></i>전체 데이터 Excel 다운로드
+              </button>
+            </div>
+          </div>
+          
+          <!-- 필터 영역 (세 번째 줄) -->
+          <div class="flex flex-col sm:flex-row gap-2 items-end sm:items-center justify-end">
             <!-- 채널 및 생산업체 필터 -->
             <div class="flex gap-2 w-full sm:w-auto">
               <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
@@ -111,7 +176,7 @@ export async function renderAnalytics(container) {
       </div>
     `;
     
-    renderAnalyticsTable(allOrders);
+    renderAnalyticsTable(orders);
     setupEventListeners();
     
     UIUtils.hideLoading();
@@ -123,6 +188,23 @@ export async function renderAnalytics(container) {
 }
 
 function setupEventListeners() {
+  // 입고요구월 필터
+  document.getElementById('required-month-filter-analytics')?.addEventListener('change', (e) => {
+    handleRequiredMonthChangeAnalytics(e.target.value);
+  });
+  
+  // 보기 드롭다운 (페이지네이션)
+  document.getElementById('items-per-page-analytics')?.addEventListener('change', (e) => {
+    paginationState.itemsPerPage = parseInt(e.target.value);
+    paginationState.currentPage = 1; // 첫 페이지로 이동
+    renderAnalyticsTable(orders);
+    setupEventListeners();
+  });
+  
+  // Excel 다운로드 버튼
+  document.getElementById('download-month-excel-btn-analytics')?.addEventListener('click', downloadMonthExcelAnalytics);
+  document.getElementById('download-all-excel-btn-analytics')?.addEventListener('click', downloadAllExcelAnalytics);
+  
   // 채널 필터
   document.getElementById('analytics-channel-filter')?.addEventListener('change', filterOrders);
   
@@ -132,9 +214,6 @@ function setupEventListeners() {
   // 날짜 필터
   document.getElementById('analytics-start-date')?.addEventListener('change', filterOrders);
   document.getElementById('analytics-end-date')?.addEventListener('change', filterOrders);
-  
-  // 엑셀 다운로드
-  document.getElementById('analytics-download-excel-btn')?.addEventListener('click', downloadExcel);
   
   // 인포메이션 툴팁 기능
   setupInfoTooltip();
@@ -316,7 +395,13 @@ function filterOrders() {
     filtered = filtered.filter(o => o.requiredDelivery <= endDate);
   }
   
-  renderAnalyticsTable(filtered);
+  // 필터링된 데이터를 orders에 저장
+  orders = filtered;
+  
+  // 페이지네이션 초기화
+  paginationState.currentPage = 1;
+  
+  renderAnalyticsTable(orders);
 }
 
 function checkIfDelayed(order) {
@@ -333,22 +418,35 @@ function checkIfAllCompleted(order) {
   return allProcesses.length > 0 && allProcesses.every(p => p.completedDate || p.actualDate);
 }
 
-function renderAnalyticsTable(orders) {
+function renderAnalyticsTable(ordersData) {
   const container = document.getElementById('analytics-table-container');
   
-  if (orders.length === 0) {
+  // 페이지네이션 상태 업데이트
+  paginationState.totalItems = ordersData.length;
+  paginationState.totalPages = Math.ceil(ordersData.length / paginationState.itemsPerPage);
+  
+  // 총 건수 업데이트
+  updateTotalCountAnalytics();
+  
+  if (ordersData.length === 0) {
     container.innerHTML = `
       <div class="p-8 text-center text-gray-500">
         <i class="fas fa-inbox text-4xl mb-2"></i>
         <p>데이터가 없습니다.</p>
       </div>
     `;
+    // 페이지네이션 숨기기
+    const paginationContainer = document.getElementById('pagination-container-analytics');
+    if (paginationContainer) {
+      paginationContainer.innerHTML = '';
+    }
     return;
   }
   
   // 정렬 적용
+  let sortedOrders = [...ordersData];
   if (sortState.column && sortState.direction) {
-    orders = [...orders].sort((a, b) => {
+    sortedOrders = sortedOrders.sort((a, b) => {
       let aVal, bVal;
       
       switch(sortState.column) {
@@ -391,6 +489,11 @@ function renderAnalyticsTable(orders) {
       }
     });
   }
+  
+  // 페이지네이션 적용
+  const startIndex = (paginationState.currentPage - 1) * paginationState.itemsPerPage;
+  const endIndex = startIndex + paginationState.itemsPerPage;
+  const pageOrders = sortedOrders.slice(startIndex, endIndex);
   
   const getSortIcon = (column) => {
     if (sortState.column !== column) return '<i class="fas fa-sort text-gray-400 ml-1"></i>';
@@ -471,10 +574,13 @@ function renderAnalyticsTable(orders) {
         </tr>
       </thead>
       <tbody>
-        ${orders.map((order, index) => renderOrderRow(order, index + 1)).join('')}
+        ${pageOrders.map((order, index) => renderOrderRow(order, startIndex + index + 1)).join('')}
       </tbody>
     </table>
   `;
+  
+  // 페이지네이션 렌더링
+  renderPaginationAnalytics();
   
   // 정렬 이벤트 리스너 추가
   setTimeout(() => {
@@ -1319,5 +1425,279 @@ window.closeAnalyticsPhotoModal = function() {
     photoModal.classList.add('hidden');
   }
 };
+
+// 페이지네이션 렌더링
+function renderPaginationAnalytics() {
+  const paginationContainer = document.getElementById('pagination-container-analytics');
+  if (!paginationContainer) {
+    // 페이지네이션 컨테이너가 없으면 생성
+    const tableContainer = document.getElementById('analytics-table-container');
+    if (tableContainer && tableContainer.parentElement) {
+      const newContainer = document.createElement('div');
+      newContainer.id = 'pagination-container-analytics';
+      newContainer.className = 'mt-3';
+      tableContainer.parentElement.appendChild(newContainer);
+    } else {
+      return;
+    }
+  }
+  
+  const container = document.getElementById('pagination-container-analytics');
+  const { currentPage, totalPages } = paginationState;
+  
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let pages = [];
+  if (totalPages <= 7) {
+    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  } else {
+    if (currentPage <= 4) {
+      pages = [1, 2, 3, 4, 5, '...', totalPages];
+    } else if (currentPage >= totalPages - 3) {
+      pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    } else {
+      pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    }
+  }
+  
+  container.innerHTML = `
+    <div class="flex justify-center items-center gap-1">
+      <button id="prev-page-analytics" 
+              class="px-3 py-1 border rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+              ${currentPage === 1 ? 'disabled' : ''}>
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      ${pages.map(page => {
+        if (page === '...') {
+          return `<span class="px-3 py-1">...</span>`;
+        }
+        return `
+          <button class="page-btn-analytics px-3 py-1 border rounded ${page === currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-50'}"
+                  data-page="${page}">
+            ${page}
+          </button>
+        `;
+      }).join('')}
+      <button id="next-page-analytics" 
+              class="px-3 py-1 border rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+              ${currentPage === totalPages ? 'disabled' : ''}>
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  `;
+  
+  // 페이지네이션 이벤트 리스너
+  document.getElementById('prev-page-analytics')?.addEventListener('click', () => {
+    if (paginationState.currentPage > 1) {
+      paginationState.currentPage--;
+      renderAnalyticsTable(orders);
+      setupEventListeners();
+    }
+  });
+  
+  document.getElementById('next-page-analytics')?.addEventListener('click', () => {
+    if (paginationState.currentPage < paginationState.totalPages) {
+      paginationState.currentPage++;
+      renderAnalyticsTable(orders);
+      setupEventListeners();
+    }
+  });
+  
+  document.querySelectorAll('.page-btn-analytics').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const page = parseInt(e.target.dataset.page);
+      paginationState.currentPage = page;
+      renderAnalyticsTable(orders);
+      setupEventListeners();
+    });
+  });
+}
+
+// 총 건수 업데이트
+function updateTotalCountAnalytics() {
+  const countEl = document.getElementById('total-count-analytics');
+  if (countEl) {
+    countEl.textContent = `총 ${orders.length}건`;
+  }
+}
+
+// 입고요구월 변경 처리
+async function handleRequiredMonthChangeAnalytics(yearMonth) {
+  try {
+    UIUtils.showLoading();
+    
+    const [year, month] = yearMonth.split('-');
+    orders = await getOrdersByRequiredMonth(parseInt(year), parseInt(month));
+    allOrders = [...orders];
+    filterState.requiredMonth = yearMonth;
+    
+    // 생산업체 목록 갱신
+    supplierList = ['전체', ...new Set(orders.map(o => o.supplier).filter(Boolean).sort())];
+    
+    // 생산업체 필터 드롭다운 갱신
+    const supplierFilter = document.getElementById('analytics-supplier-filter');
+    if (supplierFilter) {
+      supplierFilter.innerHTML = supplierList.map(s => 
+        `<option value="${s}">${s === '전체' ? '전체 생산업체' : s}</option>`
+      ).join('');
+    }
+    
+    // 필터 재적용
+    applyFilters();
+    
+    // 페이지네이션 초기화
+    paginationState.currentPage = 1;
+    
+    renderAnalyticsTable(orders);
+    setupEventListeners();
+    UIUtils.hideLoading();
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('입고요구월 필터 오류:', error);
+    UIUtils.showAlert('데이터 로드 실패', 'error');
+  }
+}
+
+// 캐시에서 전체 데이터 가져오기 (1시간 캐시)
+async function getCachedAllDataAnalytics() {
+  const now = Date.now();
+  
+  // 캐시가 유효한지 확인
+  if (cachedAllData && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+    const cacheAge = Math.round((now - cacheTimestamp) / 1000 / 60); // 분 단위
+    console.log(`✅ 캐시된 데이터 사용 (${cacheAge}분 전 캐시, Firebase 읽기 없음)`);
+    return cachedAllData;
+  }
+  
+  // 캐시가 없거나 만료됨 - Firebase에서 로드
+  console.log('📊 Firebase에서 전체 데이터 로드 중...');
+  cachedAllData = await getOrdersWithProcesses();
+  cacheTimestamp = now;
+  console.log(`✅ 전체 ${cachedAllData.length}건 로드 완료 및 캐시 저장`);
+  
+  return cachedAllData;
+}
+
+// Excel 데이터 생성 함수 (공통)
+function generateAnalyticsExcelData(ordersData) {
+  const excelData = ordersData.map(order => {
+    const row = {
+      '채널': order.channel || '',
+      '생산업체': order.supplier || '',
+      '스타일': order.style || '',
+      '색상': order.color || '',
+      '수량': order.quantity || '',
+      '발주일': order.orderDate || '',
+      '입고요구일': order.requiredDelivery || ''
+    };
+    
+    // 생산 공정 지연일수 추가
+    const productionProcesses = order.processes?.production || order.schedule?.production || [];
+    PROCESS_CONFIG.production.forEach(config => {
+      const process = productionProcesses.find(p => p.key === config.key || p.processKey === config.key);
+      const delay = calculateProcessDelay(process);
+      row[`${config.name}_지연일수`] = delay !== null ? delay : '';
+    });
+    
+    // 운송 공정 지연일수 추가
+    const shippingProcesses = order.processes?.shipping || order.schedule?.shipping || [];
+    PROCESS_CONFIG.shipping.forEach(config => {
+      const process = shippingProcesses.find(p => p.key === config.key || p.processKey === config.key);
+      const delay = calculateProcessDelay(process);
+      row[`${config.name}_지연일수`] = delay !== null ? delay : '';
+    });
+    
+    // 최종 현황
+    const { totalDelay, estimatedArrival, status } = calculateFinalStatus(order);
+    row['지연일수'] = totalDelay || '';
+    row['물류입고예정일'] = estimatedArrival || '';
+    row['공정상태'] = status || '';
+    
+    return row;
+  });
+  
+  return excelData;
+}
+
+// 현재월 Excel 다운로드
+async function downloadMonthExcelAnalytics() {
+  try {
+    if (orders.length === 0) {
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    const monthFilter = document.getElementById('required-month-filter-analytics');
+    const selectedMonth = monthFilter?.options[monthFilter.selectedIndex]?.text || '현재월';
+    
+    const confirmed = await UIUtils.confirm(
+      `${selectedMonth} 데이터 ${orders.length}건을 Excel로 다운로드하시겠습니까?`
+    );
+    
+    if (!confirmed) return;
+    
+    UIUtils.showLoading();
+    UIUtils.showAlert(`${orders.length}건의 데이터를 Excel로 변환 중...`, 'info');
+    
+    // Excel 데이터 생성
+    const excelData = generateAnalyticsExcelData(orders);
+    
+    // Excel 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const fileName = filterState.requiredMonth 
+      ? `공정입고진척_${filterState.requiredMonth.replace('-', '')}_${timestamp}.xlsx`
+      : `공정입고진척_${timestamp}.xlsx`;
+    
+    ExcelUtils.downloadExcel(excelData, fileName);
+    
+    UIUtils.hideLoading();
+    UIUtils.showAlert(`${orders.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('현재월 Excel 다운로드 오류:', error);
+    UIUtils.showAlert(`Excel 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// 전체 데이터 Excel 다운로드 (캐싱 적용)
+async function downloadAllExcelAnalytics() {
+  try {
+    const confirmed = await UIUtils.confirm(
+      '전체 데이터를 Excel로 다운로드하시겠습니까?\n(현재 필터와 관계없이 모든 데이터가 다운로드됩니다)'
+    );
+    
+    if (!confirmed) return;
+    
+    UIUtils.showLoading();
+    
+    // 캐시에서 데이터 가져오기
+    const allData = await getCachedAllDataAnalytics();
+    
+    if (allData.length === 0) {
+      UIUtils.hideLoading();
+      UIUtils.showAlert('다운로드할 데이터가 없습니다.', 'warning');
+      return;
+    }
+    
+    UIUtils.showAlert(`${allData.length}건의 데이터를 Excel로 변환 중...`, 'info');
+    
+    // Excel 데이터 생성
+    const excelData = generateAnalyticsExcelData(allData);
+    
+    // Excel 다운로드
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    ExcelUtils.downloadExcel(excelData, `공정입고진척_전체데이터_${timestamp}.xlsx`);
+    
+    UIUtils.hideLoading();
+    UIUtils.showAlert(`전체 ${allData.length}건 데이터를 Excel로 다운로드했습니다.`, 'success');
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('전체 Excel 다운로드 오류:', error);
+    UIUtils.showAlert(`Excel 다운로드 실패: ${error.message}`, 'error');
+  }
+}
 
 export default { renderAnalytics };
