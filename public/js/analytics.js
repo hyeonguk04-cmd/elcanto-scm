@@ -515,34 +515,33 @@ function renderAnalyticsTable(ordersData) {
   const shippingHeaders = PROCESS_CONFIG.shipping.map(p => p.name);
   
   container.innerHTML = `
-    <table class="text-xs border-collapse" style="width: auto; white-space: nowrap;">
+    <table class="text-xs border-collapse" style="width: 100%; table-layout: fixed;">
       <thead class="bg-gray-50 text-xs uppercase sticky top-0 z-10">
         <!-- 메인 헤더 -->
         <tr>
-          <th rowspan="2" class="px-3 py-2 border" style="min-width: 40px;">NO.</th>
-          <th colspan="8" class="px-3 py-2 border bg-blue-100">발주 정보</th>
-          <th colspan="${productionHeaders.length}" class="px-3 py-2 border bg-green-100">생산 공정 (일)</th>
-          <th colspan="${shippingHeaders.length}" class="px-3 py-2 border bg-yellow-100">운송 상황 (일)</th>
-          <th colspan="3" class="px-3 py-2 bg-purple-100">최종 현황</th>
+          <th rowspan="2" class="px-3 py-3 border" style="width: 3%;">NO.</th>
+          <th colspan="8" class="px-3 py-3 border bg-blue-100">발주 정보</th>
+          <th colspan="${productionHeaders.length}" class="px-3 py-3 border bg-green-100">생산 공정 (일)</th>
+          <th colspan="${shippingHeaders.length}" class="px-3 py-3 border bg-yellow-100">운송 상황 (일)</th>
+          <th colspan="3" class="px-3 py-3 bg-purple-100">최종 현황</th>
         </tr>
         
         <!-- 서브 헤더 -->
         <tr>
           <!-- 발주 정보 -->
-          <th class="${getHeaderClass('channel')}" style="min-width: 50px;" data-analytics-sort="channel">채널 ${getSortIcon('channel')}</th>
-          <th class="${getHeaderClass('supplier')}" style="min-width: 75px;" data-analytics-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
-          <th class="${getHeaderClass('style')}" style="min-width: 90px;" data-analytics-sort="style">스타일 ${getSortIcon('style')}</th>
-          <th class="px-2 py-2 border" style="min-width: 70px;">이미지</th>
-          <th class="px-2 py-2 border" style="min-width: 45px;">색상</th>
-          <th class="px-2 py-2 border" style="min-width: 50px;">수량</th>
-          <th class="${getHeaderClass('orderDate')}" style="min-width: 100px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
-          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 100px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
+          <th class="${getHeaderClass('channel')}" style="width: 4%;" data-analytics-sort="channel">채널 ${getSortIcon('channel')}</th>
+          <th class="${getHeaderClass('supplier')}" style="width: 6%;" data-analytics-sort="supplier">생산업체 ${getSortIcon('supplier')}</th>
+          <th class="${getHeaderClass('style')}" style="width: 7%;" data-analytics-sort="style">스타일 ${getSortIcon('style')}</th>
+          <th class="px-3 py-3 border" style="width: 5%;">이미지</th>
+          <th class="px-3 py-3 border" style="width: 4%;">색상</th>
+          <th class="px-3 py-3 border" style="width: 4%;">수량</th>
+          <th class="${getHeaderClass('orderDate')}" style="width: 7%;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
+          <th class="${getHeaderClass('requiredDelivery')}" style="width: 7%;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           
           <!-- 생산 공정 -->
           ${productionHeaders.map((name, idx) => {
-            // 모든 항목 두 줄로 표시하고 너비 70px로 확대
+            // 모든 항목 두 줄로 표시
             let displayName = name;
-            const width = '70px';
             
             if (name === '원단검수') {
               displayName = '원단<br>검수';
@@ -557,20 +556,18 @@ function renderAnalyticsTable(ordersData) {
               displayName = name.slice(0, 2) + '<br>' + name.slice(2);
             }
             
-            return `<th class="px-1 py-2 border" style="min-width: ${width}; line-height: 1.2;">${displayName}</th>`;
+            return `<th class="px-3 py-3 border" style="width: 5%; line-height: 1.2;">${displayName}</th>`;
           }).join('')}
           
           <!-- 운송 상황 -->
           ${shippingHeaders.map(name => {
-            // 모든 운송 상황 컬럼 너비 70px로 확대
-            const width = '70px';
-            return `<th class="px-1 py-2 border" style="min-width: ${width};">${name}</th>`;
+            return `<th class="px-3 py-3 border" style="width: 5%;">${name}</th>`;
           }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-1 py-2 border" style="min-width: 60px; line-height: 1.2;">지연<br>일수</th>
-          <th class="px-2 py-2 border" style="min-width: 110px;">물류입고<br>예정일</th>
-          <th class="px-2 py-2 border" style="min-width: 80px; line-height: 1.2;">공정<br>상태</th>
+          <th class="px-3 py-3 border" style="width: 4%; line-height: 1.2;">지연<br>일수</th>
+          <th class="px-3 py-3 border" style="width: 7%;">물류입고<br>예정일</th>
+          <th class="px-3 py-3 border" style="width: 6%; line-height: 1.2;">공정<br>상태</th>
         </tr>
       </thead>
       <tbody>
@@ -689,13 +686,13 @@ function renderOrderRow(order, rowNum) {
   
   return `
     <tr class="border-b hover:bg-gray-50">
-      <td class="px-3 py-2 text-center border">${rowNum}</td>
+      <td class="px-3 py-3 text-center border">${rowNum}</td>
       
       <!-- 발주 정보 -->
-      <td class="px-3 py-2 border">${order.channel || '-'}</td>
-      <td class="px-3 py-2 border">${order.supplier || '-'}</td>
-      <td class="px-3 py-2 border font-medium">${order.style || '-'}</td>
-      <td class="px-3 py-2 border text-center">
+      <td class="px-3 py-3 border">${order.channel || '-'}</td>
+      <td class="px-3 py-3 border">${order.supplier || '-'}</td>
+      <td class="px-3 py-3 border font-medium">${order.style || '-'}</td>
+      <td class="px-3 py-3 border text-center">
         ${order.styleImage ? `
           <img src="${order.styleImage}" alt="${order.style}" 
                class="h-12 w-auto mx-auto cursor-pointer hover:scale-150 transition-transform"
@@ -703,10 +700,10 @@ function renderOrderRow(order, rowNum) {
                onerror="this.style.display='none'; this.parentElement.innerHTML='-';">
         ` : '-'}
       </td>
-      <td class="px-3 py-2 border">${order.color || '-'}</td>
-      <td class="px-3 py-2 border text-right">${order.qty || 0}</td>
-      <td class="px-3 py-2 border">${order.orderDate || '-'}</td>
-      <td class="px-3 py-2 border">${order.requiredDelivery || '-'}</td>
+      <td class="px-3 py-3 border">${order.color || '-'}</td>
+      <td class="px-3 py-3 border text-right">${order.qty || 0}</td>
+      <td class="px-3 py-3 border">${order.orderDate || '-'}</td>
+      <td class="px-3 py-3 border">${order.requiredDelivery || '-'}</td>
       
       <!-- 생산 공정 지연일수 -->
       ${PROCESS_CONFIG.production.map(processConfig => {
@@ -721,9 +718,9 @@ function renderOrderRow(order, rowNum) {
       }).join('')}
       
       <!-- 최종 현황 -->
-      <td class="px-1 py-2 border text-center ${finalDelayClass}">${finalDelayDays}</td>
-      <td class="px-2 py-2 border text-center">${expectedArrivalInfo.date || '-'}</td>
-      <td class="px-2 py-2 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
+      <td class="px-3 py-3 border text-center ${finalDelayClass}">${finalDelayDays}</td>
+      <td class="px-3 py-3 border text-center">${expectedArrivalInfo.date || '-'}</td>
+      <td class="px-3 py-3 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
           onclick="toggleProcessDetailPanel('${order.id}')" style="line-height: 1.3;">
         ${processStatus.text.replace('(', '<br>(')}
       </td>
@@ -794,7 +791,7 @@ function calculateExpectedArrival(order, productionProcesses, shippingProcesses)
 
 function renderProcessCell(order, process, processConfig, category) {
   if (!process) {
-    return `<td class="px-3 py-2 border text-center">-</td>`;
+    return `<td class="px-3 py-3 border text-center">-</td>`;
   }
   
   // 지연일수 계산
@@ -840,7 +837,7 @@ function renderProcessCell(order, process, processConfig, category) {
     : '';
   
   return `
-    <td class="px-3 py-2 border text-center ${cellClass}" ${clickHandler}>
+    <td class="px-3 py-3 border text-center ${cellClass}" ${clickHandler}>
       ${cellContent}
     </td>
   `;
