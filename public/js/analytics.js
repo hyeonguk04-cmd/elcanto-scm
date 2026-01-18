@@ -535,14 +535,14 @@ function renderAnalyticsTable(ordersData) {
           <th class="px-2 py-2 border" style="min-width: 70px;">이미지</th>
           <th class="px-2 py-2 border" style="min-width: 45px;">색상</th>
           <th class="px-2 py-2 border" style="min-width: 50px;">수량</th>
-          <th class="${getHeaderClass('orderDate')}" style="min-width: 85px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
-          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 85px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
+          <th class="${getHeaderClass('orderDate')}" style="min-width: 100px;" data-analytics-sort="orderDate">발주일 ${getSortIcon('orderDate')}</th>
+          <th class="${getHeaderClass('requiredDelivery')}" style="min-width: 100px;" data-analytics-sort="requiredDelivery">입고요구일 ${getSortIcon('requiredDelivery')}</th>
           
           <!-- 생산 공정 -->
           ${productionHeaders.map((name, idx) => {
-            // 모든 항목 두 줄로 표시하고 너비 55px로 통일
+            // 모든 항목 두 줄로 표시하고 너비 70px로 확대
             let displayName = name;
-            const width = '55px';
+            const width = '70px';
             
             if (name === '원단검수') {
               displayName = '원단<br>검수';
@@ -562,15 +562,15 @@ function renderAnalyticsTable(ordersData) {
           
           <!-- 운송 상황 -->
           ${shippingHeaders.map(name => {
-            // 모든 운송 상황 컬럼 너비 55px로 통일
-            const width = '55px';
+            // 모든 운송 상황 컬럼 너비 70px로 확대
+            const width = '70px';
             return `<th class="px-1 py-2 border" style="min-width: ${width};">${name}</th>`;
           }).join('')}
           
           <!-- 최종 현황 -->
-          <th class="px-1 py-2 border" style="min-width: 55px; line-height: 1.2;">지연<br>일수</th>
-          <th class="px-2 py-2 border" style="min-width: 90px;">물류입고<br>예정일</th>
-          <th class="px-2 py-2 border" style="min-width: 70px; line-height: 1.2;">공정<br>상태</th>
+          <th class="px-1 py-2 border" style="min-width: 60px; line-height: 1.2;">지연<br>일수</th>
+          <th class="px-2 py-2 border" style="min-width: 110px;">물류입고<br>예정일</th>
+          <th class="px-2 py-2 border" style="min-width: 80px; line-height: 1.2;">공정<br>상태</th>
         </tr>
       </thead>
       <tbody>
