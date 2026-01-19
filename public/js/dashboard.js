@@ -1,5 +1,5 @@
 // 관리자 종합 대시보드 - 인터랙티브 버전
-import { getOrdersWithProcesses, getSupplierByName } from './firestore-service.js';
+import { getOrdersWithProcesses, getOrdersByRequiredMonth, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState } from './ui-components.js';
 import { UIUtils, DateUtils, DataUtils, FormatUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
@@ -12,6 +12,15 @@ let currentStartDate = null;
 let currentEndDate = null;
 let selectedKPI = null; // 선택된 KPI 추적
 let charts = {}; // Chart.js 인스턴스 저장
+
+// 미입고 상세 현황 페이지네이션 상태
+let pendingPaginationState = {
+  currentPage: 1,
+  itemsPerPage: 10,
+  totalItems: 0,
+  totalPages: 0,
+  requiredMonth: '' // 입고요구월 (YYYY-MM)
+};
 
 export async function renderDashboard(container) {
   try {
@@ -84,7 +93,28 @@ export async function renderDashboard(container) {
         <!-- 지연 위험 발주 (항상 표시) -->
         <div class="bg-white rounded-xl shadow-lg p-3">
           <h3 class="text-base font-bold text-gray-800 mb-3">🚨 모니터링 (미입고 상세 현황)</h3>
+          
+          <!-- 필터 및 페이지네이션 컨트롤 -->
+          <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between mb-3">
+            <!-- 왼쪽: 총 건수 + 입고요구월 + 보기 -->
+            <div class="flex gap-2 items-center flex-wrap">
+              <span id="pending-total-count" class="text-sm font-semibold text-gray-700">총 0건</span>
+              <select id="pending-required-month-filter" class="px-2 py-1.5 border rounded-lg text-sm">
+                <!-- 동적 생성 -->
+              </select>
+              <select id="pending-items-per-page" class="px-2 py-1.5 border rounded-lg text-sm">
+                <option value="10">10개씩 보기</option>
+                <option value="50">50개씩 보기</option>
+                <option value="100">100개씩 보기</option>
+                <option value="500">500개씩 보기</option>
+              </select>
+            </div>
+          </div>
+          
           <div id="pending-orders-table"></div>
+          
+          <!-- 페이지네이션 -->
+          <div id="pending-pagination-container" class="mt-3"></div>
         </div>
       </div>
       
@@ -106,6 +136,9 @@ export async function renderDashboard(container) {
         <div class="absolute" style="top: -9px; left: 20px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 8px solid #ddd;"></div>
       </div>
     `;
+    
+    // 입고요구월 드롭다운 초기화
+    initializePendingRequiredMonthFilter();
     
     // 데이터 처리 및 렌더링
     updateDashboard();
@@ -129,6 +162,18 @@ export async function renderDashboard(container) {
     document.getElementById('dashboard-end-date')?.addEventListener('change', (e) => {
       currentEndDate = e.target.value;
       updateDashboard();
+    });
+    
+    // 미입고 상세 현황 이벤트 리스너
+    document.getElementById('pending-required-month-filter')?.addEventListener('change', async (e) => {
+      const yearMonth = e.target.value;
+      await handlePendingRequiredMonthChange(yearMonth);
+    });
+    
+    document.getElementById('pending-items-per-page')?.addEventListener('change', (e) => {
+      pendingPaginationState.itemsPerPage = parseInt(e.target.value);
+      pendingPaginationState.currentPage = 1;
+      renderPendingOrdersTable(dashboardData.delayedOrders);
     });
     
     // 인포메이션 툴팁 기능
@@ -2189,17 +2234,24 @@ function addChartNavigation(canvasId, allDates, dateData, colors) {
 function renderPendingOrdersTable(delayedOrders) {
   const container = document.getElementById('pending-orders-table');
   
+  // 페이지네이션 상태 업데이트
+  pendingPaginationState.totalItems = delayedOrders ? delayedOrders.length : 0;
+  pendingPaginationState.totalPages = Math.ceil(pendingPaginationState.totalItems / pendingPaginationState.itemsPerPage);
+  
+  // 총 건수 업데이트
+  updatePendingTotalCount(pendingPaginationState.totalItems);
+  
   // 정렬 상태 초기화
   if (!window.pendingTableSort) {
     window.pendingTableSort = { column: null, direction: null };
   }
   
   // 선택된 발주일자가 있으면 필터링
-  let filteredOrders = delayedOrders;
+  let filteredOrders = delayedOrders || [];
   let filterMessage = '';
   
   if (window.selectedOrderDate) {
-    filteredOrders = delayedOrders.filter(order => order.orderDate === window.selectedOrderDate);
+    filteredOrders = filteredOrders.filter(order => order.orderDate === window.selectedOrderDate);
     filterMessage = `<div class="mb-3 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
       <span class="text-sm text-blue-700">
         <i class="fas fa-filter mr-2"></i>
@@ -2218,6 +2270,11 @@ function renderPendingOrdersTable(delayedOrders) {
         <p>${window.selectedOrderDate ? '해당 날짜의 지연 위험 발주가 없습니다.' : '지연 위험 발주가 없습니다.'}</p>
       </div>
     `;
+    // 페이지네이션 숨기기
+    const paginationContainer = document.getElementById('pending-pagination-container');
+    if (paginationContainer) {
+      paginationContainer.innerHTML = '';
+    }
     return;
   }
   
@@ -2283,6 +2340,11 @@ function renderPendingOrdersTable(delayedOrders) {
       : 'px-3 py-2 text-left font-semibold text-gray-700 cursor-pointer hover:bg-gray-100';
   };
   
+  // 페이지네이션 적용
+  const startIndex = (pendingPaginationState.currentPage - 1) * pendingPaginationState.itemsPerPage;
+  const endIndex = startIndex + pendingPaginationState.itemsPerPage;
+  const pageOrders = filteredOrders.slice(startIndex, endIndex);
+  
   container.innerHTML = filterMessage + `
     <div class="overflow-x-auto">
       <table class="min-w-full text-xs">
@@ -2298,8 +2360,8 @@ function renderPendingOrdersTable(delayedOrders) {
             <th class="px-3 py-2 text-left font-semibold text-gray-700">현재 공정</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200">
-          ${filteredOrders.slice(0, 20).map(order => {
+        <tbody class="divide-y divide-y-gray-200">
+          ${pageOrders.map(order => {
             const diffDays = order.requiredDelivery 
               ? Math.floor((today - new Date(order.requiredDelivery)) / (1000 * 60 * 60 * 24))
               : 0;
@@ -2350,13 +2412,11 @@ function renderPendingOrdersTable(delayedOrders) {
           }).join('')}
         </tbody>
       </table>
-      ${delayedOrders.length > 10 ? `
-        <div class="text-center py-2 text-xs text-gray-500">
-          ${delayedOrders.length - 10}건 더 있음 (총 ${delayedOrders.length}건)
-        </div>
-      ` : ''}
     </div>
   `;
+  
+  // 페이지네이션 렌더링
+  renderPendingPagination();
   
   // 정렬 이벤트 리스너 추가
   setTimeout(() => {
@@ -2797,4 +2857,146 @@ function formatDate(date) {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// 입고요구월 드롭다운 초기화
+function initializePendingRequiredMonthFilter() {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  
+  pendingPaginationState.requiredMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  
+  const monthOptions = [];
+  for (let i = -6; i <= 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const value = `${year}-${String(month).padStart(2, '0')}`;
+    const label = `${year}년 ${month}월`;
+    monthOptions.push({ value, label, selected: value === pendingPaginationState.requiredMonth });
+  }
+  
+  const select = document.getElementById('pending-required-month-filter');
+  if (select) {
+    select.innerHTML = monthOptions.map(opt => 
+      `<option value="${opt.value}" ${opt.selected ? 'selected' : ''}>${opt.label}</option>`
+    ).join('');
+  }
+}
+
+// 입고요구월 변경 처리
+async function handlePendingRequiredMonthChange(yearMonth) {
+  try {
+    UIUtils.showLoading();
+    
+    const [year, month] = yearMonth.split('-');
+    const monthOrders = await getOrdersByRequiredMonth(parseInt(year), parseInt(month));
+    
+    // 미입고 상세 현황 데이터만 필터링 (지연된 주문만)
+    const today = new Date();
+    const delayedOrders = monthOrders.filter(order => {
+      if (!order.requiredDelivery) return false;
+      const requiredDate = new Date(order.requiredDelivery);
+      return requiredDate < today;
+    });
+    
+    pendingPaginationState.requiredMonth = yearMonth;
+    pendingPaginationState.currentPage = 1;
+    
+    // dashboardData 업데이트
+    if (dashboardData) {
+      dashboardData.delayedOrders = delayedOrders;
+    }
+    
+    renderPendingOrdersTable(delayedOrders);
+    UIUtils.hideLoading();
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('입고요구월 필터 오류:', error);
+    UIUtils.showAlert('데이터 로드 실패', 'error');
+  }
+}
+
+// 페이지네이션 렌더링
+function renderPendingPagination() {
+  const container = document.getElementById('pending-pagination-container');
+  if (!container) return;
+  
+  const { currentPage, totalPages } = pendingPaginationState;
+  
+  if (totalPages <= 1) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let pages = [];
+  if (totalPages <= 7) {
+    pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+  } else {
+    if (currentPage <= 4) {
+      pages = [1, 2, 3, 4, 5, '...', totalPages];
+    } else if (currentPage >= totalPages - 3) {
+      pages = [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    } else {
+      pages = [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    }
+  }
+  
+  container.innerHTML = `
+    <div class="flex justify-center items-center gap-1">
+      <button id="pending-prev-page" 
+              class="px-3 py-1 border rounded ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+              ${currentPage === 1 ? 'disabled' : ''}>
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      ${pages.map(page => {
+        if (page === '...') {
+          return `<span class="px-3 py-1">...</span>`;
+        }
+        return `
+          <button class="pending-page-btn px-3 py-1 border rounded ${page === currentPage ? 'bg-blue-600 text-white' : 'bg-white hover:bg-gray-50'}"
+                  data-page="${page}">
+            ${page}
+          </button>
+        `;
+      }).join('')}
+      <button id="pending-next-page" 
+              class="px-3 py-1 border rounded ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}"
+              ${currentPage === totalPages ? 'disabled' : ''}>
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  `;
+  
+  // 페이지네이션 이벤트 리스너
+  document.getElementById('pending-prev-page')?.addEventListener('click', () => {
+    if (pendingPaginationState.currentPage > 1) {
+      pendingPaginationState.currentPage--;
+      renderPendingOrdersTable(dashboardData.delayedOrders);
+    }
+  });
+  
+  document.getElementById('pending-next-page')?.addEventListener('click', () => {
+    if (pendingPaginationState.currentPage < pendingPaginationState.totalPages) {
+      pendingPaginationState.currentPage++;
+      renderPendingOrdersTable(dashboardData.delayedOrders);
+    }
+  });
+  
+  document.querySelectorAll('.pending-page-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const page = parseInt(e.target.dataset.page);
+      pendingPaginationState.currentPage = page;
+      renderPendingOrdersTable(dashboardData.delayedOrders);
+    });
+  });
+}
+
+// 총 건수 업데이트
+function updatePendingTotalCount(count) {
+  const countEl = document.getElementById('pending-total-count');
+  if (countEl) {
+    countEl.textContent = `총 ${count}건`;
+  }
 }
