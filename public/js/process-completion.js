@@ -575,6 +575,7 @@ function downloadTemplate() {
       '국가': order.country || '',
       '생산업체': order.supplier || '',
       '발주일': order.orderDate || '',
+      '입고요구일': order.requiredDelivery || '',
     };
     
     // 생산 공정 완료일
@@ -877,6 +878,7 @@ function generateCompletionExcelData(ordersData) {
       '국가': order.country || '',
       '생산업체': order.supplier || '',
       '발주일': order.orderDate || '',
+      '입고요구일': order.requiredDelivery || '',
     };
     
     // 생산 공정 완료일
