@@ -560,6 +560,34 @@ function renderOrderRow(order, rowNum, headers) {
       <!-- 입고기준 예상차이 -->
       <td class="px-2 py-2 border text-center ${delayClass}">${delayText}</td>
       
+      <!-- 누적입고 -->
+      <td class="px-2 py-2 border text-center" style="min-width: 80px;">
+        ${(() => {
+          const summary = order.arrivalSummary || { totalReceived: 0, progress: 0, status: 'pending' };
+          return `${summary.totalReceived} / ${order.qty || 0}`;
+        })()}
+      </td>
+      
+      <!-- 입고진행률 -->
+      <td class="px-2 py-2 border text-center" style="min-width: 60px;">
+        ${(() => {
+          const summary = order.arrivalSummary || { totalReceived: 0, progress: 0, status: 'pending' };
+          let emoji = '🔴';
+          let colorClass = 'text-red-600';
+          if (summary.status === 'over') {
+            emoji = '🔵';
+            colorClass = 'text-blue-600';
+          } else if (summary.status === 'completed') {
+            emoji = '🟢';
+            colorClass = 'text-green-600';
+          } else if (summary.status === 'partial') {
+            emoji = '🟡';
+            colorClass = 'text-yellow-600';
+          }
+          return `<span class="font-semibold ${colorClass}">${emoji} ${summary.progress}%</span>`;
+        })()}
+      </td>
+      
       <!-- 비고 -->
       <td class="px-2 py-2 border" style="min-width: 100px;">
         <input type="text" class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" 
@@ -2471,6 +2499,8 @@ function renderOrdersTable() {
             <th colspan="3" class="px-2 py-2 border bg-yellow-100">운송 목표일정</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">물류입고<br>예정일</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 70px;">입고기준<br>예상차이</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 80px;">누적입고</th>
+            <th rowspan="2" class="px-2 py-2 border" style="min-width: 70px;">입고<br>진행률</th>
             <th rowspan="2" class="px-2 py-2 border" style="min-width: 100px;">비고</th>
           </tr>
           <tr>
