@@ -758,6 +758,298 @@ export function listenToProcesses(orderId, callback) {
     });
 }
 
+// ============ Arrivals (입고 관리) ============
+
+/**
+ * 입고 등록
+ * @param {string} orderId - 발주 ID
+ * @param {Object} arrivalData - 입고 데이터 { date, quantity, note }
+ * @returns {Promise<Object>} 업데이트된 arrivalSummary
+ */
+export async function addArrival(orderId, arrivalData) {
+  try {
+    const user = getCurrentUser();
+    
+    // 1. 발주 문서 가져오기
+    const orderRef = window.db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('발주를 찾을 수 없습니다.');
+    }
+    
+    const order = orderDoc.data();
+    const existingArrivals = order.arrivals || [];
+    const orderQuantity = order.quantity || 0;
+    
+    // 2. 누적 수량 계산
+    const totalReceived = existingArrivals.reduce((sum, a) => sum + (a.quantity || 0), 0);
+    const newCumulative = totalReceived + arrivalData.quantity;
+    
+    // 3. 초과 입고 체크 (경고만, 차단 안 함)
+    if (newCumulative > orderQuantity) {
+      console.warn(`⚠️ 초과 입고: 누적 ${newCumulative}개 > 발주 ${orderQuantity}개`);
+    }
+    
+    // 4. 새 입고 데이터 생성
+    const newArrival = {
+      date: arrivalData.date,
+      quantity: arrivalData.quantity,
+      cumulative: newCumulative,
+      note: arrivalData.note || '',
+      createdAt: firebase.firestore.Timestamp.now(),
+      createdBy: user?.uid || null
+    };
+    
+    // 5. 입고 배열에 추가
+    const updatedArrivals = [...existingArrivals, newArrival];
+    
+    // 6. arrivalSummary 자동 계산
+    const progress = orderQuantity > 0 ? Math.round((newCumulative / orderQuantity) * 100) : 0;
+    let status = 'pending';
+    if (progress >= 101) status = 'over';
+    else if (progress === 100) status = 'completed';
+    else if (progress > 0) status = 'partial';
+    
+    const arrivalSummary = {
+      totalReceived: newCumulative,
+      progress: progress,
+      count: updatedArrivals.length,
+      status: status
+    };
+    
+    // 7. firstArrival, lastArrival 계산
+    const firstArrival = updatedArrivals[0] ? {
+      date: updatedArrivals[0].date,
+      quantity: updatedArrivals[0].quantity
+    } : null;
+    
+    const lastArrival = updatedArrivals[updatedArrivals.length - 1] ? {
+      date: updatedArrivals[updatedArrivals.length - 1].date,
+      quantity: updatedArrivals[updatedArrivals.length - 1].quantity
+    } : null;
+    
+    // 8. Firestore 업데이트
+    await orderRef.update({
+      arrivals: updatedArrivals,
+      firstArrival: firstArrival,
+      lastArrival: lastArrival,
+      arrivalSummary: arrivalSummary,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`✅ 입고 등록 완료: ${orderId} - ${arrivalData.quantity}개 (누적: ${newCumulative}/${orderQuantity})`);
+    
+    return arrivalSummary;
+  } catch (error) {
+    console.error('Error adding arrival:', error);
+    throw error;
+  }
+}
+
+/**
+ * 입고 이력 조회
+ * @param {string} orderId - 발주 ID
+ * @returns {Promise<Array>} 입고 이력 배열
+ */
+export async function getArrivals(orderId) {
+  try {
+    const orderDoc = await window.db.collection('orders').doc(orderId).get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('발주를 찾을 수 없습니다.');
+    }
+    
+    const order = orderDoc.data();
+    return order.arrivals || [];
+  } catch (error) {
+    console.error('Error getting arrivals:', error);
+    throw error;
+  }
+}
+
+/**
+ * 입고 수정
+ * @param {string} orderId - 발주 ID
+ * @param {number} arrivalIndex - 입고 인덱스
+ * @param {Object} updateData - 수정할 데이터 { date?, quantity?, note? }
+ * @returns {Promise<Object>} 업데이트된 arrivalSummary
+ */
+export async function updateArrival(orderId, arrivalIndex, updateData) {
+  try {
+    const user = getCurrentUser();
+    
+    // 1. 발주 문서 가져오기
+    const orderRef = window.db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('발주를 찾을 수 없습니다.');
+    }
+    
+    const order = orderDoc.data();
+    const arrivals = order.arrivals || [];
+    const orderQuantity = order.quantity || 0;
+    
+    if (arrivalIndex < 0 || arrivalIndex >= arrivals.length) {
+      throw new Error('유효하지 않은 입고 인덱스입니다.');
+    }
+    
+    // 2. 해당 입고 수정
+    arrivals[arrivalIndex] = {
+      ...arrivals[arrivalIndex],
+      ...updateData,
+      updatedAt: firebase.firestore.Timestamp.now(),
+      updatedBy: user?.uid || null
+    };
+    
+    // 3. 누적 수량 재계산 (모든 입고)
+    let cumulative = 0;
+    for (let i = 0; i < arrivals.length; i++) {
+      cumulative += arrivals[i].quantity || 0;
+      arrivals[i].cumulative = cumulative;
+    }
+    
+    // 4. arrivalSummary 재계산
+    const totalReceived = cumulative;
+    const progress = orderQuantity > 0 ? Math.round((totalReceived / orderQuantity) * 100) : 0;
+    let status = 'pending';
+    if (progress >= 101) status = 'over';
+    else if (progress === 100) status = 'completed';
+    else if (progress > 0) status = 'partial';
+    
+    const arrivalSummary = {
+      totalReceived: totalReceived,
+      progress: progress,
+      count: arrivals.length,
+      status: status
+    };
+    
+    // 5. firstArrival, lastArrival 재계산
+    const firstArrival = arrivals[0] ? {
+      date: arrivals[0].date,
+      quantity: arrivals[0].quantity
+    } : null;
+    
+    const lastArrival = arrivals[arrivals.length - 1] ? {
+      date: arrivals[arrivals.length - 1].date,
+      quantity: arrivals[arrivals.length - 1].quantity
+    } : null;
+    
+    // 6. Firestore 업데이트
+    await orderRef.update({
+      arrivals: arrivals,
+      firstArrival: firstArrival,
+      lastArrival: lastArrival,
+      arrivalSummary: arrivalSummary,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`✅ 입고 수정 완료: ${orderId} - 인덱스 ${arrivalIndex}`);
+    
+    return arrivalSummary;
+  } catch (error) {
+    console.error('Error updating arrival:', error);
+    throw error;
+  }
+}
+
+/**
+ * 최근 입고 삭제 (가장 마지막 입고만 삭제 가능)
+ * @param {string} orderId - 발주 ID
+ * @returns {Promise<Object>} 업데이트된 arrivalSummary
+ */
+export async function deleteLastArrival(orderId) {
+  try {
+    // 1. 발주 문서 가져오기
+    const orderRef = window.db.collection('orders').doc(orderId);
+    const orderDoc = await orderRef.get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('발주를 찾을 수 없습니다.');
+    }
+    
+    const order = orderDoc.data();
+    const arrivals = order.arrivals || [];
+    const orderQuantity = order.quantity || 0;
+    
+    if (arrivals.length === 0) {
+      throw new Error('삭제할 입고 이력이 없습니다.');
+    }
+    
+    // 2. 마지막 입고 제거
+    arrivals.pop();
+    
+    // 3. arrivalSummary 재계산
+    const totalReceived = arrivals.reduce((sum, a) => sum + (a.quantity || 0), 0);
+    const progress = orderQuantity > 0 ? Math.round((totalReceived / orderQuantity) * 100) : 0;
+    let status = 'pending';
+    if (progress >= 101) status = 'over';
+    else if (progress === 100) status = 'completed';
+    else if (progress > 0) status = 'partial';
+    
+    const arrivalSummary = {
+      totalReceived: totalReceived,
+      progress: progress,
+      count: arrivals.length,
+      status: status
+    };
+    
+    // 4. firstArrival, lastArrival 재계산
+    const firstArrival = arrivals.length > 0 ? {
+      date: arrivals[0].date,
+      quantity: arrivals[0].quantity
+    } : null;
+    
+    const lastArrival = arrivals.length > 0 ? {
+      date: arrivals[arrivals.length - 1].date,
+      quantity: arrivals[arrivals.length - 1].quantity
+    } : null;
+    
+    // 5. Firestore 업데이트
+    await orderRef.update({
+      arrivals: arrivals,
+      firstArrival: firstArrival,
+      lastArrival: lastArrival,
+      arrivalSummary: arrivalSummary,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`✅ 최근 입고 삭제 완료: ${orderId}`);
+    
+    return arrivalSummary;
+  } catch (error) {
+    console.error('Error deleting last arrival:', error);
+    throw error;
+  }
+}
+
+/**
+ * 입고 요약 정보 조회
+ * @param {string} orderId - 발주 ID
+ * @returns {Promise<Object>} arrivalSummary 객체
+ */
+export async function getArrivalSummary(orderId) {
+  try {
+    const orderDoc = await window.db.collection('orders').doc(orderId).get();
+    
+    if (!orderDoc.exists) {
+      throw new Error('발주를 찾을 수 없습니다.');
+    }
+    
+    const order = orderDoc.data();
+    return order.arrivalSummary || {
+      totalReceived: 0,
+      progress: 0,
+      count: 0,
+      status: 'pending'
+    };
+  } catch (error) {
+    console.error('Error getting arrival summary:', error);
+    throw error;
+  }
+}
+
 export default {
   getAllSuppliers,
   getSupplierById,
@@ -779,5 +1071,11 @@ export default {
   getOrdersWithProcesses,
   listenToOrders,
   listenToProcesses,
-  getOrdersByRequiredMonth
+  getOrdersByRequiredMonth,
+  // 입고 관리
+  addArrival,
+  getArrivals,
+  updateArrival,
+  deleteLastArrival,
+  getArrivalSummary
 };
