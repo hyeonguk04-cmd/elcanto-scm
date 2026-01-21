@@ -1,6 +1,6 @@
 // 공정 입고진척 현황 - 완전 재설계
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, getSupplierByName } from './firestore-service.js';
-import { renderEmptyState } from './ui-components.js';
+import { renderEmptyState, showArrivalRegistrationModal, showArrivalHistoryModal } from './ui-components.js';
 import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
 
@@ -106,7 +106,7 @@ export async function renderAnalytics(container) {
           
           <!-- 필터 영역 (세 번째 줄) -->
           <div class="flex flex-col sm:flex-row gap-2 items-end sm:items-center justify-end">
-            <!-- 채널 및 생산업체 필터 -->
+            <!-- 채널, 생산업체, 입고상태 필터 -->
             <div class="flex gap-2 w-full sm:w-auto">
               <select id="analytics-channel-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
                 <option value="전체">전체 채널</option>
@@ -115,6 +115,13 @@ export async function renderAnalytics(container) {
               </select>
               <select id="analytics-supplier-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
                 ${supplierList.map(s => `<option value="${s}">${s === '전체' ? '전체 생산업체' : s}</option>`).join('')}
+              </select>
+              <select id="analytics-arrival-status-filter" class="px-2 py-1.5 border rounded-lg text-sm flex-1 sm:flex-none">
+                <option value="전체">전체 입고상태</option>
+                <option value="pending">🔴 미입고</option>
+                <option value="partial">🟡 파셜입고</option>
+                <option value="completed">🟢 입고완료</option>
+                <option value="over">🔵 초과입고</option>
               </select>
             </div>
             
@@ -210,6 +217,9 @@ function setupEventListeners() {
   
   // 생산업체 필터
   document.getElementById('analytics-supplier-filter')?.addEventListener('change', filterOrders);
+  
+  // 입고상태 필터
+  document.getElementById('analytics-arrival-status-filter')?.addEventListener('change', filterOrders);
   
   // 날짜 필터
   document.getElementById('analytics-start-date')?.addEventListener('change', filterOrders);
@@ -372,6 +382,7 @@ function setupInfoTooltip() {
 function filterOrders() {
   const channelFilter = document.getElementById('analytics-channel-filter').value;
   const supplierFilter = document.getElementById('analytics-supplier-filter').value;
+  const arrivalStatusFilter = document.getElementById('analytics-arrival-status-filter').value;
   const startDate = document.getElementById('analytics-start-date').value;
   const endDate = document.getElementById('analytics-end-date').value;
   
@@ -385,6 +396,14 @@ function filterOrders() {
   // 생산업체 필터링
   if (supplierFilter !== '전체') {
     filtered = filtered.filter(o => o.supplier === supplierFilter);
+  }
+  
+  // 입고상태 필터링
+  if (arrivalStatusFilter !== '전체') {
+    filtered = filtered.filter(o => {
+      const status = o.arrivalSummary?.status || 'pending';
+      return status === arrivalStatusFilter;
+    });
   }
   
   // 입고요구일 기간 필터링
@@ -523,7 +542,7 @@ function renderAnalyticsTable(ordersData) {
           <th colspan="8" class="px-3 py-3 border bg-blue-100">발주 정보</th>
           <th colspan="${productionHeaders.length}" class="px-3 py-3 border bg-green-100">생산 공정 (일)</th>
           <th colspan="${shippingHeaders.length}" class="px-3 py-3 border bg-yellow-100">운송 상황 (일)</th>
-          <th colspan="3" class="px-3 py-3 bg-purple-100">최종 현황</th>
+          <th colspan="5" class="px-3 py-3 bg-purple-100">최종 현황</th>
         </tr>
         
         <!-- 서브 헤더 -->
@@ -567,7 +586,9 @@ function renderAnalyticsTable(ordersData) {
           <!-- 최종 현황 -->
           <th class="px-3 py-3 border" style="width: 4%; line-height: 1.2;">지연<br>일수</th>
           <th class="px-3 py-3 border" style="width: 7%;">물류입고<br>예정일</th>
+          <th class="px-3 py-3 border" style="width: 10%; line-height: 1.2;">입고<br>현황</th>
           <th class="px-3 py-3 border" style="width: 6%; line-height: 1.2;">공정<br>상태</th>
+          <th class="px-3 py-3 border" style="width: 8%;">액션</th>
         </tr>
       </thead>
       <tbody>
@@ -642,6 +663,71 @@ function determineProcessStatus(order, productionProcesses, shippingProcesses) {
       return { text: '생산중(정상)', class: 'text-blue-600 font-semibold' };
     }
   }
+}
+
+// 입고현황 셀 렌더링 (2x2 그리드)
+function renderArrivalStatusCell(order) {
+  const arrivalSummary = order.arrivalSummary || {
+    totalReceived: 0,
+    progress: 0,
+    count: 0,
+    status: 'pending'
+  };
+  
+  const firstArrival = order.firstArrival || null;
+  const lastArrival = order.lastArrival || null;
+  const remaining = (order.quantity || 0) - arrivalSummary.totalReceived;
+  
+  // 상태별 색상
+  let progressColor = 'text-red-600';
+  let progressEmoji = '🔴';
+  if (arrivalSummary.status === 'over') {
+    progressColor = 'text-blue-600';
+    progressEmoji = '🔵';
+  } else if (arrivalSummary.status === 'completed') {
+    progressColor = 'text-green-600';
+    progressEmoji = '🟢';
+  } else if (arrivalSummary.status === 'partial') {
+    progressColor = 'text-yellow-600';
+    progressEmoji = '🟡';
+  }
+  
+  return `
+    <div class="grid grid-cols-2 gap-1 text-xs">
+      <!-- 최초입고 -->
+      <div class="p-1 bg-blue-50 rounded border border-blue-200">
+        <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">최초입고</div>
+        <div class="text-gray-800" style="font-size: 11px;">${firstArrival ? firstArrival.date : '-'}</div>
+        <div class="text-gray-600" style="font-size: 10px;">${firstArrival ? `${FormatUtils.number(firstArrival.quantity)}개` : '-'}</div>
+      </div>
+      
+      <!-- 최종입고 -->
+      <div class="p-1 bg-green-50 rounded border border-green-200">
+        <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">최종입고</div>
+        <div class="text-gray-800" style="font-size: 11px;">${lastArrival ? lastArrival.date : '-'}</div>
+        <div class="text-gray-600" style="font-size: 10px;">${lastArrival ? `${FormatUtils.number(lastArrival.quantity)}개 (${arrivalSummary.count}차)` : '-'}</div>
+      </div>
+      
+      <!-- 누적입고 -->
+      <div class="p-1 bg-purple-50 rounded border border-purple-200">
+        <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">누적입고</div>
+        <div class="font-bold text-gray-800" style="font-size: 11px;">
+          ${FormatUtils.number(arrivalSummary.totalReceived)} / ${FormatUtils.number(order.quantity || 0)}
+        </div>
+      </div>
+      
+      <!-- 미입고 -->
+      <div class="p-1 bg-yellow-50 rounded border border-yellow-200">
+        <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">미입고</div>
+        <div class="font-bold ${progressColor}" style="font-size: 11px;">
+          ${FormatUtils.number(Math.max(0, remaining))}개
+        </div>
+        <div class="font-bold ${progressColor}" style="font-size: 10px;">
+          ${progressEmoji} ${arrivalSummary.progress}%
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderOrderRow(order, rowNum) {
@@ -720,9 +806,29 @@ function renderOrderRow(order, rowNum) {
       <!-- 최종 현황 -->
       <td class="px-3 py-3 border text-center ${finalDelayClass}">${finalDelayDays}</td>
       <td class="px-3 py-3 border text-center">${expectedArrivalInfo.date || '-'}</td>
+      
+      <!-- 입고현황 -->
+      <td class="px-2 py-2 border">
+        ${renderArrivalStatusCell(order)}
+      </td>
+      
       <td class="px-3 py-3 border text-center cursor-pointer hover:bg-gray-100 ${processStatus.class}" 
           onclick="toggleProcessDetailPanel('${order.id}')" style="line-height: 1.3;">
         ${processStatus.text.replace('(', '<br>(')}
+      </td>
+      
+      <!-- 액션 -->
+      <td class="px-2 py-2 border text-center">
+        <div class="flex flex-col gap-1">
+          <button onclick="openArrivalRegistration('${order.id}')" 
+                  class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 whitespace-nowrap">
+            <i class="fas fa-plus mr-1"></i>입고등록
+          </button>
+          <button onclick="openArrivalHistory('${order.id}')" 
+                  class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 whitespace-nowrap">
+            <i class="fas fa-history mr-1"></i>이력보기
+          </button>
+        </div>
       </td>
     </tr>
   `;
@@ -1661,6 +1767,25 @@ function generateAnalyticsExcelData(ordersData) {
     const { totalDelay, estimatedArrival, status } = calculateFinalStatus(order);
     row['지연일수'] = totalDelay || '';
     row['물류입고예정일'] = estimatedArrival || '';
+    
+    // 입고 관련 정보 추가
+    const arrivalSummary = order.arrivalSummary || { totalReceived: 0, progress: 0, count: 0, status: 'pending' };
+    const firstArrival = order.firstArrival || null;
+    const lastArrival = order.lastArrival || null;
+    const remaining = (order.quantity || 0) - arrivalSummary.totalReceived;
+    
+    row['최초입고일'] = firstArrival ? firstArrival.date : '';
+    row['최초입고수량'] = firstArrival ? firstArrival.quantity : '';
+    row['최종입고일'] = lastArrival ? lastArrival.date : '';
+    row['최종입고수량'] = lastArrival ? lastArrival.quantity : '';
+    row['누적입고수량'] = arrivalSummary.totalReceived;
+    row['입고진행률'] = `${arrivalSummary.progress}%`;
+    row['입고횟수'] = arrivalSummary.count;
+    row['미입고수량'] = Math.max(0, remaining);
+    row['입고상태'] = arrivalSummary.status === 'over' ? '초과입고' : 
+                      arrivalSummary.status === 'completed' ? '입고완료' : 
+                      arrivalSummary.status === 'partial' ? '파셜입고' : '미입고';
+    
     row['공정상태'] = status || '';
     
     return row;
@@ -1744,6 +1869,68 @@ async function downloadAllExcelAnalytics() {
     UIUtils.hideLoading();
     console.error('전체 Excel 다운로드 오류:', error);
     UIUtils.showAlert(`Excel 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// ============ 입고 관리 전역 함수 ============
+
+/**
+ * 입고 등록 모달 열기
+ */
+window.openArrivalRegistration = function(orderId) {
+  const order = orders.find(o => o.id === orderId) || allOrders.find(o => o.id === orderId);
+  
+  if (!order) {
+    UIUtils.showToast('발주 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  
+  showArrivalRegistrationModal(order, async () => {
+    // 등록 완료 후 데이터 다시 로드
+    await reloadCurrentData();
+  });
+};
+
+/**
+ * 입고 이력 모달 열기
+ */
+window.openArrivalHistory = function(orderId) {
+  const order = orders.find(o => o.id === orderId) || allOrders.find(o => o.id === orderId);
+  
+  if (!order) {
+    UIUtils.showToast('발주 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  
+  showArrivalHistoryModal(order, async () => {
+    // 이력 업데이트 후 데이터 다시 로드
+    await reloadCurrentData();
+  });
+};
+
+/**
+ * 현재 데이터 다시 로드
+ */
+async function reloadCurrentData() {
+  try {
+    UIUtils.showLoading();
+    
+    // 현재 선택된 입고요구월로 데이터 다시 로드
+    const [year, month] = filterState.requiredMonth.split('-').map(Number);
+    const freshOrders = await getOrdersByRequiredMonth(year, month);
+    
+    // 전역 변수 업데이트
+    allOrders = [...freshOrders];
+    
+    // 필터 적용
+    filterOrders();
+    
+    UIUtils.hideLoading();
+    UIUtils.showToast('데이터가 업데이트되었습니다.', 'success');
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('데이터 재로드 실패:', error);
+    UIUtils.showToast('데이터 업데이트에 실패했습니다.', 'error');
   }
 }
 
