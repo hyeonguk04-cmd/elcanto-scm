@@ -647,6 +647,15 @@ function downloadTemplate() {
     row['선적_완료일'] = shippingProcess?.completedDate || '';
     row['입항_완료일'] = arrivalProcess?.completedDate || '';
     
+    // 입고 내역 (최대 3회 분할 입고 지원)
+    const arrivals = order.arrivals || [];
+    row['입고일_1차'] = arrivals[0]?.date || '';
+    row['입고수량_1차'] = arrivals[0]?.quantity || '';
+    row['입고일_2차'] = arrivals[1]?.date || '';
+    row['입고수량_2차'] = arrivals[1]?.quantity || '';
+    row['입고일_3차'] = arrivals[2]?.date || '';
+    row['입고수량_3차'] = arrivals[2]?.quantity || '';
+    
     return row;
   });
   
@@ -748,6 +757,53 @@ async function handleExcelUpload(e) {
           }
         }
         
+        // 입고 내역 업로드 (최대 3회)
+        const existingArrivals = order.arrivals || [];
+        const arrivalDataToAdd = [];
+        
+        for (let i = 1; i <= 3; i++) {
+          const dateKey = `입고일_${i}차`;
+          const qtyKey = `입고수량_${i}차`;
+          const date = row[dateKey];
+          const quantity = row[qtyKey];
+          
+          // 엑셀에 날짜와 수량이 모두 있어야 함
+          if (date && quantity) {
+            const formattedDate = DateUtils.excelDateToString(date);
+            const parsedQty = parseInt(quantity);
+            
+            if (parsedQty > 0) {
+              // 동일한 날짜의 입고가 이미 존재하는지 확인
+              const alreadyExists = existingArrivals.some(a => a.date === formattedDate && a.quantity === parsedQty);
+              
+              if (!alreadyExists) {
+                arrivalDataToAdd.push({
+                  date: formattedDate,
+                  quantity: parsedQty,
+                  note: `${i}차 입고 (엑셀 업로드)`
+                });
+                console.log(`  📦 입고 ${i}차 추가 예정: ${formattedDate}, ${parsedQty}개`);
+              } else {
+                console.log(`  ⏭️ 입고 ${i}차 이미 등록됨: ${formattedDate}, ${parsedQty}개 (스킵)`);
+              }
+            }
+          }
+        }
+        
+        // 입고 데이터 등록 (addArrival 사용)
+        if (arrivalDataToAdd.length > 0) {
+          const { addArrival } = await import('./firestore-service.js');
+          
+          for (const arrivalData of arrivalDataToAdd) {
+            try {
+              await addArrival(order.id, arrivalData);
+              console.log(`  ✅ 입고 등록 완료: ${arrivalData.date}, ${arrivalData.quantity}개`);
+            } catch (arrivalError) {
+              console.error(`  ❌ 입고 등록 실패: ${arrivalError.message}`);
+            }
+          }
+        }
+        
         successCount++;
       } catch (error) {
         errorCount++;
@@ -757,7 +813,7 @@ async function handleExcelUpload(e) {
     }
     
     if (errorCount === 0) {
-      UIUtils.showAlert(`${successCount}건의 공정 완료일이 성공적으로 등록되었습니다!`, 'success');
+      UIUtils.showAlert(`${successCount}건의 공정 완료일 및 입고 내역이 성공적으로 등록되었습니다!`, 'success');
     } else {
       const message = `성공: ${successCount}건, 실패: ${errorCount}건\n\n실패 내역:\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}`;
       UIUtils.showAlert(message, 'warning');
@@ -964,6 +1020,15 @@ function generateCompletionExcelData(ordersData) {
     
     row['선적_완료일'] = shippingProcess?.completedDate || '';
     row['입항_완료일'] = arrivalProcess?.completedDate || '';
+    
+    // 입고 내역 (최대 3회 분할 입고 지원)
+    const arrivals = order.arrivals || [];
+    row['입고일_1차'] = arrivals[0]?.date || '';
+    row['입고수량_1차'] = arrivals[0]?.quantity || '';
+    row['입고일_2차'] = arrivals[1]?.date || '';
+    row['입고수량_2차'] = arrivals[1]?.quantity || '';
+    row['입고일_3차'] = arrivals[2]?.date || '';
+    row['입고수량_3차'] = arrivals[2]?.quantity || '';
     
     return row;
   });
