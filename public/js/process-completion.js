@@ -1,7 +1,7 @@
 // 공정별 완료일 등록
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, updateProcess } from './firestore-service.js';
-import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
-import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
+import { renderEmptyState, createProcessTableHeaders, showArrivalRegistrationModal, showArrivalHistoryModal } from './ui-components.js';
+import { UIUtils, ExcelUtils, DateUtils, FormatUtils } from './utils.js';
 import { getCurrentUser } from './auth.js';
 
 let orders = [];
@@ -262,6 +262,56 @@ function getRegisteredBy(processes) {
   return '<span class="text-purple-600 font-semibold">관리자</span>';
 }
 
+// 입고현황 셀 렌더링 (간소화 버전)
+function renderArrivalStatusCellCompletion(order) {
+  const arrivalSummary = order.arrivalSummary || {
+    totalReceived: 0,
+    progress: 0,
+    count: 0,
+    status: 'pending'
+  };
+  
+  const remaining = (order.quantity || 0) - arrivalSummary.totalReceived;
+  
+  // 상태별 색상 및 이모지
+  let progressColor = 'text-red-600';
+  let progressEmoji = '🔴';
+  if (arrivalSummary.status === 'over') {
+    progressColor = 'text-blue-600';
+    progressEmoji = '🔵';
+  } else if (arrivalSummary.status === 'completed') {
+    progressColor = 'text-green-600';
+    progressEmoji = '🟢';
+  } else if (arrivalSummary.status === 'partial') {
+    progressColor = 'text-yellow-600';
+    progressEmoji = '🟡';
+  }
+  
+  return `
+    <div class="flex flex-col gap-1 text-xs">
+      <div class="font-semibold ${progressColor}">
+        ${progressEmoji} ${arrivalSummary.progress}%
+      </div>
+      <div class="text-gray-700">
+        ${FormatUtils.number(arrivalSummary.totalReceived)} / ${FormatUtils.number(order.quantity || 0)}
+      </div>
+      <div class="text-gray-500 text-[10px]">
+        ${arrivalSummary.count > 0 ? `${arrivalSummary.count}회 입고` : '미입고'}
+      </div>
+      <div class="flex gap-1 mt-1">
+        <button onclick="openArrivalRegistrationCompletion('${order.id}')" 
+                class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded hover:bg-blue-700 whitespace-nowrap">
+          등록
+        </button>
+        <button onclick="openArrivalHistoryCompletion('${order.id}')" 
+                class="px-1.5 py-0.5 bg-green-600 text-white text-[10px] rounded hover:bg-green-700 whitespace-nowrap">
+          이력
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderCompletionTable() {
   const tableContainer = document.getElementById('completion-table');
   const headers = createProcessTableHeaders();
@@ -330,6 +380,7 @@ function renderCompletionTable() {
           <th colspan="8" class="px-3 py-3 border bg-blue-100">발주 정보</th>
           <th colspan="${headers.production.length}" class="px-3 py-3 border bg-green-100">생산 공정 완료일</th>
           <th colspan="2" class="px-3 py-3 border bg-yellow-100">운송 공정 완료일</th>
+          <th rowspan="2" class="px-3 py-3 border bg-orange-100" style="width: 150px;">입고현황</th>
           <th rowspan="2" class="px-3 py-3 border bg-purple-100" style="width: 80px;">등록자</th>
         </tr>
         <tr>
@@ -390,6 +441,9 @@ function renderCompletionTable() {
               </td>
               <td class="px-3 py-3 border text-center ${arrivalProcess?.completedDate ? 'bg-green-50' : ''}">
                 ${arrivalProcess?.completedDate || '-'}
+              </td>
+              <td class="px-2 py-2 border text-center">
+                ${renderArrivalStatusCellCompletion(order)}
               </td>
               <td class="px-3 py-3 border text-center">
                 ${getRegisteredBy(productionProcesses.concat(shippingProcesses))}
@@ -645,14 +699,17 @@ async function handleExcelUpload(e) {
           const completedDateKey = `${process.name}_완료일`;
           const completedDate = row[completedDateKey];
           
-          console.log(`  🔍 ${process.name}: 완료일 = ${completedDate || '없음'}`);
+          console.log(`  🔍 ${process.name}: 엑셀=${completedDate || '없음'}, DB=${process.completedDate || '없음'}`);
           
-          if (completedDate) {
+          // 기존 데이터 보존: 엑셀에 값이 있고, DB에 없을 때만 업데이트
+          if (completedDate && !process.completedDate) {
             const formattedDate = DateUtils.excelDateToString(completedDate);
-            console.log(`  ✅ ${process.name} 완료일 업데이트: ${formattedDate}`);
+            console.log(`  ✅ ${process.name} 완료일 신규 등록: ${formattedDate}`);
             await updateProcess(order.id, 'production', i, {
               completedDate: formattedDate
             });
+          } else if (completedDate && process.completedDate) {
+            console.log(`  ⏭️ ${process.name} 완료일 이미 등록됨: ${process.completedDate} (스킵)`);
           }
         }
         
@@ -663,20 +720,32 @@ async function handleExcelUpload(e) {
         const shippingIndex = shippingProcesses.findIndex(p => p.key === 'shipping' || p.processKey === 'shipping');
         const arrivalIndex = shippingProcesses.findIndex(p => p.key === 'arrival' || p.processKey === 'arrival');
         
+        // 선적 완료일: 엑셀에 값이 있고, DB에 없을 때만 업데이트
         if (shippingIndex >= 0 && row['선적_완료일']) {
-          const formattedDate = DateUtils.excelDateToString(row['선적_완료일']);
-          console.log(`  ✅ 선적 완료일 업데이트: ${formattedDate}`);
-          await updateProcess(order.id, 'shipping', shippingIndex, {
-            completedDate: formattedDate
-          });
+          const shippingProcess = shippingProcesses[shippingIndex];
+          if (!shippingProcess.completedDate) {
+            const formattedDate = DateUtils.excelDateToString(row['선적_완료일']);
+            console.log(`  ✅ 선적 완료일 신규 등록: ${formattedDate}`);
+            await updateProcess(order.id, 'shipping', shippingIndex, {
+              completedDate: formattedDate
+            });
+          } else {
+            console.log(`  ⏭️ 선적 완료일 이미 등록됨: ${shippingProcess.completedDate} (스킵)`);
+          }
         }
         
+        // 입항 완료일: 엑셀에 값이 있고, DB에 없을 때만 업데이트
         if (arrivalIndex >= 0 && row['입항_완료일']) {
-          const formattedDate = DateUtils.excelDateToString(row['입항_완료일']);
-          console.log(`  ✅ 입항 완료일 업데이트: ${formattedDate}`);
-          await updateProcess(order.id, 'shipping', arrivalIndex, {
-            completedDate: formattedDate
-          });
+          const arrivalProcess = shippingProcesses[arrivalIndex];
+          if (!arrivalProcess.completedDate) {
+            const formattedDate = DateUtils.excelDateToString(row['입항_완료일']);
+            console.log(`  ✅ 입항 완료일 신규 등록: ${formattedDate}`);
+            await updateProcess(order.id, 'shipping', arrivalIndex, {
+              completedDate: formattedDate
+            });
+          } else {
+            console.log(`  ⏭️ 입항 완료일 이미 등록됨: ${arrivalProcess.completedDate} (스킵)`);
+          }
         }
         
         successCount++;
@@ -977,6 +1046,70 @@ async function downloadAllExcelCompletion() {
     UIUtils.hideLoading();
     console.error('전체 Excel 다운로드 오류:', error);
     UIUtils.showAlert(`Excel 다운로드 실패: ${error.message}`, 'error');
+  }
+}
+
+// ============ 입고 관리 전역 함수 (공정별 완료일 등록) ============
+
+/**
+ * 입고 등록 모달 열기
+ */
+window.openArrivalRegistrationCompletion = function(orderId) {
+  const order = orders.find(o => o.id === orderId) || allOrders.find(o => o.id === orderId);
+  
+  if (!order) {
+    UIUtils.showToast('발주 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  
+  showArrivalRegistrationModal(order, async () => {
+    // 등록 완료 후 데이터 다시 로드
+    await reloadCurrentDataCompletion();
+  });
+};
+
+/**
+ * 입고 이력 모달 열기
+ */
+window.openArrivalHistoryCompletion = function(orderId) {
+  const order = orders.find(o => o.id === orderId) || allOrders.find(o => o.id === orderId);
+  
+  if (!order) {
+    UIUtils.showToast('발주 정보를 찾을 수 없습니다.', 'error');
+    return;
+  }
+  
+  showArrivalHistoryModal(order, async () => {
+    // 이력 업데이트 후 데이터 다시 로드
+    await reloadCurrentDataCompletion();
+  });
+};
+
+/**
+ * 현재 데이터 다시 로드
+ */
+async function reloadCurrentDataCompletion() {
+  try {
+    UIUtils.showLoading();
+    
+    // 현재 선택된 입고요구월로 데이터 다시 로드
+    const [year, month] = filterState.requiredMonth.split('-').map(Number);
+    const freshOrders = await getOrdersByRequiredMonth(year, month);
+    
+    // 전역 변수 업데이트
+    allOrders = [...freshOrders];
+    
+    // 필터 적용
+    applyFilters();
+    renderCompletionTable();
+    setupEventListeners();
+    
+    UIUtils.hideLoading();
+    UIUtils.showToast('데이터가 업데이트되었습니다.', 'success');
+  } catch (error) {
+    UIUtils.hideLoading();
+    console.error('데이터 재로드 실패:', error);
+    UIUtils.showToast('데이터 업데이트에 실패했습니다.', 'error');
   }
 }
 
