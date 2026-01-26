@@ -1,8 +1,11 @@
 // 공정 입고진척 현황 - 완전 재설계
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState, showArrivalRegistrationModal, showArrivalHistoryModal } from './ui-components.js';
-import { UIUtils, DateUtils, FormatUtils, ExcelUtils } from './utils.js';
+import { UIUtils, DateUtils, ExcelUtils } from './utils.js';
 import { PROCESS_CONFIG } from './process-config.js';
+
+// 로컬 숫자 포맷 함수
+const formatNumber = (num) => num?.toLocaleString() || '0';
 
 let allOrders = [];
 let orders = []; // 현재 표시 중인 데이터

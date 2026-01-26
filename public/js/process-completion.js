@@ -1,8 +1,11 @@
 // 공정별 완료일 등록
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, updateProcess } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders, showArrivalRegistrationModal, showArrivalHistoryModal } from './ui-components.js';
-import { UIUtils, ExcelUtils, DateUtils, FormatUtils } from './utils.js';
+import { UIUtils, ExcelUtils, DateUtils } from './utils.js';
 import { getCurrentUser } from './auth.js';
+
+// 로컬 숫자 포맷 함수
+const formatNumber = (num) => num?.toLocaleString() || '0';
 
 let orders = [];
 let allOrders = [];

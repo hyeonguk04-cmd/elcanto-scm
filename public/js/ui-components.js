@@ -1,7 +1,10 @@
 // UI 컴포넌트 생성 함수들
-import { UIUtils, DateUtils, FormatUtils } from './utils.js';
+import { UIUtils, DateUtils } from './utils.js';
 import { getAllProcesses } from './process-config.js';
 import { t } from './i18n.js';
+
+// 로컬 숫자 포맷 함수
+const formatNumber = (num) => num?.toLocaleString() || '0';
 
 // 사이드바 렌더링
 export function renderSidebar(role) {
