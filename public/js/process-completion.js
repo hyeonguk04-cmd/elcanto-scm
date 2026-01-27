@@ -296,7 +296,7 @@ function renderArrivalStatusCellCompletion(order) {
         ${progressEmoji} ${arrivalSummary.progress}%
       </div>
       <div class="text-gray-700">
-        ${FormatUtils.number(arrivalSummary.totalReceived)} / ${FormatUtils.number(order.quantity || 0)}
+        ${formatNumber(arrivalSummary.totalReceived)} / ${formatNumber(order.quantity || 0)}
       </div>
       <div class="text-gray-500 text-[10px]">
         ${arrivalSummary.count > 0 ? `${arrivalSummary.count}회 입고` : '미입고'}

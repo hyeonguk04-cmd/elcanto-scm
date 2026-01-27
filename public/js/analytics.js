@@ -701,21 +701,21 @@ function renderArrivalStatusCell(order) {
       <div class="p-1 bg-blue-50 rounded border border-blue-200">
         <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">최초입고</div>
         <div class="text-gray-800" style="font-size: 11px;">${firstArrival ? firstArrival.date : '-'}</div>
-        <div class="text-gray-600" style="font-size: 10px;">${firstArrival ? `${FormatUtils.number(firstArrival.quantity)}개` : '-'}</div>
+        <div class="text-gray-600" style="font-size: 10px;">${firstArrival ? `${formatNumber(firstArrival.quantity)}개` : '-'}</div>
       </div>
       
       <!-- 최종입고 -->
       <div class="p-1 bg-green-50 rounded border border-green-200">
         <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">최종입고</div>
         <div class="text-gray-800" style="font-size: 11px;">${lastArrival ? lastArrival.date : '-'}</div>
-        <div class="text-gray-600" style="font-size: 10px;">${lastArrival ? `${FormatUtils.number(lastArrival.quantity)}개 (${arrivalSummary.count}차)` : '-'}</div>
+        <div class="text-gray-600" style="font-size: 10px;">${lastArrival ? `${formatNumber(lastArrival.quantity)}개 (${arrivalSummary.count}차)` : '-'}</div>
       </div>
       
       <!-- 누적입고 -->
       <div class="p-1 bg-purple-50 rounded border border-purple-200">
         <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">누적입고</div>
         <div class="font-bold text-gray-800" style="font-size: 11px;">
-          ${FormatUtils.number(arrivalSummary.totalReceived)} / ${FormatUtils.number(order.quantity || 0)}
+          ${formatNumber(arrivalSummary.totalReceived)} / ${formatNumber(order.quantity || 0)}
         </div>
       </div>
       
@@ -723,7 +723,7 @@ function renderArrivalStatusCell(order) {
       <div class="p-1 bg-yellow-50 rounded border border-yellow-200">
         <div class="font-semibold text-gray-600 mb-0.5" style="font-size: 10px;">미입고</div>
         <div class="font-bold ${progressColor}" style="font-size: 11px;">
-          ${FormatUtils.number(Math.max(0, remaining))}개
+          ${formatNumber(Math.max(0, remaining))}개
         </div>
         <div class="font-bold ${progressColor}" style="font-size: 10px;">
           ${progressEmoji} ${arrivalSummary.progress}%
