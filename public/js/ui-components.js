@@ -2,6 +2,8 @@
 import { UIUtils, DateUtils } from './utils.js';
 import { getAllProcesses } from './process-config.js';
 import { t } from './i18n.js';
+import { addArrival, getArrivals, updateArrival, deleteLastArrival } 
+from './firestore-service.js';
 
 // 로컬 숫자 포맷 함수
 const formatNumber = (num) => num?.toLocaleString() || '0';
@@ -292,7 +294,7 @@ export function renderStatCard(label, value, change, changeType = 'increase') {
  * @param {Function} onSubmit - 등록 완료 콜백
  */
 export function showArrivalRegistrationModal(order, onSubmit) {
-  const { addArrival } = require('./firestore-service.js');
+
   
   // 기존 입고 정보
   const arrivalSummary = order.arrivalSummary || {
@@ -542,7 +544,6 @@ export function showArrivalRegistrationModal(order, onSubmit) {
  * @param {Function} onUpdate - 이력 업데이트 콜백
  */
 export async function showArrivalHistoryModal(order, onUpdate) {
-  const { getArrivals, updateArrival, deleteLastArrival } = require('./firestore-service.js');
   
   try {
     UIUtils.showLoading();
