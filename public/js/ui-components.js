@@ -332,12 +332,12 @@ export function showArrivalRegistrationModal(order, onSubmit) {
             </div>
             <div>
               <span class="text-gray-500">발주수량:</span>
-              <span class="font-semibold ml-2">${FormatUtils.number(order.quantity || 0)}개</span>
+              <span class="font-semibold ml-2">${formatNumber(order.quantity || 0)}개</span>
             </div>
             <div>
               <span class="text-gray-500">미입고:</span>
               <span class="font-semibold ml-2 ${remaining > 0 ? 'text-red-600' : 'text-green-600'}">
-                ${FormatUtils.number(remaining)}개
+                ${formatNumber(remaining)}개
               </span>
             </div>
           </div>
@@ -348,7 +348,7 @@ export function showArrivalRegistrationModal(order, onSubmit) {
             <div class="flex items-center justify-between">
               <div>
                 <span class="text-gray-500 text-xs">누적 입고:</span>
-                <span class="font-bold ml-1">${FormatUtils.number(arrivalSummary.totalReceived)} / ${FormatUtils.number(order.quantity || 0)}</span>
+                <span class="font-bold ml-1">${formatNumber(arrivalSummary.totalReceived)} / ${formatNumber(order.quantity || 0)}</span>
               </div>
               <div>
                 <span class="text-gray-500 text-xs">진행률:</span>
@@ -386,7 +386,7 @@ export function showArrivalRegistrationModal(order, onSubmit) {
                 <input type="number" id="arrival-quantity" required min="1"
                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                        placeholder="입고 수량 입력">
-                <p class="text-xs text-gray-500 mt-1">미입고 수량: ${FormatUtils.number(remaining)}개</p>
+                <p class="text-xs text-gray-500 mt-1">미입고 수량: ${formatNumber(remaining)}개</p>
               </div>
               
               <!-- 비고 -->
@@ -477,10 +477,10 @@ export function showArrivalRegistrationModal(order, onSubmit) {
       }
       
       document.getElementById('arrival-preview').classList.remove('hidden');
-      document.getElementById('preview-total').textContent = `${FormatUtils.number(newTotal)} / ${FormatUtils.number(order.quantity || 0)}`;
+      document.getElementById('preview-total').textContent = `${formatNumber(newTotal)} / ${formatNumber(order.quantity || 0)}`;
       document.getElementById('preview-progress').textContent = `${newProgress}%`;
       document.getElementById('preview-progress').className = `font-bold ml-1 ${statusColor}`;
-      document.getElementById('preview-remaining').textContent = `${FormatUtils.number(Math.max(0, newRemaining))}개`;
+      document.getElementById('preview-remaining').textContent = `${formatNumber(Math.max(0, newRemaining))}개`;
       document.getElementById('preview-status').textContent = statusText;
       document.getElementById('preview-status').className = `font-bold ml-1 ${statusColor}`;
       
@@ -488,7 +488,7 @@ export function showArrivalRegistrationModal(order, onSubmit) {
       if (newTotal > (order.quantity || 0)) {
         document.getElementById('arrival-warning').classList.remove('hidden');
         document.getElementById('warning-message').textContent = 
-          `입고수량이 발주수량을 ${FormatUtils.number(newTotal - (order.quantity || 0))}개 초과합니다. 그래도 등록하시겠습니까?`;
+          `입고수량이 발주수량을 ${formatNumber(newTotal - (order.quantity || 0))}개 초과합니다. 그래도 등록하시겠습니까?`;
       } else {
         document.getElementById('arrival-warning').classList.add('hidden');
       }
@@ -581,7 +581,7 @@ export async function showArrivalHistoryModal(order, onUpdate) {
               </div>
               <div>
                 <span class="text-gray-500">발주수량:</span>
-                <span class="font-semibold ml-2">${FormatUtils.number(order.quantity || 0)}개</span>
+                <span class="font-semibold ml-2">${formatNumber(order.quantity || 0)}개</span>
               </div>
               <div>
                 <span class="text-gray-500">생산업체:</span>
@@ -593,7 +593,7 @@ export async function showArrivalHistoryModal(order, onUpdate) {
             <div class="grid grid-cols-4 gap-3">
               <div class="p-3 bg-white rounded border">
                 <div class="text-xs text-gray-500">누적 입고</div>
-                <div class="text-lg font-bold">${FormatUtils.number(arrivalSummary.totalReceived)}개</div>
+                <div class="text-lg font-bold">${formatNumber(arrivalSummary.totalReceived)}개</div>
               </div>
               <div class="p-3 bg-white rounded border">
                 <div class="text-xs text-gray-500">진행률</div>
@@ -608,7 +608,7 @@ export async function showArrivalHistoryModal(order, onUpdate) {
               <div class="p-3 bg-white rounded border">
                 <div class="text-xs text-gray-500">미입고</div>
                 <div class="text-lg font-bold ${(order.quantity || 0) - arrivalSummary.totalReceived > 0 ? 'text-red-600' : 'text-green-600'}">
-                  ${FormatUtils.number(Math.max(0, (order.quantity || 0) - arrivalSummary.totalReceived))}개
+                  ${formatNumber(Math.max(0, (order.quantity || 0) - arrivalSummary.totalReceived))}개
                 </div>
               </div>
             </div>
@@ -651,11 +651,11 @@ export async function showArrivalHistoryModal(order, onUpdate) {
                         </div>
                         <div>
                           <span class="text-gray-500">입고수량:</span>
-                          <span class="font-semibold ml-2">${FormatUtils.number(arrival.quantity || 0)}개</span>
+                          <span class="font-semibold ml-2">${formatNumber(arrival.quantity || 0)}개</span>
                         </div>
                         <div>
                           <span class="text-gray-500">누적수량:</span>
-                          <span class="font-semibold ml-2">${FormatUtils.number(arrival.cumulative || 0)}개</span>
+                          <span class="font-semibold ml-2">${formatNumber(arrival.cumulative || 0)}개</span>
                         </div>
                         <div>
                           <span class="text-gray-500">진행률:</span>
