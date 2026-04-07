@@ -1777,6 +1777,7 @@ function addNewRow() {
   const newOrder = {
     id: tempId,
     channel: '',           // 빈 값
+    orderType: '',         // 오더기준 추가
     seasonOrder: '',
     style: '',
     styleImage: '',
