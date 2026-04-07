@@ -2531,6 +2531,9 @@ function renderOrdersTable() {
             <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'channel' ? 'bg-blue-100' : ''}" data-sort="channel">
               채널 ${getSortIcon('channel')}
             </th>
+            <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'orderType' ? 'bg-blue-100' : ''}" data-sort="orderType">
+              오더기준 ${getSortIcon('orderType')}
+            </th>
             <th class="px-2 py-2 border cursor-pointer hover:bg-blue-50 ${sortState.column === 'seasonOrder' ? 'bg-blue-100' : ''}" data-sort="seasonOrder">
               연도시즌+차수 ${getSortIcon('seasonOrder')}
             </th>
