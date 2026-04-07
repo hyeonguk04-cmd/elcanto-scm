@@ -1,3 +1,4 @@
+
 // 공정별 완료일 등록
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, updateProcess } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders, showArrivalRegistrationModal, showArrivalHistoryModal } from './ui-components.js';
@@ -388,6 +389,7 @@ function renderCompletionTable() {
         </tr>
         <tr>
           <th class="px-3 py-3 border ${getHeaderClass('channel')}" data-completion-sort="channel" style="width: 70px;">채널 ${getSortIcon('channel')}</th>
+          <th class="px-3 py-3 border ${getHeaderClass('orderType')}" data-completion-sort="orderType" style="width: 90px;">오더기준 ${getSortIcon('orderType')}</th>
           <th class="px-3 py-3 border" style="width: 120px;">연도시즌+차수</th>
           <th class="px-3 py-3 border" style="width: 110px;">스타일</th>
           <th class="px-3 py-3 border" style="width: 60px;">색상</th>
@@ -419,6 +421,7 @@ function renderCompletionTable() {
             <tr data-order-id="${order.id}" class="hover:bg-blue-50">
               <td class="px-3 py-3 border text-center">${startIndex + index + 1}</td>
               <td class="px-3 py-3 border">${order.channel || ''}</td>
+              <td class="px-3 py-3 border text-center">${order.orderType || ''}</td>
               <td class="px-3 py-3 border">${order.seasonOrder || ''}</td>
               <td class="px-3 py-3 border">${order.style || ''}</td>
               <td class="px-3 py-3 border text-center">${order.color || ''}</td>
@@ -626,6 +629,7 @@ function downloadTemplate() {
   const excelData = orders.map(order => {
     const row = {
       '채널': order.channel || '',
+      '오더기준': order.orderType || '',
       '연도시즌+차수': order.seasonOrder || '',
       '스타일': order.style || '',
       '색상': order.color || '',
@@ -1000,6 +1004,7 @@ function generateCompletionExcelData(ordersData) {
   const excelData = ordersData.map(order => {
     const row = {
       '채널': order.channel || '',
+      '오더기준': order.orderType || '',
       '연도시즌+차수': order.seasonOrder || '',
       '스타일': order.style || '',
       '색상': order.color || '',

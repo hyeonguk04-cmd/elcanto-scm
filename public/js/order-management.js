@@ -1,3 +1,4 @@
+
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
@@ -1950,6 +1951,7 @@ function downloadCurrentDataAsExcel() {
     const excelData = orders.map(order => {
       const row = {
         '채널': order.channel || '',
+        '오더기준': order.orderType || '',
         '연도시즌+차수': order.seasonOrder || '',
         '스타일': order.style || '',
         '스타일이미지': order.styleImage || '',
@@ -2310,8 +2312,18 @@ async function handleExcelUpload(e) {
         const rowNumber = globalIndex + 2;
         
         try {
+          // 필수 필드 검증
+          if (!row['오더기준']) {
+            throw new Error('오더기준은 필수입니다.');
+          }
           if (!row['발주일'] || !row['입고요구일']) {
             throw new Error('발주일과 입고요구일은 필수입니다.');
+          }
+          
+          // 오더기준 값 검증
+          const validOrderTypes = ['정기오더', 'QR'];
+          if (!validOrderTypes.includes(row['오더기준'])) {
+            throw new Error(`오더기준은 '정기오더' 또는 'QR'만 가능합니다. (입력값: ${row['오더기준']})`);
           }
           
           // 선적경로는 생산업체 정보에서 자동으로 가져옴 (Excel 입력 무시)
@@ -2335,6 +2347,7 @@ async function handleExcelUpload(e) {
           
           const orderData = {
             channel: row['채널'] || '',
+            orderType: row['오더기준'],  // 필수 필드
             seasonOrder: row['연도시즌+차수'] || '',
             style: row['스타일'] || '',
             styleImage: styleImageUrl,
