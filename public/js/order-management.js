@@ -1,4 +1,5 @@
 
+
 // 생산 목표일정 수립 (발주 관리) - 완전 개선 버전
 import { getOrdersWithProcesses, getOrdersByRequiredMonth, addOrder, updateOrder, deleteOrder, updateProcess, uploadStyleImage, getSuppliersByCountry, getSupplierByName } from './firestore-service.js';
 import { renderEmptyState, createProcessTableHeaders } from './ui-components.js';
@@ -1866,6 +1867,7 @@ async function saveAllChanges() {
         
         const updatedData = {
           channel: row.querySelector('[data-field="channel"]')?.value || order.channel || '',
+          orderType: row.querySelector('[data-field="orderType"]')?.value || order.orderType || '',
           seasonOrder: row.querySelector('[data-field="seasonOrder"]')?.value || order.seasonOrder || '',
           style: row.querySelector('[data-field="style"]')?.value || order.style || '',
           color: row.querySelector('[data-field="color"]')?.value || order.color || '',
