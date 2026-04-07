@@ -386,6 +386,17 @@ function renderOrderRow(order, rowNum, headers) {
           ).join('')}
         </select>
       </td>
+
+      <!-- 오더기준 (드롭다운) -->
+      <td class="px-2 py-2 border">
+        <select class="editable-field w-full px-1 py-1 border border-gray-300 rounded text-xs" style="min-width: 80px;" 
+                data-order-id="${order.id}" data-field="orderType">
+          <option value="">선택하세요</option>
+          ${MASTER_DATA.orderTypes.map(type => 
+            `<option value="${type}" ${order.orderType === type ? 'selected' : ''}>${type}</option>`
+          ).join('')}
+        </select>
+      </td>
       
       <!-- 연도시즌+차수 (직접입력) -->
       <td class="px-2 py-2 border">
