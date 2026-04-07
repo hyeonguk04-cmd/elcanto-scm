@@ -7,7 +7,8 @@ import { SUPPLIERS_BY_COUNTRY, ROUTES_BY_COUNTRY, calculateProcessSchedule, SHIP
 
 // 드롭다운 기준 데이터 (향후 Firestore로 이관 가능)
 const MASTER_DATA = {
-  channels: ['IM', 'ELCANTO']
+  channels: ['IM', 'ELCANTO'],
+  orderTypes: ['정기오더', 'QR']
 };
 
 let orders = [];
